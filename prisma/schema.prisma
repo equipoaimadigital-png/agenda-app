@@ -1,0 +1,82 @@
+// Esquema de base de datos — Agenda App
+// Professional = el profesional/pyme que usa la app (dueño de la cuenta)
+// Service       = un servicio que ofrece (ej. "Corte de pelo", 30 min)
+// Availability  = bloques de disponibilidad semanal recurrente
+// Booking       = una reserva concreta hecha por un cliente
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Professional {
+  id           String         @id @default(uuid())
+  // id del usuario en Supabase Auth (auth.users.id) — vincula login con este perfil
+  authUserId   String         @unique
+  businessName String
+  slug         String         @unique
+  phone        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  services      Service[]
+  availability  Availability[]
+  bookings      Booking[]
+}
+
+model Service {
+  id             String       @id @default(uuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  name           String
+  durationMin    Int
+  price          Int?
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  bookings Booking[]
+
+  @@index([professionalId])
+}
+
+// Disponibilidad semanal recurrente (ej: lunes 09:00-13:00)
+model Availability {
+  id             String       @id @default(uuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  // 0 = domingo ... 6 = sábado
+  weekday        Int
+  startMinutes   Int // minutos desde medianoche, ej. 540 = 09:00
+  endMinutes     Int
+
+  @@index([professionalId, weekday])
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model Booking {
+  id             String        @id @default(uuid())
+  professionalId String
+  professional   Professional  @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  serviceId      String
+  service        Service       @relation(fields: [serviceId], references: [id])
+  clientName     String
+  clientPhone    String
+  clientEmail    String?
+  startTime      DateTime
+  endTime        DateTime
+  status         BookingStatus @default(CONFIRMED)
+  reminderSentAt DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([professionalId, startTime])
+}
