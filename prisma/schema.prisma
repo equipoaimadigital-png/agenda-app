@@ -18,6 +18,7 @@ model Professional {
   id           String         @id @default(uuid())
   // id del usuario en Supabase Auth (auth.users.id) — vincula login con este perfil
   authUserId   String         @unique
+  email        String
   businessName String
   slug         String         @unique
   phone        String?

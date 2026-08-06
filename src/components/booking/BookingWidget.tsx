@@ -10,7 +10,7 @@ type Service = {
   price: number | null;
 };
 
-type State = { error?: string; success?: boolean };
+type State = { error?: string; success?: boolean; whatsappLink?: string };
 
 function todayStr(): string {
   const d = new Date();
@@ -50,9 +50,21 @@ export function BookingWidget({ slug, services }: { slug: string; services: Serv
 
   if (state.success) {
     return (
-      <div className="border rounded-md p-4 bg-green-50 text-green-800">
-        <p className="font-medium">¡Reserva confirmada!</p>
-        <p className="text-sm">Te esperamos. Guarda esta confirmación.</p>
+      <div className="border rounded-md p-4 bg-green-50 text-green-800 flex flex-col gap-3">
+        <div>
+          <p className="font-medium">¡Reserva confirmada!</p>
+          <p className="text-sm">Te esperamos. Guarda esta confirmación.</p>
+        </div>
+        {state.whatsappLink && (
+          <a
+            href={state.whatsappLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-green-600 text-white rounded-md px-4 py-2 font-medium text-center"
+          >
+            Enviar confirmación por WhatsApp
+          </a>
+        )}
       </div>
     );
   }

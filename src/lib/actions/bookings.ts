@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { computeAvailableSlots } from "@/lib/slots";
+import { sendBookingEmails } from "@/lib/email";
+import { buildWhatsappLink } from "@/lib/whatsapp";
 import { revalidatePath } from "next/cache";
 
 function parseDate(dateStr: string): { year: number; month: number; day: number } {
@@ -73,7 +75,9 @@ export async function getAvailableSlots(
   });
 }
 
-export async function createPublicBooking(formData: FormData): Promise<{ error?: string; success?: boolean }> {
+export async function createPublicBooking(
+  formData: FormData
+): Promise<{ error?: string; success?: boolean; whatsappLink?: string }> {
   const slug = String(formData.get("slug") || "");
   const serviceId = String(formData.get("serviceId") || "");
   const dateStr = String(formData.get("date") || "");
@@ -124,6 +128,19 @@ export async function createPublicBooking(formData: FormData): Promise<{ error?:
     },
   });
 
+  await sendBookingEmails({
+    businessName: professional.businessName,
+    serviceName: service.name,
+    clientName,
+    clientEmail,
+    clientPhone,
+    startTime,
+    professionalEmail: professional.email,
+  });
+
+  const whatsappMessage = `Hola ${clientName}, tu cita para ${service.name} con ${professional.businessName} quedó confirmada.`;
+  const whatsappLink = buildWhatsappLink(clientPhone, whatsappMessage);
+
   revalidatePath("/dashboard");
-  return { success: true };
+  return { success: true, whatsappLink };
 }

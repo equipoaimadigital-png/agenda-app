@@ -45,6 +45,7 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   await prisma.professional.create({
     data: {
       authUserId: data.user.id,
+      email: data.user.email ?? email,
       businessName,
       slug,
     },
