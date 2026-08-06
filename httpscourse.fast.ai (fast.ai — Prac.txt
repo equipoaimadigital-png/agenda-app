@@ -1,0 +1,15 @@
+https://course.fast.ai/ (fast.ai — Practical Deep Learning for Coders)
+Empieza aquí para fundamentos prácticos de deep learning: redes neuronales, visión, texto, tabular data, todo con código real en notebooks. Es 100% gratuito, incluye video, libro y foro de la comunidad.
+https://huggingface.co/learn/llm-course (Hugging Face — LLM Course)
+Una vez tengas las bases, este curso te lleva al ecosistema de modelos de lenguaje: transformers, tokenización, fine-tuning, evaluación. Gratuito y con notebooks ejecutables.
+https://huggingface.co/learn/agents-course (Hugging Face — Agents Course)
+Sigue con este para aprender a construir y desplegar agentes de IA (la habilidad más demandada hoy para consultoría). Gratuito, con proyecto final incluido.
+https://www.deeplearning.ai/courses/langchain (DeepLearning.AI — LangChain for LLM Application Development)
+Curso corto y gratuito para aprender el framework más usado en la industria para construir aplicaciones con LLMs.
+https://www.deeplearning.ai/courses/building-evaluating-advanced-rag (DeepLearning.AI — Building and Evaluating Advanced RAG)
+Profundiza en sistemas de recuperación aumentada (RAG), clave para casi cualquier proyecto de IA aplicada a empresas. Gratuito.
+https://www.deeplearning.ai/courses/ai-agents-in-langgraph (DeepLearning.AI — AI Agents in LangGraph)
+Cierra el bloque técnico con agentes más sofisticados (multi-paso, con memoria y herramientas). Gratuito.
+https://www.coursera.org/specializations/machine-learning-introduction (Coursera/Stanford Online + DeepLearning.AI — Machine Learning Specialization)
+Este es opcional pero recomendado si quieres reforzar matemáticas y fundamentos formales de ML más adelante. Puedes auditar (ver todo el contenido) gratis; solo pagarías si quieres el certificado compartible en LinkedIn.
+Respondiendo directamente tu pregunta: sí, tienes una muy buena posibilidad de aprender casi todo esto sin pagar nada. Fast.ai y los dos cursos de Hugging Face son completamente gratuitos incluyendo certificado/insignia de finalización. Los cursos cortos de DeepLearning.AI (LangChain, RAG, Agents) también son gratuitos en su plataforma propia. Lo único que normalmente tiene costo es obtener el certificado formal de una Specialization en Coursera (como la de Machine Learning), pero el contenido en sí se puede auditar gratis; solo pagarías si en algún momento decides que necesitas ese certificado específico como credencial visible. Te recomiendo empezar por fast.ai y los dos cursos de Hugging Face antes de tocar nada de pago, y evaluar más adelante si de verdad necesitas certificados formales una vez tengas proyectos propios funcionando.
