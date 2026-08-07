@@ -1,7 +1,8 @@
 // Esquema de base de datos — Agenda App
-// Professional = el profesional/pyme que usa la app (dueño de la cuenta)
+// Professional  = el profesional/pyme que usa la app (dueño de la cuenta)
 // Service       = un servicio que ofrece (ej. "Corte de pelo", 30 min)
 // Availability  = bloques de disponibilidad semanal recurrente
+// DateException = días puntuales bloqueados (feriados, vacaciones)
 // Booking       = una reserva concreta hecha por un cliente
 
 generator client {
@@ -15,19 +16,29 @@ datasource db {
 }
 
 model Professional {
-  id           String         @id @default(uuid())
+  id           String   @id @default(uuid())
   // id del usuario en Supabase Auth (auth.users.id) — vincula login con este perfil
-  authUserId   String         @unique
+  authUserId   String   @unique
   email        String
   businessName String
-  slug         String         @unique
+  slug         String   @unique
   phone        String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  // Portal público
+  description  String?
+  address      String?
+  // Color de acento de la marca (hex, ej. #0f766e)
+  brandColor   String   @default("#0f766e")
+  // Política de cancelación: horas mínimas de anticipación para cancelar/reprogramar
+  cancellationHours Int @default(24)
+  // Zona horaria del negocio (los horarios se interpretan en esta zona)
+  timezone     String   @default("America/Santiago")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  services      Service[]
-  availability  Availability[]
-  bookings      Booking[]
+  services       Service[]
+  availability   Availability[]
+  dateExceptions DateException[]
+  bookings       Booking[]
 }
 
 model Service {
@@ -35,6 +46,7 @@ model Service {
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   name           String
+  description    String?
   durationMin    Int
   price          Int?
   active         Boolean      @default(true)
@@ -58,10 +70,24 @@ model Availability {
   @@index([professionalId, weekday])
 }
 
+// Día puntual sin atención (feriado, vacaciones, emergencia)
+model DateException {
+  id             String       @id @default(uuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  // Fecha del día bloqueado, como "YYYY-MM-DD" para evitar ambigüedad de zona horaria
+  date           String
+  reason         String?
+  createdAt      DateTime     @default(now())
+
+  @@unique([professionalId, date])
+}
+
 enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+  NO_SHOW
 }
 
 model Booking {
@@ -76,6 +102,12 @@ model Booking {
   startTime      DateTime
   endTime        DateTime
   status         BookingStatus @default(CONFIRMED)
+  // Token del link único de gestión que recibe el cliente (ver /reserva/[token])
+  manageToken    String        @unique @default(uuid())
+  // Nota interna del profesional sobre el cliente/cita (no visible para el cliente)
+  internalNote   String?
+  // Motivo de cancelación (visible para el cliente si cancela el profesional)
+  cancelReason   String?
   reminderSentAt DateTime?
   createdAt      DateTime      @default(now())
 

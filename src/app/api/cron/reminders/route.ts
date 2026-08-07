@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
       clientName: booking.clientName,
       clientEmail: booking.clientEmail!,
       startTime: booking.startTime,
+      manageToken: booking.manageToken,
     });
     if (ok) {
       await prisma.booking.update({

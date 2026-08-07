@@ -1,83 +1,59 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { computeAvailableSlots } from "@/lib/slots";
+import {
+  daySlots,
+  loadBookingContext,
+  monthAvailability,
+  nextAvailableDays,
+  type DaySuggestion,
+} from "@/lib/booking-logic";
+import { wallClockDate } from "@/lib/dates";
 import { sendBookingEmails } from "@/lib/email";
 import { buildWhatsappLink } from "@/lib/whatsapp";
-import { revalidatePath } from "next/cache";
 
-function parseDate(dateStr: string): { year: number; month: number; day: number } {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  return { year, month, day };
+/** Fechas con disponibilidad de un mes, para pintar el calendario. */
+export async function getMonthAvailability(
+  slug: string,
+  serviceId: string,
+  year: number,
+  month: number
+): Promise<string[]> {
+  const ctx = await loadBookingContext(slug, serviceId);
+  if (!ctx) return [];
+  return monthAvailability(ctx, year, month);
 }
 
-function dayBounds(dateStr: string) {
-  const { year, month, day } = parseDate(dateStr);
-  const start = new Date(year, month - 1, day, 0, 0, 0, 0);
-  const end = new Date(year, month - 1, day, 23, 59, 59, 999);
-  return { start, end };
-}
+export type SlotsResult = {
+  slots: string[];
+  /** Si el día no tiene horarios, próximos días con cupos */
+  suggestions: DaySuggestion[];
+};
 
 export async function getAvailableSlots(
   slug: string,
   serviceId: string,
   dateStr: string
-): Promise<string[]> {
-  const professional = await prisma.professional.findUnique({ where: { slug } });
-  if (!professional) return [];
+): Promise<SlotsResult> {
+  const ctx = await loadBookingContext(slug, serviceId);
+  if (!ctx) return { slots: [], suggestions: [] };
 
-  const professionalId = professional.id;
-  const [service, blocks] = await Promise.all([
-    prisma.service.findFirst({ where: { id: serviceId, professionalId, active: true } }),
-    prisma.availability.findMany({ where: { professionalId } }),
-  ]);
+  const slots = await daySlots(ctx, dateStr);
+  if (slots.length > 0) return { slots, suggestions: [] };
 
-  if (!service) return [];
-
-  const { year, month, day } = parseDate(dateStr);
-  const weekday = new Date(year, month - 1, day).getDay();
-  const dayBlocks = blocks.filter((b) => b.weekday === weekday);
-  if (dayBlocks.length === 0) return [];
-
-  const { start, end } = dayBounds(dateStr);
-  const existing = await prisma.booking.findMany({
-    where: {
-      professionalId,
-      status: "CONFIRMED",
-      startTime: { gte: start, lte: end },
-    },
-    select: { startTime: true, endTime: true },
-  });
-
-  const busy = existing.map((b) => ({
-    startMinutes: b.startTime.getHours() * 60 + b.startTime.getMinutes(),
-    endMinutes: b.endTime.getHours() * 60 + b.endTime.getMinutes(),
-  }));
-
-  const now = new Date();
-  const isToday =
-    now.getFullYear() === year && now.getMonth() === month - 1 && now.getDate() === day;
-  const minMinutesFromNow = isToday ? now.getHours() * 60 + now.getMinutes() : null;
-
-  const slots = computeAvailableSlots(
-    dayBlocks.map((b) => ({ startMinutes: b.startMinutes, endMinutes: b.endMinutes })),
-    service.durationMin,
-    busy,
-    minMinutesFromNow
-  );
-
-  return slots.map((m) => {
-    const h = Math.floor(m / 60)
-      .toString()
-      .padStart(2, "0");
-    const min = (m % 60).toString().padStart(2, "0");
-    return `${h}:${min}`;
-  });
+  const suggestions = await nextAvailableDays(ctx, dateStr);
+  return { slots: [], suggestions };
 }
 
-export async function createPublicBooking(
-  formData: FormData
-): Promise<{ error?: string; success?: boolean; whatsappLink?: string }> {
+export type CreateBookingResult = {
+  error?: string;
+  success?: boolean;
+  manageToken?: string;
+  whatsappLink?: string;
+};
+
+export async function createPublicBooking(formData: FormData): Promise<CreateBookingResult> {
   const slug = String(formData.get("slug") || "");
   const serviceId = String(formData.get("serviceId") || "");
   const dateStr = String(formData.get("date") || "");
@@ -87,26 +63,25 @@ export async function createPublicBooking(
   const clientEmail = String(formData.get("clientEmail") || "").trim() || null;
 
   if (!slug || !serviceId || !dateStr || !time || !clientName || !clientPhone) {
-    return { error: "Completa todos los campos." };
+    return { error: "Completa todos los campos obligatorios." };
   }
 
-  const professional = await prisma.professional.findUnique({ where: { slug } });
-  if (!professional) return { error: "Negocio no encontrado." };
+  const ctx = await loadBookingContext(slug, serviceId);
+  if (!ctx) return { error: "Negocio o servicio no encontrado." };
 
-  const service = await prisma.service.findFirst({
-    where: { id: serviceId, professionalId: professional.id, active: true },
-  });
-  if (!service) return { error: "Servicio no válido." };
+  // Revalida el horario en el servidor justo antes de crear la reserva
+  const available = await daySlots(ctx, dateStr);
+  if (!available.includes(time)) {
+    return { error: "Ese horario ya no está disponible. Elige otro." };
+  }
 
-  const { year, month, day } = parseDate(dateStr);
-  const [hour, minute] = time.split(":").map(Number);
-  const startTime = new Date(year, month - 1, day, hour, minute, 0, 0);
-  const endTime = new Date(startTime.getTime() + service.durationMin * 60000);
+  const startTime = wallClockDate(dateStr, time);
+  const endTime = new Date(startTime.getTime() + ctx.service.durationMin * 60000);
 
-  // Vuelve a validar el horario justo antes de crear la reserva, por si alguien más lo tomó primero
+  // Doble chequeo contra condición de carrera (dos personas reservando a la vez)
   const overlapping = await prisma.booking.findFirst({
     where: {
-      professionalId: professional.id,
+      professionalId: ctx.professional.id,
       status: "CONFIRMED",
       startTime: { lt: endTime },
       endTime: { gt: startTime },
@@ -116,10 +91,10 @@ export async function createPublicBooking(
     return { error: "Ese horario ya no está disponible. Elige otro." };
   }
 
-  await prisma.booking.create({
+  const booking = await prisma.booking.create({
     data: {
-      professionalId: professional.id,
-      serviceId: service.id,
+      professionalId: ctx.professional.id,
+      serviceId: ctx.service.id,
       clientName,
       clientPhone,
       clientEmail,
@@ -129,18 +104,22 @@ export async function createPublicBooking(
   });
 
   await sendBookingEmails({
-    businessName: professional.businessName,
-    serviceName: service.name,
+    businessName: ctx.professional.businessName,
+    serviceName: ctx.service.name,
     clientName,
     clientEmail,
     clientPhone,
     startTime,
-    professionalEmail: professional.email,
+    professionalEmail: ctx.professional.email,
+    manageToken: booking.manageToken,
   });
 
-  const whatsappMessage = `Hola ${clientName}, tu cita para ${service.name} con ${professional.businessName} quedó confirmada.`;
-  const whatsappLink = buildWhatsappLink(clientPhone, whatsappMessage);
+  const whatsappMessage = `Hola ${clientName}, tu cita para ${ctx.service.name} con ${ctx.professional.businessName} quedó confirmada. Detalle: ${process.env.NEXT_PUBLIC_SITE_URL}/reserva/${booking.manageToken}`;
 
   revalidatePath("/dashboard");
-  return { success: true, whatsappLink };
+  return {
+    success: true,
+    manageToken: booking.manageToken,
+    whatsappLink: buildWhatsappLink(clientPhone, whatsappMessage),
+  };
 }
