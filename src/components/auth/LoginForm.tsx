@@ -23,7 +23,7 @@ export function LoginForm() {
           type="email"
           required
           placeholder="tucorreo@ejemplo.com"
-          className="border rounded-md px-3 py-2"
+          className="border border-border rounded-lg px-3 py-2.5"
         />
       </div>
 
@@ -36,16 +36,16 @@ export function LoginForm() {
           name="password"
           type="password"
           required
-          className="border rounded-md px-3 py-2"
+          className="border border-border rounded-lg px-3 py-2.5"
         />
       </div>
 
-      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state?.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <button
         type="submit"
         disabled={isPending}
-        className="bg-black text-white rounded-md px-4 py-2 font-medium disabled:opacity-50"
+        className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium disabled:opacity-50"
       >
         {isPending ? "Entrando..." : "Entrar"}
       </button>
