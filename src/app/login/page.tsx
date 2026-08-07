@@ -24,12 +24,17 @@ export default async function LoginPage({
         )}
 
         <LoginForm />
-        <p className="text-sm text-muted">
-          ¿No tienes cuenta?{" "}
-          <Link href="/registro" className="underline">
-            Regístrate
+        <div className="flex flex-col gap-2">
+          <Link href="/login/olvide" className="text-sm text-muted underline w-fit">
+            ¿Olvidaste tu contraseña?
           </Link>
-        </p>
+          <p className="text-sm text-muted">
+            ¿No tienes cuenta?{" "}
+            <Link href="/registro" className="underline">
+              Regístrate
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   );

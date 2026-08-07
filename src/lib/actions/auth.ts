@@ -78,3 +78,36 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+export async function requestPasswordReset(
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
+  const email = String(formData.get("email") || "").trim();
+  if (!email) return { error: "Ingresa tu correo." };
+
+  const supabase = await createSupabaseServerClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl}/auth/callback?next=/actualizar-clave`,
+  });
+
+  // Siempre responde éxito (sin confirmar si el correo existe), por seguridad
+  return { success: true };
+}
+
+export async function updatePassword(
+  formData: FormData
+): Promise<{ error?: string }> {
+  const password = String(formData.get("password") || "");
+  if (password.length < 6) {
+    return { error: "La contraseña debe tener al menos 6 caracteres." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    return { error: "No se pudo actualizar la contraseña. Pide un nuevo link e intenta de nuevo." };
+  }
+
+  redirect("/dashboard");
+}

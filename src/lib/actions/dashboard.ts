@@ -66,6 +66,36 @@ export async function cancelBookingByProfessional(
   return {};
 }
 
+/** Revierte una cancelación hecha por error, si el horario sigue libre. */
+export async function undoCancelBooking(bookingId: string): Promise<{ error?: string }> {
+  const professional = await requireProfessional();
+  const booking = await prisma.booking.findFirst({
+    where: { id: bookingId, professionalId: professional.id, status: "CANCELLED" },
+  });
+  if (!booking) return { error: "Esta reserva ya no se puede restaurar." };
+
+  const overlapping = await prisma.booking.findFirst({
+    where: {
+      professionalId: professional.id,
+      status: "CONFIRMED",
+      id: { not: booking.id },
+      startTime: { lt: booking.endTime },
+      endTime: { gt: booking.startTime },
+    },
+  });
+  if (overlapping) {
+    return { error: "Ese horario ya fue tomado por otra reserva, no se puede restaurar." };
+  }
+
+  await prisma.booking.update({
+    where: { id: booking.id },
+    data: { status: "CONFIRMED", cancelReason: null },
+  });
+
+  revalidatePath("/dashboard");
+  return {};
+}
+
 /** Emergencia: cancela todas las citas confirmadas de un día y bloquea el día. */
 export async function cancelDayEmergency(
   dateStr: string,

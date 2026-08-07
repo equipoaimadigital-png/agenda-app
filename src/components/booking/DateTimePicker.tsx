@@ -153,12 +153,20 @@ export function DateTimePicker({ slug, serviceId, onPick, picked }: Props) {
 
       {/* Horarios del día elegido */}
       {selectedDate && (
-        <div>
+        <div aria-live="polite" aria-busy={loadingSlots}>
           <p className="text-sm font-medium mb-2 capitalize">
             {formatDateLong(selectedDate)}
           </p>
           {loadingSlots ? (
-            <p className="text-sm text-muted">Buscando horarios…</p>
+            <div className="flex flex-wrap gap-2" aria-label="Buscando horarios disponibles">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <span
+                  key={i}
+                  aria-hidden
+                  className="h-9 w-16 rounded-lg bg-border animate-pulse"
+                />
+              ))}
+            </div>
           ) : slots.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {slots.map((slot) => {

@@ -23,6 +23,15 @@ export default async function AgendaPage() {
 
   const now = nowInTimeZone(professional.timezone);
 
+  // Resumen de hoy
+  const todayBookings = bookings.filter((b) => {
+    const { dateStr } = wallClockOf(b.startTime);
+    return dateStr === now.dateStr && b.status === "CONFIRMED";
+  });
+  const nextBooking = todayBookings.find(
+    (b) => b.startTime.getHours() * 60 + b.startTime.getMinutes() >= now.minutes
+  );
+
   // Agrupa por fecha
   const groups = new Map<string, typeof bookings>();
   for (const b of bookings) {
@@ -41,6 +50,26 @@ export default async function AgendaPage() {
           Tus citas de los últimos 7 días y las próximas.
         </p>
       </div>
+
+      {todayBookings.length > 0 && (
+        <section className="bg-brand-soft border border-border rounded-xl p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+          <div>
+            <p className="text-xs text-muted uppercase tracking-wide">Hoy</p>
+            <p className="font-semibold">
+              {todayBookings.length} cita{todayBookings.length === 1 ? "" : "s"} confirmada
+              {todayBookings.length === 1 ? "" : "s"}
+            </p>
+          </div>
+          {nextBooking && (
+            <div>
+              <p className="text-xs text-muted uppercase tracking-wide">Próxima</p>
+              <p className="font-semibold">
+                {wallClockOf(nextBooking.startTime).time} · {nextBooking.clientName}
+              </p>
+            </div>
+          )}
+        </section>
+      )}
 
       {sortedDates.length === 0 && (
         <div className="bg-surface border border-border rounded-xl p-8 text-center">
@@ -90,6 +119,8 @@ export default async function AgendaPage() {
                   status: b.status,
                   internalNote: b.internalNote,
                   isPast,
+                  reminderSent: !!b.reminderSentAt,
+                  hasClientEmail: !!b.clientEmail,
                 };
                 return <BookingRow key={b.id} booking={data} />;
               })}

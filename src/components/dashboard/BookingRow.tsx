@@ -6,6 +6,7 @@ import {
   cancelBookingByProfessional,
   markBookingStatus,
   saveInternalNote,
+  undoCancelBooking,
 } from "@/lib/actions/dashboard";
 
 export type BookingRowData = {
@@ -19,6 +20,9 @@ export type BookingRowData = {
   internalNote: string | null;
   /** true si la hora de la cita ya pasó */
   isPast: boolean;
+  /** true si ya se envió el recordatorio automático de esta cita */
+  reminderSent: boolean;
+  hasClientEmail: boolean;
 };
 
 const STATUS_BADGE: Record<string, { text: string; classes: string }> = {
@@ -34,6 +38,7 @@ export function BookingRow({ booking }: { booking: BookingRowData }) {
   const [panel, setPanel] = useState<"none" | "cancel" | "note">("none");
   const [reason, setReason] = useState("");
   const [note, setNote] = useState(booking.internalNote ?? "");
+  const [undoError, setUndoError] = useState<string | null>(null);
 
   const badge = STATUS_BADGE[booking.status] ?? STATUS_BADGE.CONFIRMED;
   const cancelled = booking.status === "CANCELLED";
@@ -49,7 +54,7 @@ export function BookingRow({ booking }: { booking: BookingRowData }) {
   return (
     <div
       className={`bg-surface border border-border rounded-xl p-4 flex flex-col gap-3 ${
-        cancelled ? "opacity-60" : ""
+        cancelled ? "opacity-70" : ""
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -63,11 +68,29 @@ export function BookingRow({ booking }: { booking: BookingRowData }) {
                 {booking.clientPhone}
               </a>
             </p>
-            {booking.internalNote && panel !== "note" && (
-              <p className="text-xs text-muted mt-1 bg-warning-soft rounded px-2 py-1 inline-block">
-                📝 {booking.internalNote}
-              </p>
-            )}
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              {booking.internalNote && panel !== "note" && (
+                <span className="text-xs text-muted bg-warning-soft rounded px-2 py-1">
+                  📝 {booking.internalNote}
+                </span>
+              )}
+              {booking.status === "CONFIRMED" && booking.hasClientEmail && (
+                <span
+                  className={`text-xs rounded px-2 py-1 ${
+                    booking.reminderSent
+                      ? "bg-brand-soft text-brand"
+                      : "bg-surface border border-border text-muted"
+                  }`}
+                  title={
+                    booking.reminderSent
+                      ? "El sistema ya le envió el recordatorio automático a este cliente"
+                      : "Se le enviará un recordatorio automático un día antes"
+                  }
+                >
+                  {booking.reminderSent ? "✓ Recordatorio enviado" : "⏱ Recordatorio programado"}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <span className={`text-xs font-medium rounded-full px-2.5 py-1 whitespace-nowrap ${badge.classes}`}>
@@ -111,6 +134,26 @@ export function BookingRow({ booking }: { booking: BookingRowData }) {
           >
             Cancelar
           </button>
+        </div>
+      )}
+
+      {cancelled && (
+        <div className="flex items-center gap-2 text-sm">
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() =>
+              startTransition(async () => {
+                const result = await undoCancelBooking(booking.id);
+                if (result.error) setUndoError(result.error);
+                else router.refresh();
+              })
+            }
+            className="border border-border rounded-lg px-3 py-1.5 hover:border-brand disabled:opacity-50"
+          >
+            {isPending ? "Restaurando…" : "Deshacer cancelación"}
+          </button>
+          {undoError && <span className="text-xs text-danger">{undoError}</span>}
         </div>
       )}
 
