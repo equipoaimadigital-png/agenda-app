@@ -23,16 +23,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+const TRUST_ITEMS = [
+  { icon: "⚡", text: "Confirmación al instante" },
+  { icon: "↺", text: "Cancela gratis con anticipación" },
+  { icon: "🔒", text: "Tus datos están protegidos" },
+];
+
 export default async function ReservarPage({ params }: PageProps) {
   const { slug } = await params;
   const professional = await loadProfessional(slug);
 
   if (!professional) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-6 text-center">
+      <main className="min-h-screen flex items-center justify-center p-6 text-center bg-paper">
         <div className="max-w-sm">
-          <h1 className="text-xl font-semibold">Página no disponible</h1>
-          <p className="text-muted mt-2">
+          <h1 className="text-xl font-semibold font-display">Página no disponible</h1>
+          <p className="text-stone mt-2">
             Este enlace no existe o ya no está activo. Verifica el enlace con
             quien te lo compartió.
           </p>
@@ -58,7 +64,7 @@ export default async function ReservarPage({ params }: PageProps) {
 
   return (
     <main
-      className="min-h-screen"
+      className="min-h-screen bg-paper"
       style={{ "--brand": professional.brandColor } as React.CSSProperties}
     >
       <script
@@ -66,34 +72,49 @@ export default async function ReservarPage({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Hero del negocio */}
-      <header className="bg-surface border-b border-border">
-        <div className="max-w-lg mx-auto px-5 py-8">
-          <div className="flex items-center gap-4">
+      {/* Hero del negocio — el nombre es lo primero que se lee */}
+      <header className="relative bg-ink text-white overflow-hidden">
+        <div aria-hidden className="absolute inset-0 seal-texture" />
+        <div className="relative max-w-lg mx-auto px-5 pt-10 pb-8 sm:pt-14 sm:pb-10">
+          <div className="flex items-start gap-4">
             <div
               aria-hidden
-              className="w-14 h-14 rounded-2xl bg-brand text-brand-foreground flex items-center justify-center text-xl font-semibold shrink-0"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-brand flex items-center justify-center text-lg sm:text-xl font-semibold shrink-0 ring-2 ring-white/15"
             >
               {professional.businessName.slice(0, 1).toUpperCase()}
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold leading-tight">
+            <div className="min-w-0">
+              <h1 className="font-display text-2xl sm:text-3xl leading-tight">
                 {professional.businessName}
               </h1>
               {professional.address && (
-                <p className="text-sm text-muted mt-0.5">{professional.address}</p>
+                <p className="text-sm text-white/70 mt-1">{professional.address}</p>
               )}
             </div>
           </div>
           {professional.description && (
-            <p className="text-muted mt-4">{professional.description}</p>
+            <p className="text-white/80 mt-4 text-sm sm:text-base max-w-md">
+              {professional.description}
+            </p>
           )}
         </div>
       </header>
 
+      {/* Franja de confianza */}
+      <div className="bg-brand-soft border-b border-border">
+        <ul className="max-w-lg mx-auto px-5 py-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs sm:text-sm text-ink">
+          {TRUST_ITEMS.map((item) => (
+            <li key={item.text} className="flex items-center gap-1.5">
+              <span aria-hidden>{item.icon}</span>
+              {item.text}
+            </li>
+          ))}
+        </ul>
+      </div>
+
       <div className="max-w-lg mx-auto px-5 py-6 pb-16">
         {professional.services.length === 0 ? (
-          <p className="text-muted">
+          <p className="text-stone">
             Este negocio todavía no tiene servicios disponibles para reservar.
           </p>
         ) : (
@@ -108,7 +129,7 @@ export default async function ReservarPage({ params }: PageProps) {
             }))}
           />
         )}
-        <p className="text-xs text-muted text-center mt-10">
+        <p className="text-xs text-stone text-center mt-10">
           Cancelaciones y cambios hasta {professional.cancellationHours} h antes de la cita.
         </p>
       </div>

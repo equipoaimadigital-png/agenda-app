@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function CopyLinkButton({ url }: { url: string }) {
+export function CopyLinkButton({ url, dark = false }: { url: string; dark?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   return (
@@ -17,7 +17,11 @@ export function CopyLinkButton({ url }: { url: string }) {
           // El portapapeles puede fallar en contextos no seguros; se ignora
         }
       }}
-      className="text-xs font-medium bg-surface border border-border rounded-lg px-2.5 py-1.5 hover:border-brand"
+      className={
+        dark
+          ? "text-xs font-medium bg-white/10 border border-white/15 rounded-lg px-2.5 py-1.5 hover:bg-white/15"
+          : "text-xs font-medium bg-surface border border-border rounded-lg px-2.5 py-1.5 hover:border-brand"
+      }
     >
       {copied ? "¡Copiado!" : "Copiar link"}
     </button>

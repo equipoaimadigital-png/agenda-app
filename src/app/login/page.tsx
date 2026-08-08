@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export default async function LoginPage({
@@ -9,11 +10,11 @@ export default async function LoginPage({
   const { confirm } = await searchParams;
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-sm flex flex-col gap-6">
+    <AuthSplitLayout tagline="Tus clientes reservan solos. Tú te concentras en atenderlos.">
+      <div className="flex flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-semibold">Inicia sesión</h1>
-          <p className="text-sm text-muted">Entra a tu panel de agenda.</p>
+          <h1 className="text-2xl font-semibold font-display">Inicia sesión</h1>
+          <p className="text-sm text-stone">Entra a tu panel de agenda.</p>
         </div>
 
         {confirm && (
@@ -25,17 +26,17 @@ export default async function LoginPage({
 
         <LoginForm />
         <div className="flex flex-col gap-2">
-          <Link href="/login/olvide" className="text-sm text-muted underline w-fit">
+          <Link href="/login/olvide" className="text-sm text-stone underline w-fit">
             ¿Olvidaste tu contraseña?
           </Link>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-stone">
             ¿No tienes cuenta?{" "}
-            <Link href="/registro" className="underline">
+            <Link href="/registro" className="underline text-brand">
               Regístrate
             </Link>
           </p>
         </div>
       </div>
-    </main>
+    </AuthSplitLayout>
   );
 }

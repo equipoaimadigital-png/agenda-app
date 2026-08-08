@@ -5,7 +5,7 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
   return (
     <div className="bg-surface border border-border rounded-xl p-4">
       <p className="text-sm text-muted">{label}</p>
-      <p className="text-2xl font-semibold mt-1">{value}</p>
+      <p className="text-2xl font-semibold font-numeric mt-1">{value}</p>
       {hint && <p className="text-xs text-muted mt-1">{hint}</p>}
     </div>
   );
@@ -47,7 +47,7 @@ export default async function EstadisticasPage() {
   return (
     <div className="flex flex-col gap-6 max-w-xl">
       <div>
-        <h1 className="text-2xl font-semibold">Estadísticas</h1>
+        <h1 className="text-2xl font-semibold font-display">Estadísticas</h1>
         <p className="text-sm text-muted mt-1">Últimas 4 semanas.</p>
       </div>
 

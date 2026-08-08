@@ -32,7 +32,14 @@ const STATUS_BADGE: Record<string, { text: string; classes: string }> = {
   NO_SHOW: { text: "No asistió", classes: "bg-warning-soft text-warning" },
 };
 
-export function BookingRow({ booking }: { booking: BookingRowData }) {
+export function BookingRow({
+  booking,
+  isNext = false,
+}: {
+  booking: BookingRowData;
+  /** La próxima cita que viene — se destaca con el borde de marca (bronce). */
+  isNext?: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [panel, setPanel] = useState<"none" | "cancel" | "note">("none");
@@ -53,16 +60,25 @@ export function BookingRow({ booking }: { booking: BookingRowData }) {
 
   return (
     <div
-      className={`bg-surface border border-border rounded-xl p-4 flex flex-col gap-3 ${
-        cancelled ? "opacity-70" : ""
-      }`}
+      className={`bg-surface rounded-xl p-4 flex flex-col gap-3 border ${
+        isNext && !cancelled
+          ? "border-border-strong border-l-[4px] border-l-brass"
+          : "border-border"
+      } ${cancelled ? "opacity-70" : ""}`}
     >
+      {isNext && !cancelled && (
+        <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--stone)" }}>
+          Siguiente
+        </p>
+      )}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
-          <span className="font-mono font-semibold text-lg leading-6">{booking.time}</span>
+          <span className="font-numeric font-semibold text-lg leading-6 shrink-0">
+            {booking.time}
+          </span>
           <div className="min-w-0">
             <p className="font-medium truncate">{booking.clientName}</p>
-            <p className="text-sm text-muted truncate">
+            <p className="text-sm text-stone truncate">
               {booking.serviceName} · {booking.durationMin} min ·{" "}
               <a href={`tel:${booking.clientPhone}`} className="underline decoration-border hover:decoration-brand">
                 {booking.clientPhone}
@@ -70,7 +86,7 @@ export function BookingRow({ booking }: { booking: BookingRowData }) {
             </p>
             <div className="flex flex-wrap items-center gap-1.5 mt-1">
               {booking.internalNote && panel !== "note" && (
-                <span className="text-xs text-muted bg-warning-soft rounded px-2 py-1">
+                <span className="text-xs text-stone bg-warning-soft rounded px-2 py-1">
                   📝 {booking.internalNote}
                 </span>
               )}
@@ -79,7 +95,7 @@ export function BookingRow({ booking }: { booking: BookingRowData }) {
                   className={`text-xs rounded px-2 py-1 ${
                     booking.reminderSent
                       ? "bg-brand-soft text-brand"
-                      : "bg-surface border border-border text-muted"
+                      : "bg-surface border border-border text-stone"
                   }`}
                   title={
                     booking.reminderSent

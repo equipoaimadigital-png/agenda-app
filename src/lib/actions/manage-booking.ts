@@ -2,14 +2,29 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { daySlots, loadBookingContext } from "@/lib/booking-logic";
-import { wallClockDate } from "@/lib/dates";
+import {
+  daySlots,
+  hasOverlappingBooking,
+  loadBookingContext,
+  withProfessionalLock,
+} from "@/lib/booking-logic";
+import { minutesToTime, nowInTimeZone, wallClockDate } from "@/lib/dates";
 import { sendCancellationEmails, sendRescheduleEmails } from "@/lib/email";
 
-/** ¿La cita todavía se puede modificar según la política del negocio? */
-function withinPolicy(startTime: Date, cancellationHours: number): boolean {
+/**
+ * ¿La cita todavía se puede modificar según la política del negocio?
+ *
+ * `startTime` está guardado como "hora de pared" del negocio (ver dates.ts), no
+ * como instante real, así que comparar contra `new Date()` desplazaría el plazo
+ * por el offset de la zona horaria: con el servidor en UTC, una cita de las
+ * 09:00 en Santiago daba un plazo efectivo de 27 h en vez de 24 h. Se compara
+ * contra "ahora" convertido a la misma convención de hora de pared.
+ */
+function withinPolicy(startTime: Date, cancellationHours: number, timezone: string): boolean {
+  const now = nowInTimeZone(timezone);
+  const nowWallClock = wallClockDate(now.dateStr, minutesToTime(now.minutes));
   const limit = new Date(startTime.getTime() - cancellationHours * 3600_000);
-  return new Date() < limit;
+  return nowWallClock < limit;
 }
 
 async function loadByToken(token: string) {
@@ -24,7 +39,13 @@ export async function cancelBookingByToken(token: string): Promise<{ error?: str
   if (!booking || booking.status !== "CONFIRMED") {
     return { error: "Esta reserva no se puede cancelar." };
   }
-  if (!withinPolicy(booking.startTime, booking.professional.cancellationHours)) {
+  if (
+    !withinPolicy(
+      booking.startTime,
+      booking.professional.cancellationHours,
+      booking.professional.timezone
+    )
+  ) {
     return {
       error: `El plazo para cancelar en línea ya pasó (hasta ${booking.professional.cancellationHours} h antes). Contacta directamente al negocio.`,
     };
@@ -60,7 +81,13 @@ export async function rescheduleBookingByToken(
   if (!booking || booking.status !== "CONFIRMED") {
     return { error: "Esta reserva no se puede reprogramar." };
   }
-  if (!withinPolicy(booking.startTime, booking.professional.cancellationHours)) {
+  if (
+    !withinPolicy(
+      booking.startTime,
+      booking.professional.cancellationHours,
+      booking.professional.timezone
+    )
+  ) {
     return {
       error: `El plazo para reprogramar en línea ya pasó (hasta ${booking.professional.cancellationHours} h antes). Contacta directamente al negocio.`,
     };
@@ -78,10 +105,29 @@ export async function rescheduleBookingByToken(
   const startTime = wallClockDate(dateStr, time);
   const endTime = new Date(startTime.getTime() + booking.service.durationMin * 60000);
 
-  await prisma.booking.update({
-    where: { id: booking.id },
-    data: { startTime, endTime, reminderSentAt: null },
+  // Mismo bloqueo que al crear: dos clientes reprogramando al mismo horario a
+  // la vez podrían pasar ambos la validación de `daySlots`.
+  const updated = await withProfessionalLock(booking.professionalId, async (tx) => {
+    if (
+      await hasOverlappingBooking(
+        tx,
+        booking.professionalId,
+        startTime,
+        endTime,
+        booking.id
+      )
+    ) {
+      return null;
+    }
+    return tx.booking.update({
+      where: { id: booking.id },
+      data: { startTime, endTime, reminderSentAt: null },
+    });
   });
+
+  if (!updated) {
+    return { error: "Ese horario ya no está disponible. Elige otro." };
+  }
 
   await sendRescheduleEmails({
     businessName: booking.professional.businessName,

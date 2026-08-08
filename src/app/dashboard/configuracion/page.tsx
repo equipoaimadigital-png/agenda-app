@@ -8,7 +8,7 @@ export default async function ConfiguracionPage() {
   return (
     <div className="flex flex-col gap-6 max-w-xl">
       <div>
-        <h1 className="text-2xl font-semibold">Configuración</h1>
+        <h1 className="text-2xl font-semibold font-display">Configuración</h1>
         <p className="text-sm text-muted mt-1">
           Cómo se presenta tu negocio en tu página pública de reservas.
         </p>

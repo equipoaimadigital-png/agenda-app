@@ -1,42 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  /* Paleta base neutra con acento profesional (verde-azulado) */
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --foreground: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  /* Acento de marca: cada profesional puede sobreescribirlo en su portal */
-  --brand: #0f766e;
+  /* === Sistema de diseño "El Sello" ===
+     Referencia: estudios jurídicos y consultorios serios chilenos —
+     papel hueso, verde botella, latón — no el SaaS teal genérico. */
+
+  --ink: #1b2420;              /* texto principal, superficies oscuras */
+  --paper: #f6f3ec;            /* fondo principal (hueso, no blanco plano) */
+  --surface: #ffffff;          /* tarjetas elevadas sobre paper */
+  --stone: #6b6459;            /* texto secundario */
+  --border: #e2ddd0;           /* borde sutil sobre paper/surface */
+  --border-strong: #c9c1b0;
+
+  /* Marca: cada profesional puede sobreescribir --brand en su portal público */
+  --brand: #2f4a3e;
   --brand-foreground: #ffffff;
-  /* Versión suave derivada automáticamente del color de marca */
-  --brand-soft: color-mix(in srgb, var(--brand) 8%, white);
-  --success: #15803d;
-  --success-soft: #f0fdf4;
-  --danger: #b91c1c;
-  --danger-soft: #fef2f2;
-  --warning: #a16207;
-  --warning-soft: #fefce8;
+  --brand-soft: color-mix(in srgb, var(--brand) 10%, var(--paper));
+
+  /* Bronce/latón — SOLO para bordes gruesos, anillos de foco y el sello.
+     Contraste medido: 3.5:1 sobre --paper → pasa el umbral de elementos
+     gráficos (3:1) pero NO el de texto (4.5:1). Nunca usar como color de
+     texto ni como relleno sólido detrás de texto. */
+  --brass: #a9782f;
+
+  --success: #3b6b4a;
+  --success-soft: #eef3ea;
+  --danger: #8c3b2e;
+  --danger-soft: #f6ece9;
+  /* Mostaza oscura — deliberadamente distinta de --brass (#a9782f), que
+     falla 4.5:1 como texto (ver auditoría de contraste). Este valor sí pasa
+     AA como texto sobre --paper (6.93:1) y sobre --warning-soft. */
+  --warning: #6b4e1e;
+  --warning-soft: #f5efe2;
+
+  /* Alias de compatibilidad con el resto del código existente */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --muted: var(--stone);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
   --color-surface: var(--surface);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-stone: var(--stone);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
+  --color-brass: var(--brass);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-work-sans);
+  --font-mono: var(--font-plex-mono);
 }
 
 body {
@@ -44,6 +69,27 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.font-numeric {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum";
+}
+
+/* Motivo de marca: "el sello" — doble anillo, usado como textura de fondo
+   discreta y como base de los indicadores de estado. */
+.seal-texture {
+  background-image:
+    radial-gradient(circle, transparent 58%, var(--brass) 59% 60%, transparent 61%),
+    radial-gradient(circle, transparent 70%, var(--brass) 71% 72%, transparent 73%);
+  background-size: 220px 220px;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.14;
 }
 
 /* Transición sutil por defecto en controles interactivos */
@@ -63,7 +109,29 @@ textarea {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
-button:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: 1px;
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+@keyframes seal-stamp {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.seal-stamp-in {
+  animation: seal-stamp 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seal-stamp-in {
+    animation: none;
+  }
 }

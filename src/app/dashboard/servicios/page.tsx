@@ -14,7 +14,7 @@ export default async function ServiciosPage() {
   return (
     <div className="flex flex-col gap-6 max-w-xl">
       <div>
-        <h1 className="text-2xl font-semibold">Servicios</h1>
+        <h1 className="text-2xl font-semibold font-display">Servicios</h1>
         <p className="text-sm text-muted mt-1">
           Lo que tus clientes pueden reservar. La descripción y el precio se muestran
           en tu página pública.

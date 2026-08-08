@@ -1,24 +1,25 @@
 import Link from "next/link";
+import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 
 export default function RegistroPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-sm flex flex-col gap-6">
+    <AuthSplitLayout tagline="Crea tu cuenta y comparte tu link de reserva en minutos.">
+      <div className="flex flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-semibold">Crea tu cuenta</h1>
-          <p className="text-sm text-muted">
+          <h1 className="text-2xl font-semibold font-display">Crea tu cuenta</h1>
+          <p className="text-sm text-stone">
             Empieza a recibir y agendar clientes en minutos.
           </p>
         </div>
         <RegisterForm />
-        <p className="text-sm text-muted">
+        <p className="text-sm text-stone">
           ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="underline">
+          <Link href="/login" className="underline text-brand">
             Inicia sesión
           </Link>
         </p>
       </div>
-    </main>
+    </AuthSplitLayout>
   );
 }

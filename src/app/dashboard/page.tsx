@@ -2,6 +2,7 @@ import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import { BookingRow, type BookingRowData } from "@/components/dashboard/BookingRow";
 import { CancelDayButton } from "@/components/dashboard/CancelDayButton";
+import { EmptyAgenda } from "@/components/dashboard/EmptyAgenda";
 import { formatDateLong, nowInTimeZone, wallClockOf } from "@/lib/dates";
 
 export default async function AgendaPage() {
@@ -23,14 +24,22 @@ export default async function AgendaPage() {
 
   const now = nowInTimeZone(professional.timezone);
 
-  // Resumen de hoy
   const todayBookings = bookings.filter((b) => {
     const { dateStr } = wallClockOf(b.startTime);
     return dateStr === now.dateStr && b.status === "CONFIRMED";
   });
-  const nextBooking = todayBookings.find(
-    (b) => b.startTime.getHours() * 60 + b.startTime.getMinutes() >= now.minutes
-  );
+
+  // La próxima cita real (no solo la de hoy): la primera confirmada cuyo
+  // inicio todavía no llega. `bookings` ya viene ordenado por startTime asc.
+  const nextBooking = bookings.find((b) => {
+    if (b.status !== "CONFIRMED") return false;
+    const { dateStr } = wallClockOf(b.startTime);
+    if (dateStr > now.dateStr) return true;
+    if (dateStr < now.dateStr) return false;
+    return b.startTime.getHours() * 60 + b.startTime.getMinutes() >= now.minutes;
+  });
+
+  const hasAnyBookingEver = bookings.length > 0 || (await prisma.booking.count({ where: { professionalId: professional.id } })) > 0;
 
   // Agrupa por fecha
   const groups = new Map<string, typeof bookings>();
@@ -45,26 +54,31 @@ export default async function AgendaPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">Agenda</h1>
-        <p className="text-sm text-muted mt-1">
+        <h1 className="text-2xl font-semibold font-display">Agenda</h1>
+        <p className="text-sm text-stone mt-1">
           Tus citas de los últimos 7 días y las próximas.
         </p>
       </div>
 
-      {todayBookings.length > 0 && (
+      {(todayBookings.length > 0 || nextBooking) && (
         <section className="bg-brand-soft border border-border rounded-xl p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-          <div>
-            <p className="text-xs text-muted uppercase tracking-wide">Hoy</p>
-            <p className="font-semibold">
-              {todayBookings.length} cita{todayBookings.length === 1 ? "" : "s"} confirmada
-              {todayBookings.length === 1 ? "" : "s"}
-            </p>
-          </div>
+          {todayBookings.length > 0 && (
+            <div>
+              <p className="text-xs text-stone uppercase tracking-wide">Hoy</p>
+              <p className="font-semibold font-numeric">
+                {todayBookings.length} cita{todayBookings.length === 1 ? "" : "s"} confirmada
+                {todayBookings.length === 1 ? "" : "s"}
+              </p>
+            </div>
+          )}
           {nextBooking && (
             <div>
-              <p className="text-xs text-muted uppercase tracking-wide">Próxima</p>
-              <p className="font-semibold">
-                {wallClockOf(nextBooking.startTime).time} · {nextBooking.clientName}
+              <p className="text-xs text-stone uppercase tracking-wide">Próxima cita</p>
+              <p className="font-semibold font-numeric">
+                {wallClockOf(nextBooking.startTime).dateStr === now.dateStr
+                  ? `Hoy ${wallClockOf(nextBooking.startTime).time}`
+                  : `${wallClockOf(nextBooking.startTime).time}, ${formatDateLong(wallClockOf(nextBooking.startTime).dateStr)}`}{" "}
+                · {nextBooking.clientName}
               </p>
             </div>
           )}
@@ -72,12 +86,7 @@ export default async function AgendaPage() {
       )}
 
       {sortedDates.length === 0 && (
-        <div className="bg-surface border border-border rounded-xl p-8 text-center">
-          <p className="font-medium">Todavía no tienes citas</p>
-          <p className="text-sm text-muted mt-1">
-            Comparte tu link de reserva (en la barra lateral) para empezar a recibirlas.
-          </p>
-        </div>
+        <EmptyAgenda slug={professional.slug} hasHistory={hasAnyBookingEver} />
       )}
 
       {sortedDates.map((dateStr) => {
@@ -90,10 +99,10 @@ export default async function AgendaPage() {
         return (
           <section key={dateStr} className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <h2 className="font-semibold capitalize">
+              <h2 className="font-semibold capitalize font-display text-lg">
                 {formatDateLong(dateStr)}
                 {isToday && (
-                  <span className="ml-2 text-xs font-medium bg-brand text-brand-foreground rounded-full px-2 py-0.5">
+                  <span className="ml-2 text-xs font-sans font-medium bg-brand text-brand-foreground rounded-full px-2 py-0.5 align-middle">
                     Hoy
                   </span>
                 )}
@@ -122,7 +131,9 @@ export default async function AgendaPage() {
                   reminderSent: !!b.reminderSentAt,
                   hasClientEmail: !!b.clientEmail,
                 };
-                return <BookingRow key={b.id} booking={data} />;
+                return (
+                  <BookingRow key={b.id} booking={data} isNext={nextBooking?.id === b.id} />
+                );
               })}
             </div>
           </section>

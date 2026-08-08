@@ -28,7 +28,7 @@ export function DashboardNav() {
             className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm whitespace-nowrap ${
               active
                 ? "bg-brand text-brand-foreground font-medium"
-                : "text-foreground hover:bg-brand-soft"
+                : "text-white/75 hover:bg-white/10 hover:text-white"
             }`}
           >
             <span aria-hidden>{item.icon}</span>

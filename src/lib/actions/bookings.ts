@@ -1,12 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
 import {
   daySlots,
+  hasOverlappingBooking,
   loadBookingContext,
   monthAvailability,
   nextAvailableDays,
+  withProfessionalLock,
   type DaySuggestion,
 } from "@/lib/booking-logic";
 import { wallClockDate } from "@/lib/dates";
@@ -78,30 +79,28 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
   const startTime = wallClockDate(dateStr, time);
   const endTime = new Date(startTime.getTime() + ctx.service.durationMin * 60000);
 
-  // Doble chequeo contra condición de carrera (dos personas reservando a la vez)
-  const overlapping = await prisma.booking.findFirst({
-    where: {
-      professionalId: ctx.professional.id,
-      status: "CONFIRMED",
-      startTime: { lt: endTime },
-      endTime: { gt: startTime },
-    },
+  // Verificar y crear dentro del mismo bloqueo: si dos personas reservan el
+  // mismo horario a la vez, la segunda ve la reserva de la primera y falla.
+  const booking = await withProfessionalLock(ctx.professional.id, async (tx) => {
+    if (await hasOverlappingBooking(tx, ctx.professional.id, startTime, endTime)) {
+      return null;
+    }
+    return tx.booking.create({
+      data: {
+        professionalId: ctx.professional.id,
+        serviceId: ctx.service.id,
+        clientName,
+        clientPhone,
+        clientEmail,
+        startTime,
+        endTime,
+      },
+    });
   });
-  if (overlapping) {
+
+  if (!booking) {
     return { error: "Ese horario ya no está disponible. Elige otro." };
   }
-
-  const booking = await prisma.booking.create({
-    data: {
-      professionalId: ctx.professional.id,
-      serviceId: ctx.service.id,
-      clientName,
-      clientPhone,
-      clientEmail,
-      startTime,
-      endTime,
-    },
-  });
 
   await sendBookingEmails({
     businessName: ctx.professional.businessName,

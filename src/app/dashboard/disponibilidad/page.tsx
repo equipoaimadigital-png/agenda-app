@@ -26,7 +26,7 @@ export default async function DisponibilidadPage() {
   return (
     <div className="flex flex-col gap-8 max-w-xl">
       <div>
-        <h1 className="text-2xl font-semibold">Disponibilidad</h1>
+        <h1 className="text-2xl font-semibold font-display">Disponibilidad</h1>
         <p className="text-sm text-muted mt-1">
           Tu horario semanal recurrente y los días puntuales sin atención.
         </p>

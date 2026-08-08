@@ -27,7 +27,7 @@ model Professional {
   description  String?
   address      String?
   // Color de acento de la marca (hex, ej. #0f766e)
-  brandColor   String   @default("#0f766e")
+  brandColor   String   @default("#2f4a3e")
   // Política de cancelación: horas mínimas de anticipación para cancelar/reprogramar
   cancellationHours Int @default(24)
   // Zona horaria del negocio (los horarios se interpretan en esta zona)

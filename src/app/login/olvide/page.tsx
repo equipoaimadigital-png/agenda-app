@@ -1,21 +1,22 @@
 import Link from "next/link";
+import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
 export default function OlvideClavePage() {
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-sm flex flex-col gap-6">
+    <AuthSplitLayout tagline="Te ayudamos a volver a entrar en un par de pasos.">
+      <div className="flex flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-semibold">Recupera tu contraseña</h1>
-          <p className="text-sm text-muted mt-1">
+          <h1 className="text-2xl font-semibold font-display">Recupera tu contraseña</h1>
+          <p className="text-sm text-stone mt-1">
             Te enviaremos un link a tu correo para crear una nueva.
           </p>
         </div>
         <ForgotPasswordForm />
-        <p className="text-sm text-muted">
-          <Link href="/login" className="underline">Volver a iniciar sesión</Link>
+        <p className="text-sm text-stone">
+          <Link href="/login" className="underline text-brand">Volver a iniciar sesión</Link>
         </p>
       </div>
-    </main>
+    </AuthSplitLayout>
   );
 }

@@ -1,4 +1,4 @@
-import type { Availability, DateException, Professional, Service } from "@prisma/client";
+import type { Availability, DateException, Prisma, Professional, Service } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { computeAvailableSlots } from "@/lib/slots";
 import {
@@ -16,6 +16,55 @@ type ProfessionalContext = {
   availability: Availability[];
   exceptions: DateException[];
 };
+
+/**
+ * Ejecuta `fn` dentro de una transacción con bloqueo exclusivo sobre el
+ * profesional. Sin esto, dos reservas simultáneas pueden pasar ambas la
+ * validación de solapamiento y crear una doble reserva en el mismo horario:
+ * el `findFirst` de una ocurre antes de que la otra haya hecho su `create`.
+ *
+ * El bloqueo es a nivel de transacción (`pg_advisory_xact_lock`), así que se
+ * libera solo al commit o rollback y es seguro con el pooler de Supabase.
+ * Solo serializa reservas del mismo negocio; distintos profesionales no se
+ * bloquean entre sí.
+ */
+export async function withProfessionalLock<T>(
+  professionalId: string,
+  fn: (tx: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
+  return prisma.$transaction(async (tx) => {
+    // pg_advisory_xact_lock devuelve void: $queryRaw no puede deserializar eso
+    // (falla con "Failed to deserialize column of type 'void'"). $executeRaw
+    // no intenta leer un resultado, así que es lo correcto para esta llamada.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${professionalId}::text))`;
+    return fn(tx);
+  });
+}
+
+/**
+ * ¿Existe una reserva confirmada que choque con el rango dado?
+ * Debe llamarse dentro de `withProfessionalLock` para que el resultado siga
+ * siendo válido al momento de escribir.
+ */
+export async function hasOverlappingBooking(
+  tx: Prisma.TransactionClient,
+  professionalId: string,
+  startTime: Date,
+  endTime: Date,
+  excludeBookingId?: string
+): Promise<boolean> {
+  const overlapping = await tx.booking.findFirst({
+    where: {
+      professionalId,
+      status: "CONFIRMED",
+      startTime: { lt: endTime },
+      endTime: { gt: startTime },
+      ...(excludeBookingId ? { id: { not: excludeBookingId } } : {}),
+    },
+    select: { id: true },
+  });
+  return overlapping !== null;
+}
 
 export async function loadBookingContext(
   slug: string,
