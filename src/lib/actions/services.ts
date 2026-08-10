@@ -120,7 +120,9 @@ export async function deleteService(serviceId: string) {
   if (!professional) redirect("/login");
 
   // Si el servicio tiene reservas históricas, se desactiva en vez de borrar
-  const bookingsCount = await prisma.booking.count({ where: { serviceId } });
+  const bookingsCount = await prisma.booking.count({
+    where: { serviceId, professionalId: professional.id },
+  });
   if (bookingsCount > 0) {
     await prisma.service.updateMany({
       where: { id: serviceId, professionalId: professional.id },

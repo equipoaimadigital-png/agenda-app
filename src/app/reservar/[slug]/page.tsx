@@ -22,7 +22,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description:
       professional.description ??
       `Agenda online de ${professional.businessName}. Elige un servicio y reserva en segundos.`,
+    // Permite "Agregar a inicio" en el celular: queda como una app con el
+    // ícono y color del negocio, sin pasar por App Store ni Google Play.
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: professional.businessName,
+    },
+    icons: {
+      icon: `/api/pwa-icon/${slug}`,
+      apple: `/api/pwa-icon/${slug}`,
+    },
+    manifest: `/api/manifest/${slug}`,
   };
+}
+
+export async function generateViewport({ params }: PageProps) {
+  const { slug } = await params;
+  const professional = await loadProfessional(slug);
+  return { themeColor: professional?.brandColor ?? "#2f4a3e" };
 }
 
 const TRUST_ITEMS = [
@@ -73,7 +91,10 @@ export default async function ReservarPage({ params }: PageProps) {
     >
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // El negocio controla businessName/description/servicios — sin este escape,
+        // un texto con "</script>" cerraría la etiqueta y permitiría inyectar HTML/JS
+        // que corre en el navegador de cada cliente que visita esta página (XSS).
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
 
       {/* Hero del negocio — el nombre es lo primero que se lee */}
