@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { BookingWidget } from "@/components/booking/BookingWidget";
+import { industryPreset } from "@/lib/industries";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -15,11 +16,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const professional = await loadProfessional(slug);
   if (!professional) return { title: "Página no encontrada" };
+  const heroVerb = industryPreset(professional.industry).heroVerb;
   return {
-    title: `Reserva tu hora con ${professional.businessName}`,
+    title: `${heroVerb} con ${professional.businessName}`,
     description:
       professional.description ??
-      `Agenda online de ${professional.businessName}. Elige un servicio y reserva tu hora en segundos.`,
+      `Agenda online de ${professional.businessName}. Elige un servicio y reserva en segundos.`,
   };
 }
 
@@ -46,6 +48,8 @@ export default async function ReservarPage({ params }: PageProps) {
       </main>
     );
   }
+
+  const heroVerb = industryPreset(professional.industry).heroVerb;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -84,6 +88,7 @@ export default async function ReservarPage({ params }: PageProps) {
               {professional.businessName.slice(0, 1).toUpperCase()}
             </div>
             <div className="min-w-0">
+              <p className="text-xs uppercase tracking-wide text-white/60 mb-0.5">{heroVerb}</p>
               <h1 className="font-display text-2xl sm:text-3xl leading-tight">
                 {professional.businessName}
               </h1>
@@ -120,6 +125,7 @@ export default async function ReservarPage({ params }: PageProps) {
         ) : (
           <BookingWidget
             slug={professional.slug}
+            intakeField={industryPreset(professional.industry).intakeField}
             services={professional.services.map((s) => ({
               id: s.id,
               name: s.name,

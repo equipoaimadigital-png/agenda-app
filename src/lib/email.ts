@@ -17,6 +17,25 @@ function whenText(startTime: Date): string {
   return `${formatDateLong(dateStr)} a las ${time}`;
 }
 
+/**
+ * Encabezado de marca para todo email transaccional. El remitente ("From")
+ * ya dice "Tú Agenda", pero muchos clientes de correo ocultan ese nombre
+ * detrás del email técnico (onboarding@resend.dev) — este encabezado deja
+ * la marca visible dentro del cuerpo, con una línea que explica qué es.
+ */
+function wrapEmail(bodyHtml: string): string {
+  return `<div style="font-family:Georgia,'Times New Roman',serif;max-width:480px;margin:0 auto;">
+  <div style="font-size:20px;font-weight:600;color:#1f2e26;letter-spacing:0.01em;">Tú Agenda</div>
+  <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#7a7a70;margin-top:2px;margin-bottom:18px;">
+    Reservas online para profesionales independientes.
+  </div>
+  <hr style="border:none;border-top:1px solid #e5e1d8;margin-bottom:18px;" />
+  <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1f2e26;line-height:1.5;">
+    ${bodyHtml}
+  </div>
+</div>`;
+}
+
 async function sendAll(tasks: Promise<unknown>[]): Promise<void> {
   const results = await Promise.allSettled(tasks);
   for (const r of results) {
@@ -56,11 +75,11 @@ export async function sendBookingEmails(info: BookingEmailInfo): Promise<void> {
         from: FROM,
         to: info.clientEmail,
         subject: `Confirmación de tu cita con ${info.businessName}`,
-        html: `<p>Hola ${info.clientName},</p>
+        html: wrapEmail(`<p>Hola ${info.clientName},</p>
 <p>Tu cita para <strong>${info.serviceName}</strong> con <strong>${info.businessName}</strong> quedó confirmada para el <strong>${when}</strong>.</p>
 <p>Puedes ver el detalle, cancelar o reprogramar desde este link:<br/>
 <a href="${manageUrl}">${manageUrl}</a></p>
-<p>¡Te esperamos!</p>`,
+<p>¡Te esperamos!</p>`),
       })
     );
   }
@@ -70,13 +89,13 @@ export async function sendBookingEmails(info: BookingEmailInfo): Promise<void> {
       from: FROM,
       to: info.professionalEmail,
       subject: `Nueva reserva: ${info.clientName} - ${info.serviceName}`,
-      html: `<p>Tienes una nueva reserva.</p>
+      html: wrapEmail(`<p>Tienes una nueva reserva.</p>
 <ul>
   <li>Cliente: ${info.clientName}</li>
   <li>Teléfono: ${info.clientPhone}</li>
   <li>Servicio: ${info.serviceName}</li>
   <li>Fecha: ${when}</li>
-</ul>`,
+</ul>`),
     })
   );
 
@@ -110,11 +129,11 @@ export async function sendCancellationEmails(info: CancellationEmailInfo): Promi
         from: FROM,
         to: info.clientEmail,
         subject: `Tu cita con ${info.businessName} fue cancelada`,
-        html: `<p>Hola ${info.clientName},</p>
+        html: wrapEmail(`<p>Hola ${info.clientName},</p>
 <p>Lamentamos informarte que tu cita para <strong>${info.serviceName}</strong> del <strong>${when}</strong> fue cancelada por ${info.businessName}.</p>
 ${info.reason ? `<p>Motivo: ${info.reason}</p>` : ""}
 <p>Puedes reagendar en el horario que más te acomode aquí:<br/>
-<a href="${rebookUrl}">${rebookUrl}</a></p>`,
+<a href="${rebookUrl}">${rebookUrl}</a></p>`),
       })
     );
   }
@@ -125,8 +144,8 @@ ${info.reason ? `<p>Motivo: ${info.reason}</p>` : ""}
         from: FROM,
         to: info.professionalEmail,
         subject: `Cancelación: ${info.clientName} - ${info.serviceName}`,
-        html: `<p>${info.clientName} canceló su cita de <strong>${info.serviceName}</strong> del <strong>${when}</strong>.</p>
-<p>El horario quedó disponible de nuevo.</p>`,
+        html: wrapEmail(`<p>${info.clientName} canceló su cita de <strong>${info.serviceName}</strong> del <strong>${when}</strong>.</p>
+<p>El horario quedó disponible de nuevo.</p>`),
       })
     );
     if (info.clientEmail) {
@@ -135,9 +154,9 @@ ${info.reason ? `<p>Motivo: ${info.reason}</p>` : ""}
           from: FROM,
           to: info.clientEmail,
           subject: `Cancelaste tu cita con ${info.businessName}`,
-          html: `<p>Hola ${info.clientName},</p>
+          html: wrapEmail(`<p>Hola ${info.clientName},</p>
 <p>Tu cita para <strong>${info.serviceName}</strong> del <strong>${when}</strong> quedó cancelada.</p>
-<p>Si quieres reagendar: <a href="${rebookUrl}">${rebookUrl}</a></p>`,
+<p>Si quieres reagendar: <a href="${rebookUrl}">${rebookUrl}</a></p>`),
         })
       );
     }
@@ -172,9 +191,9 @@ export async function sendRescheduleEmails(info: RescheduleEmailInfo): Promise<v
         from: FROM,
         to: info.clientEmail,
         subject: `Tu cita con ${info.businessName} fue reprogramada`,
-        html: `<p>Hola ${info.clientName},</p>
+        html: wrapEmail(`<p>Hola ${info.clientName},</p>
 <p>Tu cita para <strong>${info.serviceName}</strong> cambió del ${oldWhen} al <strong>${newWhen}</strong>.</p>
-<p>Detalle de tu reserva: <a href="${manageUrl}">${manageUrl}</a></p>`,
+<p>Detalle de tu reserva: <a href="${manageUrl}">${manageUrl}</a></p>`),
       })
     );
   }
@@ -184,11 +203,11 @@ export async function sendRescheduleEmails(info: RescheduleEmailInfo): Promise<v
       from: FROM,
       to: info.professionalEmail,
       subject: `Reprogramación: ${info.clientName} - ${info.serviceName}`,
-      html: `<p>${info.clientName} reprogramó su cita de <strong>${info.serviceName}</strong>.</p>
+      html: wrapEmail(`<p>${info.clientName} reprogramó su cita de <strong>${info.serviceName}</strong>.</p>
 <ul>
   <li>Antes: ${oldWhen}</li>
   <li>Ahora: <strong>${newWhen}</strong></li>
-</ul>`,
+</ul>`),
     })
   );
 
@@ -215,9 +234,9 @@ export async function sendReminderEmail(info: ReminderEmailInfo): Promise<boolea
     from: FROM,
     to: info.clientEmail,
     subject: `Recordatorio: tu cita mañana con ${info.businessName}`,
-    html: `<p>Hola ${info.clientName},</p>
+    html: wrapEmail(`<p>Hola ${info.clientName},</p>
 <p>Te recordamos tu cita para <strong>${info.serviceName}</strong> con <strong>${info.businessName}</strong> el <strong>${when}</strong>.</p>
-<p>Si necesitas cancelar o reprogramar: <a href="${manageUrl}">${manageUrl}</a></p>`,
+<p>Si necesitas cancelar o reprogramar: <a href="${manageUrl}">${manageUrl}</a></p>`),
   });
 
   return !result.error;

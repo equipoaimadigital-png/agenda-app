@@ -51,7 +51,7 @@ export default async function DashboardLayout({
           </div>
         )}
 
-        <DashboardNav />
+        <DashboardNav industry={professional?.industry ?? "LOOK"} />
 
         <form action={signOut} className="mt-auto pt-4 border-t border-white/10">
           <button type="submit" className="text-sm text-white/60 hover:text-white pt-4">

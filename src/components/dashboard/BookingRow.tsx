@@ -18,6 +18,14 @@ export type BookingRowData = {
   durationMin: number;
   status: string;
   internalNote: string | null;
+  /** Respuesta al dato extra del rubro (ej. "Telemedicina", "Grupal") */
+  intakeNote: string | null;
+  /** Respuestas a las preguntas personalizadas del servicio */
+  customAnswers: { label: string; value: string }[] | null;
+  /** Cuántas veces este mismo cliente ha reservado con el negocio (incluye esta cita) */
+  visitCount: number;
+  /** Etiqueta del historial según el rubro (ej. "Historial de consultas") */
+  historyLabel: string;
   /** true si la hora de la cita ya pasó */
   isPast: boolean;
   /** true si ya se envió el recordatorio automático de esta cita */
@@ -85,6 +93,25 @@ export function BookingRow({
               </a>
             </p>
             <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              <span
+                className="text-xs text-stone bg-surface border border-border rounded px-2 py-1"
+                title={booking.visitCount > 1 ? `${booking.historyLabel}: ${booking.visitCount} en total` : undefined}
+              >
+                {booking.visitCount > 1 ? `${booking.historyLabel}: ${booking.visitCount}ª vez` : "Primera vez"}
+              </span>
+              {booking.intakeNote && (
+                <span className="text-xs text-brand bg-brand-soft rounded px-2 py-1">
+                  {booking.intakeNote}
+                </span>
+              )}
+              {booking.customAnswers?.map(
+                (a, i) =>
+                  a.value && (
+                    <span key={i} className="text-xs text-brand bg-brand-soft rounded px-2 py-1">
+                      {a.label}: {a.value}
+                    </span>
+                  )
+              )}
               {booking.internalNote && panel !== "note" && (
                 <span className="text-xs text-stone bg-warning-soft rounded px-2 py-1">
                   📝 {booking.internalNote}

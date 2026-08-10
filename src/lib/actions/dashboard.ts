@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Industry } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional, getPrimaryStaffId } from "@/lib/auth-helpers";
 import { sendCancellationEmails } from "@/lib/email";
 import { wallClockDate } from "@/lib/dates";
+import { industryPreset } from "@/lib/industries";
 
 async function requireProfessional() {
   const professional = await getCurrentProfessional();
@@ -209,4 +211,23 @@ export async function saveInternalNoteForm(formData: FormData): Promise<void> {
   const note = String(formData.get("note") || "");
   if (!bookingId) return;
   await saveInternalNote(bookingId, note);
+}
+
+const VALID_INDUSTRIES = new Set<string>(Object.values(Industry));
+
+export async function updateIndustry(formData: FormData): Promise<void> {
+  const professional = await requireProfessional();
+  const industry = String(formData.get("industry") || "");
+  if (!VALID_INDUSTRIES.has(industry)) return;
+
+  // Cambiar de rubro también actualiza el color por defecto de esa vertical;
+  // si el negocio quiere otro color, lo vuelve a personalizar en Configuración.
+  await prisma.professional.update({
+    where: { id: professional.id },
+    data: {
+      industry: industry as Industry,
+      brandColor: industryPreset(industry as Industry).defaultColor,
+    },
+  });
+  revalidatePath("/dashboard", "layout");
 }

@@ -16,6 +16,15 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// Rubro del negocio: ajusta terminología, colores por defecto e íconos del
+// panel/portal, y qué dato extra (si alguno) se pide al reservar.
+enum Industry {
+  MEDICINA
+  FITNESS
+  LOOK
+  LEY
+}
+
 model Professional {
   id           String   @id @default(uuid())
   // id del usuario en Supabase Auth (auth.users.id) — vincula login con este perfil
@@ -29,6 +38,8 @@ model Professional {
   address      String?
   // Color de acento de la marca (hex, ej. #2f4a3e)
   brandColor   String   @default("#2f4a3e")
+  // Rubro elegido en Configuración — LOOK por defecto para no romper cuentas existentes
+  industry     Industry @default(LOOK)
   // Política de cancelación: horas mínimas de anticipación para cancelar/reprogramar
   cancellationHours Int @default(24)
   // Zona horaria del negocio (los horarios se interpretan en esta zona) — la
@@ -74,10 +85,33 @@ model Service {
   active         Boolean      @default(true)
   createdAt      DateTime     @default(now())
 
-  staff    Staff[]   // qué profesionales pueden realizar este servicio
+  staff    Staff[]        // qué profesionales pueden realizar este servicio
   bookings Booking[]
+  fields   ServiceField[] // preguntas personalizadas que el cliente responde al reservar
 
   @@index([professionalId])
+}
+
+enum FieldType {
+  TEXT
+  SELECT
+}
+
+// Pregunta personalizada que el profesional agrega a un servicio específico
+// (ej. "¿Ya iniciaste el trámite?" en un abogado), respondida por el cliente
+// al reservar y guardada en Booking.customAnswers.
+model ServiceField {
+  id        String    @id @default(uuid())
+  serviceId String
+  service   Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  label     String
+  type      FieldType @default(TEXT)
+  // Opciones para type = SELECT; ignorado si type = TEXT
+  options   String[]  @default([])
+  required  Boolean   @default(false)
+  order     Int       @default(0)
+
+  @@index([serviceId])
 }
 
 // Disponibilidad semanal recurrente de un Staff (ej: lunes 09:00-13:00)
@@ -133,6 +167,13 @@ model Booking {
   manageToken    String        @unique @default(uuid())
   // Nota interna del profesional sobre el cliente/cita (no visible para el cliente)
   internalNote   String?
+  // Respuesta al dato extra específico del rubro (ej. "Telemedicina", "Grupal"),
+  // capturado en el paso de intake del portal público. Ver src/lib/industries.ts
+  intakeNote     String?
+  // Respuestas a las preguntas personalizadas del servicio (ver ServiceField),
+  // guardadas como [{ label: string, value: string }] — no se necesita join
+  // porque solo se muestran, nunca se filtran ni se agregan.
+  customAnswers  Json?
   // Motivo de cancelación (visible para el cliente si cancela el profesional)
   cancelReason   String?
   reminderSentAt DateTime?

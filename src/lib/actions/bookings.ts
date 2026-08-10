@@ -12,11 +12,35 @@ import {
   type DaySuggestion,
   type StaffSelection,
 } from "@/lib/booking-logic";
+import { prisma } from "@/lib/db";
 import { wallClockDate } from "@/lib/dates";
 import { sendBookingEmails } from "@/lib/email";
 import { buildWhatsappLink } from "@/lib/whatsapp";
 
 export type StaffOptionView = { id: string; name: string; color: string };
+
+export type ServiceFieldView = {
+  id: string;
+  label: string;
+  type: "TEXT" | "SELECT";
+  options: string[];
+  required: boolean;
+};
+
+/** Preguntas personalizadas de un servicio, para pedirlas al reservar. */
+export async function getServiceFields(serviceId: string): Promise<ServiceFieldView[]> {
+  const fields = await prisma.serviceField.findMany({
+    where: { serviceId },
+    orderBy: { order: "asc" },
+  });
+  return fields.map((f) => ({
+    id: f.id,
+    label: f.label,
+    type: f.type,
+    options: f.options,
+    required: f.required,
+  }));
+}
 
 /** Profesionales que pueden realizar un servicio, para que el cliente elija. */
 export async function getStaffForService(
@@ -79,6 +103,18 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
   const clientName = String(formData.get("clientName") || "").trim();
   const clientPhone = String(formData.get("clientPhone") || "").trim();
   const clientEmail = String(formData.get("clientEmail") || "").trim() || null;
+  const intakeNote = String(formData.get("intakeNote") || "").trim() || null;
+
+  let customAnswers: { label: string; value: string }[] | undefined;
+  const customAnswersRaw = String(formData.get("customAnswers") || "");
+  if (customAnswersRaw) {
+    try {
+      const parsed = JSON.parse(customAnswersRaw);
+      if (Array.isArray(parsed)) customAnswers = parsed;
+    } catch {
+      // ignora JSON inválido — nunca debería pasar desde nuestro propio formulario
+    }
+  }
 
   if (!slug || !serviceId || !dateStr || !time || !clientName || !clientPhone) {
     return { error: "Completa todos los campos obligatorios." };
@@ -122,6 +158,8 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
           clientName,
           clientPhone,
           clientEmail,
+          intakeNote,
+          customAnswers,
           startTime,
           endTime,
         },

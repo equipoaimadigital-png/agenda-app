@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { FieldType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 
@@ -37,6 +38,61 @@ export async function createService(formData: FormData) {
       price,
       staff: { connect: activeStaff.map((s) => ({ id: s.id })) },
     },
+  });
+
+  revalidatePath("/dashboard/servicios");
+}
+
+/** Agrega una pregunta personalizada a un servicio (ej. "¿Ya iniciaste el trámite?"). */
+export async function addServiceField(formData: FormData): Promise<void> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  const serviceId = String(formData.get("serviceId") || "");
+  const label = String(formData.get("label") || "").trim();
+  const type = String(formData.get("type") || "TEXT");
+  const required = formData.get("required") === "on";
+  const optionsRaw = String(formData.get("options") || "").trim();
+
+  if (!label || !serviceId) return;
+  if (type !== "TEXT" && type !== "SELECT") return;
+
+  const service = await prisma.service.findFirst({
+    where: { id: serviceId, professionalId: professional.id },
+  });
+  if (!service) return;
+
+  const options =
+    type === "SELECT"
+      ? optionsRaw.split(",").map((o) => o.trim()).filter(Boolean)
+      : [];
+  if (type === "SELECT" && options.length < 2) return;
+
+  const lastField = await prisma.serviceField.findFirst({
+    where: { serviceId },
+    orderBy: { order: "desc" },
+  });
+
+  await prisma.serviceField.create({
+    data: {
+      serviceId,
+      label,
+      type: type as FieldType,
+      options,
+      required,
+      order: (lastField?.order ?? -1) + 1,
+    },
+  });
+
+  revalidatePath("/dashboard/servicios");
+}
+
+export async function deleteServiceField(fieldId: string): Promise<void> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  await prisma.serviceField.deleteMany({
+    where: { id: fieldId, service: { professionalId: professional.id } },
   });
 
   revalidatePath("/dashboard/servicios");

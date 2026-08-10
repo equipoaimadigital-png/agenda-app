@@ -1,14 +1,24 @@
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
-import { createService, deleteService, toggleServiceActive } from "@/lib/actions/services";
+import {
+  addServiceField,
+  createService,
+  deleteService,
+  deleteServiceField,
+  toggleServiceActive,
+} from "@/lib/actions/services";
+import { industryPreset } from "@/lib/industries";
 
 export default async function ServiciosPage() {
   const professional = await getCurrentProfessional();
   if (!professional) return null;
 
+  const fieldTemplates = industryPreset(professional.industry).fieldTemplates;
+
   const services = await prisma.service.findMany({
     where: { professionalId: professional.id },
     orderBy: { createdAt: "asc" },
+    include: { fields: { orderBy: { order: "asc" } } },
   });
 
   return (
@@ -89,45 +99,145 @@ export default async function ServiciosPage() {
         {services.map((service) => (
           <li
             key={service.id}
-            className={`bg-surface border border-border rounded-xl px-4 py-3 flex items-center justify-between gap-3 ${
+            className={`bg-surface border border-border rounded-xl px-4 py-3 flex flex-col gap-3 ${
               service.active ? "" : "opacity-60"
             }`}
           >
-            <div className="min-w-0">
-              <p className="font-medium">
-                {service.name}
-                {!service.active && (
-                  <span className="ml-2 text-xs bg-warning-soft text-warning rounded-full px-2 py-0.5">
-                    Pausado
-                  </span>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium">
+                  {service.name}
+                  {!service.active && (
+                    <span className="ml-2 text-xs bg-warning-soft text-warning rounded-full px-2 py-0.5">
+                      Pausado
+                    </span>
+                  )}
+                </p>
+                <p className="text-sm text-muted">
+                  {service.durationMin} min
+                  {service.price ? ` · $${service.price.toLocaleString("es-CL")}` : ""}
+                </p>
+                {service.description && (
+                  <p className="text-sm text-muted mt-0.5">{service.description}</p>
                 )}
-              </p>
-              <p className="text-sm text-muted">
-                {service.durationMin} min
-                {service.price ? ` · $${service.price.toLocaleString("es-CL")}` : ""}
-              </p>
-              {service.description && (
-                <p className="text-sm text-muted mt-0.5">{service.description}</p>
-              )}
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <form action={toggleServiceActive.bind(null, service.id)}>
+                  <button
+                    type="submit"
+                    className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand"
+                  >
+                    {service.active ? "Pausar" : "Activar"}
+                  </button>
+                </form>
+                <form action={deleteService.bind(null, service.id)}>
+                  <button
+                    type="submit"
+                    className="text-sm border border-border rounded-lg px-3 py-1.5 text-danger hover:border-danger"
+                  >
+                    Eliminar
+                  </button>
+                </form>
+              </div>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <form action={toggleServiceActive.bind(null, service.id)}>
-                <button
-                  type="submit"
-                  className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand"
+
+            <details className="border-t border-border pt-3">
+              <summary className="text-sm font-medium cursor-pointer text-stone hover:text-ink">
+                Preguntas personalizadas al reservar ({service.fields.length})
+              </summary>
+              <div className="mt-3 flex flex-col gap-2">
+                {service.fields.map((field) => (
+                  <form
+                    key={field.id}
+                    action={deleteServiceField.bind(null, field.id)}
+                    className="flex items-center justify-between gap-2 bg-brand-soft rounded-lg px-3 py-2 text-sm"
+                  >
+                    <span>
+                      {field.label}
+                      {field.required && <span className="text-danger"> *</span>}
+                      {field.type === "SELECT" && (
+                        <span className="text-muted"> ({field.options.join(" / ")})</span>
+                      )}
+                    </span>
+                    <button
+                      type="submit"
+                      aria-label="Eliminar pregunta"
+                      className="text-danger font-medium hover:opacity-70 shrink-0"
+                    >
+                      ×
+                    </button>
+                  </form>
+                ))}
+
+                {fieldTemplates.filter(
+                  (t) => !service.fields.some((f) => f.label === t.label)
+                ).length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-xs font-medium text-muted uppercase tracking-wide">
+                      Sugeridas para tu rubro
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {fieldTemplates
+                        .filter((t) => !service.fields.some((f) => f.label === t.label))
+                        .map((t) => (
+                          <form key={t.label} action={addServiceField}>
+                            <input type="hidden" name="serviceId" value={service.id} />
+                            <input type="hidden" name="label" value={t.label} />
+                            <input type="hidden" name="type" value={t.type} />
+                            <input type="hidden" name="options" value={t.options.join(",")} />
+                            {t.required && <input type="hidden" name="required" value="on" />}
+                            <button
+                              type="submit"
+                              className="text-sm border border-dashed border-border rounded-lg px-3 py-1.5 hover:border-brand hover:bg-brand-soft"
+                            >
+                              + {t.label}
+                            </button>
+                          </form>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                <form
+                  action={addServiceField}
+                  className="flex flex-col gap-2 border border-border rounded-lg p-3"
                 >
-                  {service.active ? "Pausar" : "Activar"}
-                </button>
-              </form>
-              <form action={deleteService.bind(null, service.id)}>
-                <button
-                  type="submit"
-                  className="text-sm border border-border rounded-lg px-3 py-1.5 text-danger hover:border-danger"
-                >
-                  Eliminar
-                </button>
-              </form>
-            </div>
+                  <input type="hidden" name="serviceId" value={service.id} />
+                  <input
+                    type="text"
+                    name="label"
+                    required
+                    placeholder="Ej: ¿Ya iniciaste el trámite?"
+                    className="border border-border rounded-lg px-3 py-2 text-sm"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      name="type"
+                      className="border border-border rounded-lg px-2 py-1.5 text-sm bg-surface"
+                    >
+                      <option value="TEXT">Texto libre</option>
+                      <option value="SELECT">Opción múltiple</option>
+                    </select>
+                    <input
+                      type="text"
+                      name="options"
+                      placeholder="Opciones separadas por coma (si es opción múltiple)"
+                      className="border border-border rounded-lg px-3 py-1.5 text-sm flex-1 min-w-40"
+                    />
+                    <label className="flex items-center gap-1.5 text-sm">
+                      <input type="checkbox" name="required" className="accent-(--brand)" />
+                      Obligatoria
+                    </label>
+                  </div>
+                  <button
+                    type="submit"
+                    className="self-start border border-border bg-surface rounded-lg px-3 py-1.5 text-sm font-medium hover:border-brand"
+                  >
+                    Agregar pregunta
+                  </button>
+                </form>
+              </div>
+            </details>
           </li>
         ))}
       </ul>

@@ -4,6 +4,7 @@ import { BookingRow, type BookingRowData } from "@/components/dashboard/BookingR
 import { CancelDayButton } from "@/components/dashboard/CancelDayButton";
 import { EmptyAgenda } from "@/components/dashboard/EmptyAgenda";
 import { formatDateLong, nowInTimeZone, wallClockOf } from "@/lib/dates";
+import { industryPreset } from "@/lib/industries";
 
 export default async function AgendaPage() {
   const professional = await getCurrentProfessional();
@@ -40,6 +41,25 @@ export default async function AgendaPage() {
   });
 
   const hasAnyBookingEver = bookings.length > 0 || (await prisma.booking.count({ where: { professionalId: professional.id } })) > 0;
+
+  // Historial del cliente: cuántas veces ese mismo teléfono ha reservado en
+  // total con este negocio (incluye esta cita), para dar continuidad entre
+  // consultas/sesiones sin necesitar una ficha de cliente completa.
+  const phones = [...new Set(bookings.map((b) => b.clientPhone))];
+  const visitCounts =
+    phones.length > 0
+      ? await prisma.booking.groupBy({
+          by: ["clientPhone"],
+          where: {
+            professionalId: professional.id,
+            clientPhone: { in: phones },
+            status: { not: "CANCELLED" },
+          },
+          _count: { _all: true },
+        })
+      : [];
+  const visitCountByPhone = new Map(visitCounts.map((v) => [v.clientPhone, v._count._all]));
+  const historyLabel = industryPreset(professional.industry).historyLabel;
 
   // Agrupa por fecha
   const groups = new Map<string, typeof bookings>();
@@ -127,6 +147,12 @@ export default async function AgendaPage() {
                   durationMin: b.service.durationMin,
                   status: b.status,
                   internalNote: b.internalNote,
+                  intakeNote: b.intakeNote,
+                  customAnswers: Array.isArray(b.customAnswers)
+                    ? (b.customAnswers as unknown as { label: string; value: string }[])
+                    : null,
+                  visitCount: visitCountByPhone.get(b.clientPhone) ?? 1,
+                  historyLabel,
                   isPast,
                   reminderSent: !!b.reminderSentAt,
                   hasClientEmail: !!b.clientEmail,

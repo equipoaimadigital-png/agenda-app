@@ -69,6 +69,13 @@ export default async function MiReservaPage({ params, searchParams }: PageProps)
       style={{ "--brand": professional.brandColor } as React.CSSProperties}
     >
       <div className="max-w-lg mx-auto px-5 py-6 sm:py-10 flex flex-col gap-5">
+        <Link
+          href={`/reservar/${professional.slug}`}
+          className="text-sm text-stone hover:text-ink w-fit"
+        >
+          ← Volver a {professional.businessName}
+        </Link>
+
         {isNew && (
           <div
             role="status"

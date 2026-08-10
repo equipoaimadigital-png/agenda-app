@@ -1,5 +1,6 @@
 import { getCurrentProfessional } from "@/lib/auth-helpers";
-import { updateBusinessSettings } from "@/lib/actions/dashboard";
+import { updateBusinessSettings, updateIndustry } from "@/lib/actions/dashboard";
+import { INDUSTRY_PRESETS } from "@/lib/industries";
 
 export default async function ConfiguracionPage() {
   const professional = await getCurrentProfessional();
@@ -13,6 +14,46 @@ export default async function ConfiguracionPage() {
           Cómo se presenta tu negocio en tu página pública de reservas.
         </p>
       </div>
+
+      <section className="flex flex-col gap-3">
+        <div>
+          <h2 className="font-semibold">Tipo de negocio</h2>
+          <p className="text-sm text-muted">
+            Ajusta el lenguaje, los colores por defecto y los datos que se piden al
+            reservar. Puedes cambiarlo cuando quieras, sin perder tus datos.
+          </p>
+        </div>
+        <form action={updateIndustry} className="flex flex-col gap-3">
+          <div className="grid sm:grid-cols-2 gap-2">
+            {Object.values(INDUSTRY_PRESETS).map((preset) => (
+              <label
+                key={preset.value}
+                className={`text-left border rounded-xl p-3 bg-surface cursor-pointer flex items-start gap-2 has-checked:border-brand has-checked:ring-1 has-checked:ring-brand border-border hover:border-brand/50`}
+              >
+                <input
+                  type="radio"
+                  name="industry"
+                  value={preset.value}
+                  defaultChecked={professional.industry === preset.value}
+                  className="mt-1 accent-(--brand)"
+                />
+                <span>
+                  <span className="font-medium block">
+                    {preset.navIcons.servicios} {preset.label}
+                  </span>
+                  <span className="text-sm text-muted">{preset.description}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <button
+            type="submit"
+            className="self-start border border-border bg-surface rounded-lg px-4 py-2 text-sm font-medium hover:border-brand"
+          >
+            Guardar rubro
+          </button>
+        </form>
+      </section>
 
       <form
         action={updateBusinessSettings}
