@@ -13,3 +13,18 @@ export async function getCurrentProfessional() {
     where: { authUserId: user.id },
   });
 }
+
+/**
+ * Staff "principal" de un negocio: el más antiguo (normalmente el único hasta
+ * que se construya la UI de gestión de staff — v3 Task #14). Las pantallas de
+ * Disponibilidad y Días bloqueados todavía asumen un solo profesional por
+ * negocio y operan sobre este.
+ */
+export async function getPrimaryStaffId(professionalId: string): Promise<string | null> {
+  const staff = await prisma.staff.findFirst({
+    where: { professionalId },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  return staff?.id ?? null;
+}

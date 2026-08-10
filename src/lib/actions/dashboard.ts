@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getCurrentProfessional } from "@/lib/auth-helpers";
+import { getCurrentProfessional, getPrimaryStaffId } from "@/lib/auth-helpers";
 import { sendCancellationEmails } from "@/lib/email";
 import { wallClockDate } from "@/lib/dates";
 
@@ -134,11 +134,14 @@ export async function cancelDayEmergency(
     });
   }
 
-  await prisma.dateException.upsert({
-    where: { professionalId_date: { professionalId: professional.id, date: dateStr } },
-    create: { professionalId: professional.id, date: dateStr, reason: finalReason },
-    update: { reason: finalReason },
-  });
+  const staffId = await getPrimaryStaffId(professional.id);
+  if (staffId) {
+    await prisma.dateException.upsert({
+      where: { staffId_date: { staffId, date: dateStr } },
+      create: { staffId, date: dateStr, reason: finalReason },
+      update: { reason: finalReason },
+    });
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/disponibilidad");
@@ -147,13 +150,16 @@ export async function cancelDayEmergency(
 
 export async function addDateException(formData: FormData): Promise<void> {
   const professional = await requireProfessional();
+  const staffId = await getPrimaryStaffId(professional.id);
+  if (!staffId) return;
+
   const date = String(formData.get("date") || "");
   const reason = String(formData.get("reason") || "").trim() || null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
 
   await prisma.dateException.upsert({
-    where: { professionalId_date: { professionalId: professional.id, date } },
-    create: { professionalId: professional.id, date, reason },
+    where: { staffId_date: { staffId, date } },
+    create: { staffId, date, reason },
     update: { reason },
   });
   revalidatePath("/dashboard/disponibilidad");
@@ -161,8 +167,11 @@ export async function addDateException(formData: FormData): Promise<void> {
 
 export async function deleteDateException(id: string): Promise<void> {
   const professional = await requireProfessional();
+  const staffId = await getPrimaryStaffId(professional.id);
+  if (!staffId) return;
+
   await prisma.dateException.deleteMany({
-    where: { id, professionalId: professional.id },
+    where: { id, staffId },
   });
   revalidatePath("/dashboard/disponibilidad");
 }

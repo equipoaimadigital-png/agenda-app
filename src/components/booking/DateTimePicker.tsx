@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getAvailableSlots, getMonthAvailability } from "@/lib/actions/bookings";
-import type { DaySuggestion } from "@/lib/booking-logic";
+import type { DaySuggestion, StaffSelection } from "@/lib/booking-logic";
 import { formatDateLong, parseDateStr, toDateStr } from "@/lib/dates";
 
 const WEEKDAY_HEADERS = ["L", "M", "M", "J", "V", "S", "D"];
@@ -19,11 +19,12 @@ function todayStr(): string {
 type Props = {
   slug: string;
   serviceId: string;
+  staffSelection: StaffSelection;
   onPick: (dateStr: string, time: string) => void;
   picked: { dateStr: string; time: string } | null;
 };
 
-export function DateTimePicker({ slug, serviceId, onPick, picked }: Props) {
+export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked }: Props) {
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1); // 1-12
@@ -37,7 +38,11 @@ export function DateTimePicker({ slug, serviceId, onPick, picked }: Props) {
   useEffect(() => {
     let cancelled = false;
     setLoadingMonth(true);
-    getMonthAvailability(slug, serviceId, viewYear, viewMonth).then((dates) => {
+    // Cambiar de profesional invalida el día/hora ya elegidos
+    setSelectedDate(null);
+    setSlots([]);
+    setSuggestions([]);
+    getMonthAvailability(slug, serviceId, staffSelection, viewYear, viewMonth).then((dates) => {
       if (!cancelled) {
         setAvailableDates(new Set(dates));
         setLoadingMonth(false);
@@ -46,7 +51,7 @@ export function DateTimePicker({ slug, serviceId, onPick, picked }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [slug, serviceId, viewYear, viewMonth]);
+  }, [slug, serviceId, staffSelection, viewYear, viewMonth]);
 
   const selectDate = useCallback(
     (dateStr: string) => {
@@ -54,13 +59,13 @@ export function DateTimePicker({ slug, serviceId, onPick, picked }: Props) {
       setSlots([]);
       setSuggestions([]);
       setLoadingSlots(true);
-      getAvailableSlots(slug, serviceId, dateStr).then((result) => {
+      getAvailableSlots(slug, serviceId, staffSelection, dateStr).then((result) => {
         setSlots(result.slots);
         setSuggestions(result.suggestions);
         setLoadingSlots(false);
       });
     },
-    [slug, serviceId]
+    [slug, serviceId, staffSelection]
   );
 
   function shiftMonth(delta: number) {

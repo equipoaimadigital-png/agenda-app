@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { formatDateLong, wallClockOf } from "@/lib/dates";
 
-const FROM = "Agenda <onboarding@resend.dev>";
+const FROM = "Tú Agenda <onboarding@resend.dev>";
 
 function getClient(): Resend | null {
   if (!process.env.RESEND_API_KEY) return null;

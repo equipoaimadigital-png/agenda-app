@@ -1,9 +1,10 @@
-// Esquema de base de datos — Agenda App
-// Professional  = el profesional/pyme que usa la app (dueño de la cuenta)
-// Service       = un servicio que ofrece (ej. "Corte de pelo", 30 min)
-// Availability  = bloques de disponibilidad semanal recurrente
-// DateException = días puntuales bloqueados (feriados, vacaciones)
-// Booking       = una reserva concreta hecha por un cliente
+// Esquema de base de datos — Tú Agenda
+// Professional  = la cuenta/negocio (dueño de la cuenta, login, marca, slug)
+// Staff         = un profesional que atiende dentro del negocio (1..N por negocio)
+// Service       = un servicio que ofrece el negocio (ej. "Corte de pelo", 30 min)
+// Availability  = bloques de disponibilidad semanal recurrente, por Staff
+// DateException = días puntuales bloqueados (feriados, vacaciones), por Staff
+// Booking       = una reserva concreta hecha por un cliente, con un Staff asignado
 
 generator client {
   provider = "prisma-client-js"
@@ -26,19 +27,40 @@ model Professional {
   // Portal público
   description  String?
   address      String?
-  // Color de acento de la marca (hex, ej. #0f766e)
+  // Color de acento de la marca (hex, ej. #2f4a3e)
   brandColor   String   @default("#2f4a3e")
   // Política de cancelación: horas mínimas de anticipación para cancelar/reprogramar
   cancellationHours Int @default(24)
-  // Zona horaria del negocio (los horarios se interpretan en esta zona)
+  // Zona horaria del negocio (los horarios se interpretan en esta zona) — la
+  // comparte todo el staff del negocio
   timezone     String   @default("America/Santiago")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  services       Service[]
+  staff    Staff[]
+  services Service[]
+  bookings Booking[]
+}
+
+// Un profesional que atiende dentro del negocio (ej. cada estilista de una
+// peluquería, cada médico de una clínica). Todo negocio nuevo arranca con un
+// Staff por defecto para que el flujo de un solo profesional siga igual.
+model Staff {
+  id             String       @id @default(uuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  name           String
+  // Color para diferenciarlo visualmente en la agenda (hex)
+  color          String       @default("#2f4a3e")
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  services       Service[]        // muchos a muchos: qué servicios puede realizar
   availability   Availability[]
   dateExceptions DateException[]
   bookings       Booking[]
+
+  @@index([professionalId])
 }
 
 model Service {
@@ -52,35 +74,36 @@ model Service {
   active         Boolean      @default(true)
   createdAt      DateTime     @default(now())
 
+  staff    Staff[]   // qué profesionales pueden realizar este servicio
   bookings Booking[]
 
   @@index([professionalId])
 }
 
-// Disponibilidad semanal recurrente (ej: lunes 09:00-13:00)
+// Disponibilidad semanal recurrente de un Staff (ej: lunes 09:00-13:00)
 model Availability {
-  id             String       @id @default(uuid())
-  professionalId String
-  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  id           String @id @default(uuid())
+  staffId      String
+  staff        Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
   // 0 = domingo ... 6 = sábado
-  weekday        Int
-  startMinutes   Int // minutos desde medianoche, ej. 540 = 09:00
-  endMinutes     Int
+  weekday      Int
+  startMinutes Int // minutos desde medianoche, ej. 540 = 09:00
+  endMinutes   Int
 
-  @@index([professionalId, weekday])
+  @@index([staffId, weekday])
 }
 
-// Día puntual sin atención (feriado, vacaciones, emergencia)
+// Día puntual sin atención de un Staff (feriado, vacaciones, emergencia)
 model DateException {
-  id             String       @id @default(uuid())
-  professionalId String
-  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  id      String @id @default(uuid())
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
   // Fecha del día bloqueado, como "YYYY-MM-DD" para evitar ambigüedad de zona horaria
-  date           String
-  reason         String?
-  createdAt      DateTime     @default(now())
+  date    String
+  reason  String?
+  createdAt DateTime @default(now())
 
-  @@unique([professionalId, date])
+  @@unique([staffId, date])
 }
 
 enum BookingStatus {
@@ -92,8 +115,12 @@ enum BookingStatus {
 
 model Booking {
   id             String        @id @default(uuid())
+  // Se mantiene para scoping simple del dashboard del dueño del negocio
   professionalId String
   professional   Professional  @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  // Quién atiende esta cita específicamente
+  staffId        String
+  staff          Staff         @relation(fields: [staffId], references: [id])
   serviceId      String
   service        Service       @relation(fields: [serviceId], references: [id])
   clientName     String
@@ -111,5 +138,6 @@ model Booking {
   reminderSentAt DateTime?
   createdAt      DateTime      @default(now())
 
+  @@index([staffId, startTime])
   @@index([professionalId, startTime])
 }

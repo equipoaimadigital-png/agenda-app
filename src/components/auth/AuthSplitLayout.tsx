@@ -14,7 +14,7 @@ export function AuthSplitLayout({
         <div aria-hidden className="absolute inset-0 seal-texture" />
         <div className="relative flex items-center gap-3 md:block">
           <Seal size={40} />
-          <p className="font-display text-2xl md:mt-4">Agenda</p>
+          <p className="font-display text-2xl md:mt-4">Tú Agenda</p>
         </div>
         <p className="relative hidden md:block text-white/70 max-w-xs mt-6">
           {tagline}

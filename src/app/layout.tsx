@@ -23,11 +23,11 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Agenda — Reservas online para profesionales",
-    template: "%s | Agenda",
+    default: "Tú Agenda — Reservas online para profesionales",
+    template: "%s | Tú Agenda",
   },
   description:
-    "Agenda de citas online para profesionales independientes. Tus clientes reservan solos desde un link.",
+    "Tú Agenda: reservas online para profesionales independientes. Tus clientes reservan solos desde un link.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

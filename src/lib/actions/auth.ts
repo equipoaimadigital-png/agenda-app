@@ -48,6 +48,11 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
       email: data.user.email ?? email,
       businessName,
       slug,
+      // Todo negocio arranca con un profesional (el dueño, "Yo"). Puede
+      // agregar más desde Configuración → Profesionales.
+      staff: {
+        create: { name: "Yo" },
+      },
     },
   });
 

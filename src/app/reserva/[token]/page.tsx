@@ -166,6 +166,7 @@ export default async function MiReservaPage({ params, searchParams }: PageProps)
             token={token}
             slug={professional.slug}
             serviceId={service.id}
+            staffId={booking.staffId}
             canModify={canModify}
             cancellationHours={professional.cancellationHours}
           />

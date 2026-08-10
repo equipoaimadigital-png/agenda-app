@@ -19,6 +19,15 @@ export async function createService(formData: FormData) {
     return;
   }
 
+  // Un servicio solo es reservable si algún Staff lo tiene asignado. Hasta que
+  // exista la UI de gestión de staff (v3 Task #14), un servicio nuevo se
+  // asigna a todo el staff activo del negocio para que quede reservable de
+  // inmediato, igual que antes de introducir multi-staff.
+  const activeStaff = await prisma.staff.findMany({
+    where: { professionalId: professional.id, active: true },
+    select: { id: true },
+  });
+
   await prisma.service.create({
     data: {
       professionalId: professional.id,
@@ -26,6 +35,7 @@ export async function createService(formData: FormData) {
       description,
       durationMin,
       price,
+      staff: { connect: activeStaff.map((s) => ({ id: s.id })) },
     },
   });
 

@@ -1,4 +1,4 @@
-import { getCurrentProfessional } from "@/lib/auth-helpers";
+import { getCurrentProfessional, getPrimaryStaffId } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import { createAvailability, deleteAvailability } from "@/lib/actions/availability";
 import { addDateException, deleteDateException } from "@/lib/actions/dashboard";
@@ -11,17 +11,20 @@ const ORDEN = [1, 2, 3, 4, 5, 6, 0];
 export default async function DisponibilidadPage() {
   const professional = await getCurrentProfessional();
   if (!professional) return null;
+  const staffId = await getPrimaryStaffId(professional.id);
 
-  const [blocks, exceptions] = await Promise.all([
-    prisma.availability.findMany({
-      where: { professionalId: professional.id },
-      orderBy: [{ weekday: "asc" }, { startMinutes: "asc" }],
-    }),
-    prisma.dateException.findMany({
-      where: { professionalId: professional.id },
-      orderBy: { date: "asc" },
-    }),
-  ]);
+  const [blocks, exceptions] = staffId
+    ? await Promise.all([
+        prisma.availability.findMany({
+          where: { staffId },
+          orderBy: [{ weekday: "asc" }, { startMinutes: "asc" }],
+        }),
+        prisma.dateException.findMany({
+          where: { staffId },
+          orderBy: { date: "asc" },
+        }),
+      ])
+    : [[], []];
 
   return (
     <div className="flex flex-col gap-8 max-w-xl">

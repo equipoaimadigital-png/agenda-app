@@ -6,7 +6,7 @@ import {
   daySlots,
   hasOverlappingBooking,
   loadBookingContext,
-  withProfessionalLock,
+  withStaffLock,
 } from "@/lib/booking-logic";
 import { minutesToTime, nowInTimeZone, wallClockDate } from "@/lib/dates";
 import { sendCancellationEmails, sendRescheduleEmails } from "@/lib/email";
@@ -30,7 +30,7 @@ function withinPolicy(startTime: Date, cancellationHours: number, timezone: stri
 async function loadByToken(token: string) {
   return prisma.booking.findUnique({
     where: { manageToken: token },
-    include: { professional: true, service: true },
+    include: { professional: true, service: true, staff: true },
   });
 }
 
@@ -96,7 +96,9 @@ export async function rescheduleBookingByToken(
   const ctx = await loadBookingContext(booking.professional.slug, booking.serviceId);
   if (!ctx) return { error: "El servicio ya no está disponible." };
 
-  const available = await daySlots(ctx, dateStr);
+  // Reprogramar mantiene el mismo profesional (staff) que atendía la cita;
+  // no se reasigna a "cualquiera disponible" a espaldas del cliente.
+  const available = await daySlots(ctx, booking.staffId, dateStr);
   if (!available.includes(time)) {
     return { error: "Ese horario ya no está disponible. Elige otro." };
   }
@@ -107,16 +109,8 @@ export async function rescheduleBookingByToken(
 
   // Mismo bloqueo que al crear: dos clientes reprogramando al mismo horario a
   // la vez podrían pasar ambos la validación de `daySlots`.
-  const updated = await withProfessionalLock(booking.professionalId, async (tx) => {
-    if (
-      await hasOverlappingBooking(
-        tx,
-        booking.professionalId,
-        startTime,
-        endTime,
-        booking.id
-      )
-    ) {
+  const updated = await withStaffLock(booking.staffId, async (tx) => {
+    if (await hasOverlappingBooking(tx, booking.staffId, startTime, endTime, booking.id)) {
       return null;
     }
     return tx.booking.update({

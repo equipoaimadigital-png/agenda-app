@@ -1,8 +1,14 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createPublicBooking, type CreateBookingResult } from "@/lib/actions/bookings";
+import {
+  createPublicBooking,
+  getStaffForService,
+  type CreateBookingResult,
+  type StaffOptionView,
+} from "@/lib/actions/bookings";
+import { ANY_STAFF, type StaffSelection } from "@/lib/booking-logic";
 import { DateTimePicker } from "@/components/booking/DateTimePicker";
 import { formatDateLong } from "@/lib/dates";
 
@@ -27,7 +33,50 @@ export function BookingWidget({ slug, services }: { slug: string; services: Serv
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
   const [fields, setFields] = useState({ name: "", phone: "", email: "" });
 
+  const [staffOptions, setStaffOptions] = useState<StaffOptionView[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [staffSelection, setStaffSelection] = useState<StaffSelection>(ANY_STAFF);
+
   const service = services.find((s) => s.id === serviceId) ?? null;
+
+  // En mobile, el paso 2 aparece debajo del pliegue: si no hacemos scroll
+  // hasta él, se siente como si el clic en el servicio "no hiciera nada".
+  const step2Ref = useRef<HTMLElement>(null);
+  const step3Ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (service) {
+      step2Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [service]);
+
+  // Al elegir servicio, carga qué profesionales pueden realizarlo
+  useEffect(() => {
+    if (!service) {
+      setStaffOptions([]);
+      setStaffSelection(ANY_STAFF);
+      return;
+    }
+    let cancelled = false;
+    setLoadingStaff(true);
+    setStaffSelection(ANY_STAFF);
+    setPicked(null);
+    getStaffForService(slug, service.id).then((options) => {
+      if (!cancelled) {
+        setStaffOptions(options);
+        setLoadingStaff(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, service?.id]);
+
+  useEffect(() => {
+    if (picked) {
+      step3Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [picked]);
 
   const [state, formAction, isPending] = useActionState<CreateBookingResult, FormData>(
     async (_prev, formData) => {
@@ -74,7 +123,12 @@ export function BookingWidget({ slug, services }: { slug: string; services: Serv
                 }`}
               >
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="font-medium">{s.name}</p>
+                  <p className="font-medium flex items-center gap-2">
+                    {selected && (
+                      <span aria-hidden className="text-brand">✓</span>
+                    )}
+                    {s.name}
+                  </p>
                   <p className="text-sm text-muted whitespace-nowrap">
                     {s.durationMin} min{s.price ? ` · ${formatPrice(s.price)}` : ""}
                   </p>
@@ -88,30 +142,74 @@ export function BookingWidget({ slug, services }: { slug: string; services: Serv
         </div>
       </section>
 
-      {/* Paso 2: fecha y hora */}
-      {service && (
-        <section>
+      {/* Paso 2 (si hay más de un profesional para el servicio elegido) */}
+      {service && !loadingStaff && staffOptions.length > 1 && (
+        <section className="scroll-mt-4">
           <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
-            2 · Elige fecha y hora
+            2 · Elige profesional
+          </h2>
+          <div className="grid gap-2">
+            <button
+              type="button"
+              onClick={() => setStaffSelection(ANY_STAFF)}
+              className={`text-left border rounded-xl p-3 bg-surface flex items-center gap-2 ${
+                staffSelection === ANY_STAFF
+                  ? "border-brand ring-1 ring-brand"
+                  : "border-border hover:border-brand/50"
+              }`}
+            >
+              <span aria-hidden className="w-3 h-3 rounded-full bg-brand shrink-0" />
+              <span className="font-medium">Cualquiera disponible</span>
+            </button>
+            {staffOptions.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setStaffSelection(opt.id)}
+                className={`text-left border rounded-xl p-3 bg-surface flex items-center gap-2 ${
+                  staffSelection === opt.id
+                    ? "border-brand ring-1 ring-brand"
+                    : "border-border hover:border-brand/50"
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className="w-3 h-3 rounded-full shrink-0"
+                  style={{ backgroundColor: opt.color }}
+                />
+                <span className="font-medium">{opt.name}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Fecha y hora */}
+      {service && (
+        <section ref={step2Ref} className="scroll-mt-4">
+          <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
+            {staffOptions.length > 1 ? "3" : "2"} · Elige fecha y hora
           </h2>
           <DateTimePicker
             slug={slug}
             serviceId={service.id}
+            staffSelection={staffSelection}
             picked={picked}
             onPick={(dateStr, time) => setPicked({ dateStr, time })}
           />
         </section>
       )}
 
-      {/* Paso 3: datos y confirmación */}
+      {/* Datos y confirmación */}
       {service && picked && (
-        <section>
+        <section ref={step3Ref} className="scroll-mt-4">
           <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
-            3 · Tus datos
+            {staffOptions.length > 1 ? "4" : "3"} · Tus datos
           </h2>
           <form action={formAction} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-4">
             <input type="hidden" name="slug" value={slug} />
             <input type="hidden" name="serviceId" value={service.id} />
+            <input type="hidden" name="staffId" value={staffSelection} />
             <input type="hidden" name="date" value={picked.dateStr} />
             <input type="hidden" name="time" value={picked.time} />
 

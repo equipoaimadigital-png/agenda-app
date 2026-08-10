@@ -9,11 +9,19 @@ type Props = {
   token: string;
   slug: string;
   serviceId: string;
+  staffId: string;
   canModify: boolean;
   cancellationHours: number;
 };
 
-export function ManageBookingActions({ token, slug, serviceId, canModify, cancellationHours }: Props) {
+export function ManageBookingActions({
+  token,
+  slug,
+  serviceId,
+  staffId,
+  canModify,
+  cancellationHours,
+}: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<"none" | "reschedule" | "confirm-cancel">("none");
   const [picked, setPicked] = useState<{ dateStr: string; time: string } | null>(null);
@@ -85,6 +93,7 @@ export function ManageBookingActions({ token, slug, serviceId, canModify, cancel
           <DateTimePicker
             slug={slug}
             serviceId={serviceId}
+            staffSelection={staffId}
             picked={picked}
             onPick={(dateStr, time) => setPicked({ dateStr, time })}
           />
