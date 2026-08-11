@@ -15,6 +15,7 @@ export function DashboardNav({ industry }: { industry: Industry }) {
     { href: "/dashboard/disponibilidad", label: "Disponibilidad", icon: icons.disponibilidad },
     { href: "/dashboard/estadisticas", label: "Estadísticas", icon: icons.estadisticas },
     { href: "/dashboard/configuracion", label: "Configuración", icon: icons.configuracion },
+    { href: "/dashboard/suscripcion", label: "Suscripción", icon: "💳" },
   ] as const;
 
   return (

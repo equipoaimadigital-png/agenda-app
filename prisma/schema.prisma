@@ -25,6 +25,15 @@ enum Industry {
   LEY
 }
 
+// Estado de la suscripción mensual ($12.000 CLP) que el PROFESIONAL paga
+// para usar Tú Agenda — no tiene relación con pagos de sus propios clientes.
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
 model Professional {
   id           String   @id @default(uuid())
   // id del usuario en Supabase Auth (auth.users.id) — vincula login con este perfil
@@ -47,6 +56,13 @@ model Professional {
   timezone     String   @default("America/Santiago")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  // Suscripción del profesional a Tú Agenda (no confundir con pagos de sus clientes)
+  subscriptionStatus SubscriptionStatus @default(TRIAL)
+  // Fin de la prueba gratis de 14 días, fijado al registrarse
+  trialEndsAt        DateTime?
+  // ID de la suscripción (Preapproval) en Mercado Pago, una vez autorizada
+  mpPreapprovalId    String?
 
   staff    Staff[]
   services Service[]

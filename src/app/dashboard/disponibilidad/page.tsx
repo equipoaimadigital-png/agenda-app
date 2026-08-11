@@ -1,4 +1,4 @@
-import { getCurrentProfessional, getPrimaryStaffId } from "@/lib/auth-helpers";
+import { requireDashboardAccess, getPrimaryStaffId } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import { createAvailability, deleteAvailability } from "@/lib/actions/availability";
 import { addDateException, deleteDateException } from "@/lib/actions/dashboard";
@@ -9,8 +9,7 @@ const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "
 const ORDEN = [1, 2, 3, 4, 5, 6, 0];
 
 export default async function DisponibilidadPage() {
-  const professional = await getCurrentProfessional();
-  if (!professional) return null;
+  const professional = await requireDashboardAccess();
   const staffId = await getPrimaryStaffId(professional.id);
 
   const [blocks, exceptions] = staffId

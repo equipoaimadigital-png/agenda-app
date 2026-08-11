@@ -1,4 +1,4 @@
-import { getCurrentProfessional } from "@/lib/auth-helpers";
+import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import { BookingRow, type BookingRowData } from "@/components/dashboard/BookingRow";
 import { CancelDayButton } from "@/components/dashboard/CancelDayButton";
@@ -7,10 +7,7 @@ import { formatDateLong, nowInTimeZone, wallClockOf } from "@/lib/dates";
 import { industryPreset } from "@/lib/industries";
 
 export default async function AgendaPage() {
-  const professional = await getCurrentProfessional();
-  if (!professional) {
-    return <p className="text-sm text-danger">No se encontró tu perfil de profesional.</p>;
-  }
+  const professional = await requireDashboardAccess();
 
   // Últimos 7 días (para marcar atendida/no-show) + todo lo futuro
   const from = new Date();

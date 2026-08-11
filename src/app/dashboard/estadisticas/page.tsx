@@ -1,4 +1,4 @@
-import { getCurrentProfessional } from "@/lib/auth-helpers";
+import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 
 function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -12,8 +12,7 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
 }
 
 export default async function EstadisticasPage() {
-  const professional = await getCurrentProfessional();
-  if (!professional) return null;
+  const professional = await requireDashboardAccess();
 
   const since = new Date();
   since.setDate(since.getDate() - 28); // últimas 4 semanas

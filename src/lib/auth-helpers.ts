@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
+import { hasDashboardAccess } from "@/lib/subscription";
 
 export async function getCurrentProfessional() {
   const supabase = await createSupabaseServerClient();
@@ -12,6 +14,17 @@ export async function getCurrentProfessional() {
   return prisma.professional.findUnique({
     where: { authUserId: user.id },
   });
+}
+
+/**
+ * Para páginas del panel que requieren una suscripción vigente (todas menos
+ * /dashboard/suscripcion). La página pública de reserva nunca pasa por acá.
+ */
+export async function requireDashboardAccess() {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+  if (!hasDashboardAccess(professional)) redirect("/dashboard/suscripcion");
+  return professional;
 }
 
 /**

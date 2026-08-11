@@ -1,4 +1,4 @@
-import { getCurrentProfessional } from "@/lib/auth-helpers";
+import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import {
   addServiceField,
@@ -10,8 +10,7 @@ import {
 import { industryPreset } from "@/lib/industries";
 
 export default async function ServiciosPage() {
-  const professional = await getCurrentProfessional();
-  if (!professional) return null;
+  const professional = await requireDashboardAccess();
 
   const fieldTemplates = industryPreset(professional.industry).fieldTemplates;
 

@@ -1,10 +1,17 @@
-import { getCurrentProfessional } from "@/lib/auth-helpers";
+import Link from "next/link";
+import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { updateBusinessSettings, updateIndustry } from "@/lib/actions/dashboard";
 import { INDUSTRY_PRESETS } from "@/lib/industries";
 
+const SUBSCRIPTION_LABEL: Record<string, string> = {
+  TRIAL: "Prueba gratis",
+  ACTIVE: "Activa",
+  PAST_DUE: "Pago pendiente",
+  CANCELLED: "Cancelada",
+};
+
 export default async function ConfiguracionPage() {
-  const professional = await getCurrentProfessional();
-  if (!professional) return null;
+  const professional = await requireDashboardAccess();
 
   return (
     <div className="flex flex-col gap-6 max-w-xl">
@@ -14,6 +21,21 @@ export default async function ConfiguracionPage() {
           Cómo se presenta tu negocio en tu página pública de reservas.
         </p>
       </div>
+
+      <section className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-sm text-muted">Suscripción</p>
+          <p className="font-medium">
+            {SUBSCRIPTION_LABEL[professional.subscriptionStatus] ?? professional.subscriptionStatus}
+          </p>
+        </div>
+        <Link
+          href="/dashboard/suscripcion"
+          className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand"
+        >
+          Ver detalle
+        </Link>
+      </section>
 
       <section className="flex flex-col gap-3">
         <div>

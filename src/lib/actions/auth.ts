@@ -42,12 +42,14 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   }
 
   const slug = await uniqueSlug(businessName);
+  const trialEndsAt = new Date(Date.now() + 14 * 24 * 3600_000);
   await prisma.professional.create({
     data: {
       authUserId: data.user.id,
       email: data.user.email ?? email,
       businessName,
       slug,
+      trialEndsAt,
       // Todo negocio arranca con un profesional (el dueño, "Yo"). Puede
       // agregar más desde Configuración → Profesionales.
       staff: {
