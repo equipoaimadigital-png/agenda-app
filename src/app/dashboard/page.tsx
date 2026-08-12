@@ -206,6 +206,8 @@ export default async function AgendaPage({ searchParams }: PageProps) {
             if (staffId) params.set("staffId", staffId);
             return `/dashboard?${params.toString()}`;
           }}
+          services={allServices}
+          staff={allStaff}
         />
       )}
 
