@@ -7,12 +7,9 @@ import {
   deleteServiceField,
   toggleServiceActive,
 } from "@/lib/actions/services";
-import { industryPreset } from "@/lib/industries";
 
 export default async function ServiciosPage() {
   const professional = await requireDashboardAccess();
-
-  const fieldTemplates = industryPreset(professional.industry).fieldTemplates;
 
   const services = await prisma.service.findMany({
     where: { professionalId: professional.id },
@@ -167,35 +164,6 @@ export default async function ServiciosPage() {
                     </button>
                   </form>
                 ))}
-
-                {fieldTemplates.filter(
-                  (t) => !service.fields.some((f) => f.label === t.label)
-                ).length > 0 && (
-                  <div className="flex flex-col gap-1.5">
-                    <p className="text-xs font-medium text-muted uppercase tracking-wide">
-                      Sugeridas para tu rubro
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {fieldTemplates
-                        .filter((t) => !service.fields.some((f) => f.label === t.label))
-                        .map((t) => (
-                          <form key={t.label} action={addServiceField}>
-                            <input type="hidden" name="serviceId" value={service.id} />
-                            <input type="hidden" name="label" value={t.label} />
-                            <input type="hidden" name="type" value={t.type} />
-                            <input type="hidden" name="options" value={t.options.join(",")} />
-                            {t.required && <input type="hidden" name="required" value="on" />}
-                            <button
-                              type="submit"
-                              className="text-sm border border-dashed border-border rounded-lg px-3 py-1.5 hover:border-brand hover:bg-brand-soft"
-                            >
-                              + {t.label}
-                            </button>
-                          </form>
-                        ))}
-                    </div>
-                  </div>
-                )}
 
                 <form
                   action={addServiceField}

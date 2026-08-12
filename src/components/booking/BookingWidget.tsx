@@ -11,7 +11,6 @@ import {
   type StaffOptionView,
 } from "@/lib/actions/bookings";
 import { ANY_STAFF, type StaffSelection } from "@/lib/booking-logic";
-import type { IntakeFieldDef } from "@/lib/industries";
 import { DateTimePicker } from "@/components/booking/DateTimePicker";
 import { formatDateLong } from "@/lib/dates";
 
@@ -30,11 +29,9 @@ function formatPrice(price: number): string {
 export function BookingWidget({
   slug,
   services,
-  intakeField,
 }: {
   slug: string;
   services: Service[];
-  intakeField: IntakeFieldDef | null;
 }) {
   const router = useRouter();
   const [serviceId, setServiceId] = useState<string | null>(
@@ -43,7 +40,6 @@ export function BookingWidget({
   const [picked, setPicked] = useState<{ dateStr: string; time: string } | null>(null);
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
   const [fields, setFields] = useState({ name: "", phone: "", email: "" });
-  const [intakeValue, setIntakeValue] = useState(intakeField?.options[0] ?? "");
 
   const [staffOptions, setStaffOptions] = useState<StaffOptionView[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
@@ -249,7 +245,6 @@ export function BookingWidget({
             <input type="hidden" name="staffId" value={staffSelection} />
             <input type="hidden" name="date" value={picked.dateStr} />
             <input type="hidden" name="time" value={picked.time} />
-            {intakeField && <input type="hidden" name="intakeNote" value={intakeValue} />}
             {serviceFields.length > 0 && (
               <input
                 type="hidden"
@@ -264,34 +259,6 @@ export function BookingWidget({
               <span className="capitalize">{formatDateLong(picked.dateStr)}</span> a las{" "}
               <strong>{picked.time}</strong> · {service.name}
             </p>
-
-            {intakeField && (
-              <fieldset className="flex flex-col gap-1.5">
-                <legend className="text-sm font-medium mb-1">{intakeField.label}</legend>
-                <div className="flex flex-wrap gap-2">
-                  {intakeField.options.map((option) => (
-                    <label
-                      key={option}
-                      className={`text-sm border rounded-lg px-3 py-1.5 cursor-pointer ${
-                        intakeValue === option
-                          ? "border-brand ring-1 ring-brand bg-brand-soft"
-                          : "border-border hover:border-brand/50"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="_intakeOption"
-                        value={option}
-                        checked={intakeValue === option}
-                        onChange={() => setIntakeValue(option)}
-                        className="sr-only"
-                      />
-                      {option}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            )}
 
             {serviceFields.map((f) =>
               f.type === "SELECT" ? (

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { BookingWidget } from "@/components/booking/BookingWidget";
-import { industryPreset } from "@/lib/industries";
+
+const HERO_VERB = "Reserva tu hora";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -16,9 +17,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const professional = await loadProfessional(slug);
   if (!professional) return { title: "Página no encontrada" };
-  const heroVerb = industryPreset(professional.industry).heroVerb;
   return {
-    title: `${heroVerb} con ${professional.businessName}`,
+    title: `${HERO_VERB} con ${professional.businessName}`,
     description:
       professional.description ??
       `Agenda online de ${professional.businessName}. Elige un servicio y reserva en segundos.`,
@@ -67,8 +67,6 @@ export default async function ReservarPage({ params }: PageProps) {
     );
   }
 
-  const heroVerb = industryPreset(professional.industry).heroVerb;
-
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -109,7 +107,7 @@ export default async function ReservarPage({ params }: PageProps) {
               {professional.businessName.slice(0, 1).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-xs uppercase tracking-wide text-white/60 mb-0.5">{heroVerb}</p>
+              <p className="text-xs uppercase tracking-wide text-white/60 mb-0.5">{HERO_VERB}</p>
               <h1 className="font-display text-2xl sm:text-3xl leading-tight">
                 {professional.businessName}
               </h1>
@@ -146,7 +144,6 @@ export default async function ReservarPage({ params }: PageProps) {
         ) : (
           <BookingWidget
             slug={professional.slug}
-            intakeField={industryPreset(professional.industry).intakeField}
             services={professional.services.map((s) => ({
               id: s.id,
               name: s.name,

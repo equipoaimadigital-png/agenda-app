@@ -18,8 +18,6 @@ export type BookingRowData = {
   durationMin: number;
   status: string;
   internalNote: string | null;
-  /** Respuesta al dato extra del rubro (ej. "Telemedicina", "Grupal") */
-  intakeNote: string | null;
   /** Respuestas a las preguntas personalizadas del servicio */
   customAnswers: { label: string; value: string }[] | null;
   /** Cuántas veces este mismo cliente ha reservado con el negocio (incluye esta cita) */
@@ -99,11 +97,6 @@ export function BookingRow({
               >
                 {booking.visitCount > 1 ? `${booking.historyLabel}: ${booking.visitCount}ª vez` : "Primera vez"}
               </span>
-              {booking.intakeNote && (
-                <span className="text-xs text-brand bg-brand-soft rounded px-2 py-1">
-                  {booking.intakeNote}
-                </span>
-              )}
               {booking.customAnswers?.map(
                 (a, i) =>
                   a.value && (

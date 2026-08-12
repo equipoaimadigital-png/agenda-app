@@ -8,7 +8,6 @@ import { NewBookingForm } from "@/components/dashboard/NewBookingForm";
 import { StaffFilter } from "@/components/dashboard/StaffFilter";
 import { WeekView, type WeekBooking } from "@/components/dashboard/WeekView";
 import { addDays, formatDateLong, nowInTimeZone, timeToMinutes, wallClockOf, weekdayOf } from "@/lib/dates";
-import { industryPreset } from "@/lib/industries";
 
 type PageProps = { searchParams: Promise<{ staffId?: string; view?: string; week?: string }> };
 
@@ -129,7 +128,7 @@ export default async function AgendaPage({ searchParams }: PageProps) {
         })
       : [];
   const visitCountByPhone = new Map(visitCounts.map((v) => [v.clientPhone, v._count._all]));
-  const historyLabel = industryPreset(professional.industry).historyLabel;
+  const historyLabel = "Visitas anteriores";
 
   // Agrupa por fecha
   const groups = new Map<string, typeof bookings>();
@@ -252,7 +251,6 @@ export default async function AgendaPage({ searchParams }: PageProps) {
                   durationMin: b.service.durationMin,
                   status: b.status,
                   internalNote: b.internalNote,
-                  intakeNote: b.intakeNote,
                   customAnswers: Array.isArray(b.customAnswers)
                     ? (b.customAnswers as unknown as { label: string; value: string }[])
                     : null,

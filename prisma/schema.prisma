@@ -16,15 +16,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// Rubro del negocio: ajusta terminología, colores por defecto e íconos del
-// panel/portal, y qué dato extra (si alguno) se pide al reservar.
-enum Industry {
-  MEDICINA
-  FITNESS
-  LOOK
-  LEY
-}
-
 // Estado de la suscripción mensual ($12.000 CLP) que el PROFESIONAL paga
 // para usar Tú Agenda — no tiene relación con pagos de sus propios clientes.
 enum SubscriptionStatus {
@@ -47,8 +38,6 @@ model Professional {
   address      String?
   // Color de acento de la marca (hex, ej. #2f4a3e)
   brandColor   String   @default("#2f4a3e")
-  // Rubro elegido en Configuración — LOOK por defecto para no romper cuentas existentes
-  industry     Industry @default(LOOK)
   // Política de cancelación: horas mínimas de anticipación para cancelar/reprogramar
   cancellationHours Int @default(24)
   // Zona horaria del negocio (los horarios se interpretan en esta zona) — la
@@ -191,9 +180,6 @@ model Booking {
   manageToken    String        @unique @default(uuid())
   // Nota interna del profesional sobre el cliente/cita (no visible para el cliente)
   internalNote   String?
-  // Respuesta al dato extra específico del rubro (ej. "Telemedicina", "Grupal"),
-  // capturado en el paso de intake del portal público. Ver src/lib/industries.ts
-  intakeNote     String?
   // Respuestas a las preguntas personalizadas del servicio (ver ServiceField),
   // guardadas como [{ label: string, value: string }] — no se necesita join
   // porque solo se muestran, nunca se filtran ni se agregan.

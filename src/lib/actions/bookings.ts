@@ -105,7 +105,6 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
   const clientName = String(formData.get("clientName") || "").trim();
   const clientPhone = String(formData.get("clientPhone") || "").trim();
   const clientEmail = String(formData.get("clientEmail") || "").trim() || null;
-  const intakeNote = String(formData.get("intakeNote") || "").trim() || null;
 
   let customAnswers: { label: string; value: string }[] | undefined;
   const customAnswersRaw = String(formData.get("customAnswers") || "");
@@ -160,7 +159,6 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
           clientName,
           clientPhone,
           clientEmail,
-          intakeNote,
           customAnswers,
           startTime,
           endTime,

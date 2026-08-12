@@ -2,21 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { Industry } from "@prisma/client";
-import { industryPreset } from "@/lib/industries";
 
-export function DashboardNav({ industry }: { industry: Industry }) {
+const ITEMS = [
+  { href: "/dashboard", label: "Agenda", icon: "📅" },
+  { href: "/dashboard/servicios", label: "Servicios", icon: "📋" },
+  { href: "/dashboard/disponibilidad", label: "Disponibilidad", icon: "🕘" },
+  { href: "/dashboard/estadisticas", label: "Estadísticas", icon: "📊" },
+  { href: "/dashboard/configuracion", label: "Configuración", icon: "⚙️" },
+  { href: "/dashboard/suscripcion", label: "Suscripción", icon: "💳" },
+] as const;
+
+export function DashboardNav() {
   const pathname = usePathname();
-  const icons = industryPreset(industry).navIcons;
-
-  const ITEMS = [
-    { href: "/dashboard", label: "Agenda", icon: icons.agenda },
-    { href: "/dashboard/servicios", label: "Servicios", icon: icons.servicios },
-    { href: "/dashboard/disponibilidad", label: "Disponibilidad", icon: icons.disponibilidad },
-    { href: "/dashboard/estadisticas", label: "Estadísticas", icon: icons.estadisticas },
-    { href: "/dashboard/configuracion", label: "Configuración", icon: icons.configuracion },
-    { href: "/dashboard/suscripcion", label: "Suscripción", icon: "💳" },
-  ] as const;
 
   return (
     <nav className="flex md:flex-col gap-1 overflow-x-auto">
