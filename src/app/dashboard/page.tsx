@@ -231,11 +231,7 @@ export default async function AgendaPage({ searchParams }: PageProps) {
           rangeStartMinutes={rangeStartMinutes}
           rangeEndMinutes={rangeEndMinutes}
           todayStr={now.dateStr}
-          baseHref={(w) => {
-            const params = new URLSearchParams({ view: "semana", week: w });
-            if (staffId) params.set("staffId", staffId);
-            return `/dashboard?${params.toString()}`;
-          }}
+          staffId={staffId}
           services={allServices}
           staff={allStaff}
         />

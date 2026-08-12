@@ -42,7 +42,7 @@ export function WeekView({
   rangeStartMinutes,
   rangeEndMinutes,
   todayStr,
-  baseHref,
+  staffId,
   services,
   staff,
 }: {
@@ -52,12 +52,18 @@ export function WeekView({
   rangeStartMinutes: number;
   rangeEndMinutes: number;
   todayStr: string;
-  /** Query params actuales (sin `week`), para armar los links de navegación */
-  baseHref: (weekStart: string) => string;
+  /** Filtro de profesional actual (si hay), para conservarlo al cambiar de semana */
+  staffId?: string;
   services: Service[];
   staff: StaffOption[];
 }) {
   const router = useRouter();
+
+  function weekHref(weekStart: string): string {
+    const params = new URLSearchParams({ view: "semana", week: weekStart });
+    if (staffId) params.set("staffId", staffId);
+    return `/dashboard?${params.toString()}`;
+  }
   const [activeBooking, setActiveBooking] = useState<WeekBooking | null>(null);
   const [quickAdd, setQuickAdd] = useState<{ dateStr: string; time: string } | null>(null);
   const [pending, setPending] = useState(false);
@@ -125,7 +131,7 @@ export function WeekView({
     <div className="bg-surface border border-border rounded-xl overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <Link
-          href={baseHref(prevWeekStart)}
+          href={weekHref(prevWeekStart)}
           className="text-sm border border-border rounded-lg px-2 py-1 hover:border-brand"
         >
           ← Semana anterior
@@ -134,7 +140,7 @@ export function WeekView({
           {formatDateShort(weekDates[0])} – {formatDateShort(weekDates[6])}
         </p>
         <Link
-          href={baseHref(nextWeekStart)}
+          href={weekHref(nextWeekStart)}
           className="text-sm border border-border rounded-lg px-2 py-1 hover:border-brand"
         >
           Semana siguiente →
