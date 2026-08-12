@@ -43,6 +43,11 @@ export default async function EstadisticasPage() {
 
   const perWeek = Math.round((total / 4) * 10) / 10;
 
+  const online = bookings.filter((b) => b.source === "ONLINE").length;
+  const manual = bookings.filter((b) => b.source === "MANUAL").length;
+  const onlinePct = total > 0 ? Math.round((online / total) * 100) : 0;
+  const manualPct = total > 0 ? 100 - onlinePct : 0;
+
   return (
     <div className="flex flex-col gap-6 max-w-xl">
       <div>
@@ -64,6 +69,30 @@ export default async function EstadisticasPage() {
         />
         <StatCard label="Pendientes" value={String(confirmed)} hint="Citas confirmadas a futuro o sin marcar" />
       </div>
+
+      <section className="bg-surface border border-border rounded-xl p-4">
+        <h2 className="font-semibold mb-3">Origen de las reservas</h2>
+        {total === 0 ? (
+          <p className="text-sm text-muted">Todavía no hay suficientes datos.</p>
+        ) : (
+          <>
+            <div className="h-2 rounded-full overflow-hidden bg-border flex">
+              <div className="bg-brand h-full" style={{ width: `${onlinePct}%` }} />
+              <div className="bg-brass h-full" style={{ width: `${manualPct}%` }} />
+            </div>
+            <div className="flex justify-between text-sm mt-2">
+              <span>
+                <span className="font-medium">{onlinePct}%</span>{" "}
+                <span className="text-muted">Online ({online})</span>
+              </span>
+              <span>
+                <span className="font-medium">{manualPct}%</span>{" "}
+                <span className="text-muted">Manual ({manual})</span>
+              </span>
+            </div>
+          </>
+        )}
+      </section>
 
       <section className="bg-surface border border-border rounded-xl p-4">
         <h2 className="font-semibold mb-3">Servicios más solicitados</h2>

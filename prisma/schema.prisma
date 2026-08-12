@@ -163,6 +163,13 @@ enum BookingStatus {
   NO_SHOW
 }
 
+// De dónde vino la reserva: el cliente la hizo solo (ONLINE) o el profesional
+// la anotó a mano en el panel, ej. por un llamado telefónico (MANUAL).
+enum BookingSource {
+  ONLINE
+  MANUAL
+}
+
 model Booking {
   id             String        @id @default(uuid())
   // Se mantiene para scoping simple del dashboard del dueño del negocio
@@ -179,6 +186,7 @@ model Booking {
   startTime      DateTime
   endTime        DateTime
   status         BookingStatus @default(CONFIRMED)
+  source         BookingSource @default(ONLINE)
   // Token del link único de gestión que recibe el cliente (ver /reserva/[token])
   manageToken    String        @unique @default(uuid())
   // Nota interna del profesional sobre el cliente/cita (no visible para el cliente)

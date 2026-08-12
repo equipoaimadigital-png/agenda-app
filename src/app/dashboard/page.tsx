@@ -1,13 +1,34 @@
+import Link from "next/link";
 import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import { BookingRow, type BookingRowData } from "@/components/dashboard/BookingRow";
 import { CancelDayButton } from "@/components/dashboard/CancelDayButton";
 import { EmptyAgenda } from "@/components/dashboard/EmptyAgenda";
-import { formatDateLong, nowInTimeZone, wallClockOf } from "@/lib/dates";
+import { NewBookingForm } from "@/components/dashboard/NewBookingForm";
+import { StaffFilter } from "@/components/dashboard/StaffFilter";
+import { WeekView, type WeekBooking } from "@/components/dashboard/WeekView";
+import { addDays, formatDateLong, nowInTimeZone, timeToMinutes, wallClockOf, weekdayOf } from "@/lib/dates";
 import { industryPreset } from "@/lib/industries";
 
-export default async function AgendaPage() {
+type PageProps = { searchParams: Promise<{ staffId?: string; view?: string; week?: string }> };
+
+export default async function AgendaPage({ searchParams }: PageProps) {
   const professional = await requireDashboardAccess();
+  const { staffId, view, week } = await searchParams;
+  const isWeekView = view === "semana";
+
+  const [allStaff, allServices] = await Promise.all([
+    prisma.staff.findMany({
+      where: { professionalId: professional.id, active: true },
+      select: { id: true, name: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.service.findMany({
+      where: { professionalId: professional.id, active: true },
+      select: { id: true, name: true, durationMin: true },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
 
   // Últimos 7 días (para marcar atendida/no-show) + todo lo futuro
   const from = new Date();
@@ -15,7 +36,11 @@ export default async function AgendaPage() {
   from.setHours(0, 0, 0, 0);
 
   const bookings = await prisma.booking.findMany({
-    where: { professionalId: professional.id, startTime: { gte: from } },
+    where: {
+      professionalId: professional.id,
+      startTime: { gte: from },
+      ...(staffId ? { staffId } : {}),
+    },
     include: { service: true },
     orderBy: { startTime: "asc" },
   });
@@ -38,6 +63,54 @@ export default async function AgendaPage() {
   });
 
   const hasAnyBookingEver = bookings.length > 0 || (await prisma.booking.count({ where: { professionalId: professional.id } })) > 0;
+
+  // Vista semana: lunes a domingo de la semana que contiene `week` (o la
+  // fecha de hoy si no se especifica).
+  let weekDates: string[] = [];
+  let weekBookings: WeekBooking[] = [];
+  let rangeStartMinutes = 9 * 60;
+  let rangeEndMinutes = 19 * 60;
+  if (isWeekView) {
+    const anchor = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? week : now.dateStr;
+    const offsetFromMonday = (weekdayOf(anchor) + 6) % 7;
+    const monday = addDays(anchor, -offsetFromMonday);
+    weekDates = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+
+    const weekStart = new Date(`${weekDates[0]}T00:00:00`);
+    const weekEnd = new Date(`${weekDates[6]}T23:59:59`);
+    const rawWeekBookings = await prisma.booking.findMany({
+      where: {
+        professionalId: professional.id,
+        startTime: { gte: weekStart, lte: weekEnd },
+        status: { not: "CANCELLED" },
+        ...(staffId ? { staffId } : {}),
+      },
+      include: { service: true },
+    });
+
+    weekBookings = rawWeekBookings.map((b) => {
+      const { dateStr, time } = wallClockOf(b.startTime);
+      return {
+        id: b.id,
+        dateStr,
+        startMinutes: timeToMinutes(time),
+        durationMin: b.service.durationMin,
+        clientName: b.clientName,
+        serviceName: b.service.name,
+        status: b.status,
+      };
+    });
+
+    if (weekBookings.length > 0) {
+      rangeStartMinutes = Math.min(rangeStartMinutes, ...weekBookings.map((b) => b.startMinutes));
+      rangeEndMinutes = Math.max(
+        rangeEndMinutes,
+        ...weekBookings.map((b) => b.startMinutes + b.durationMin)
+      );
+    }
+    rangeStartMinutes = Math.floor(rangeStartMinutes / 60) * 60;
+    rangeEndMinutes = Math.ceil(rangeEndMinutes / 60) * 60;
+  }
 
   // Historial del cliente: cuántas veces ese mismo teléfono ha reservado en
   // total con este negocio (incluye esta cita), para dar continuidad entre
@@ -70,11 +143,31 @@ export default async function AgendaPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold font-display">Agenda</h1>
-        <p className="text-sm text-stone mt-1">
-          Tus citas de los últimos 7 días y las próximas.
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold font-display">Agenda</h1>
+          <p className="text-sm text-stone mt-1">
+            Tus citas de los últimos 7 días y las próximas.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex border border-border rounded-lg overflow-hidden text-sm">
+            <Link
+              href="/dashboard"
+              className={`px-3 py-2 ${!isWeekView ? "bg-brand text-brand-foreground" : "hover:bg-brand-soft"}`}
+            >
+              Lista
+            </Link>
+            <Link
+              href="/dashboard?view=semana"
+              className={`px-3 py-2 border-l border-border ${isWeekView ? "bg-brand text-brand-foreground" : "hover:bg-brand-soft"}`}
+            >
+              Semana
+            </Link>
+          </div>
+          <StaffFilter staff={allStaff} />
+          <NewBookingForm services={allServices} staff={allStaff} />
+        </div>
       </div>
 
       {(todayBookings.length > 0 || nextBooking) && (
@@ -102,11 +195,26 @@ export default async function AgendaPage() {
         </section>
       )}
 
-      {sortedDates.length === 0 && (
+      {isWeekView && (
+        <WeekView
+          weekDates={weekDates}
+          bookings={weekBookings}
+          rangeStartMinutes={rangeStartMinutes}
+          rangeEndMinutes={rangeEndMinutes}
+          todayStr={now.dateStr}
+          baseHref={(w) => {
+            const params = new URLSearchParams({ view: "semana", week: w });
+            if (staffId) params.set("staffId", staffId);
+            return `/dashboard?${params.toString()}`;
+          }}
+        />
+      )}
+
+      {!isWeekView && sortedDates.length === 0 && (
         <EmptyAgenda slug={professional.slug} hasHistory={hasAnyBookingEver} />
       )}
 
-      {sortedDates.map((dateStr) => {
+      {!isWeekView && sortedDates.map((dateStr) => {
         const dayBookings = groups.get(dateStr)!;
         const confirmedFuture = dayBookings.filter(
           (b) => b.status === "CONFIRMED" && dateStr >= now.dateStr

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
   ANY_STAFF,
   daySlots,
@@ -13,6 +14,7 @@ import {
   type StaffSelection,
 } from "@/lib/booking-logic";
 import { prisma } from "@/lib/db";
+import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { wallClockDate } from "@/lib/dates";
 import { sendBookingEmails } from "@/lib/email";
 import { buildWhatsappLink } from "@/lib/whatsapp";
@@ -190,5 +192,101 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
   }
 
   return { error: "Ese horario ya no está disponible. Elige otro." };
+}
+
+/** Servicios y profesionales del negocio, para armar el formulario de reserva manual. */
+export async function getManualBookingOptions(): Promise<{
+  services: { id: string; name: string; durationMin: number }[];
+  staff: { id: string; name: string }[];
+}> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  const [services, staff] = await Promise.all([
+    prisma.service.findMany({
+      where: { professionalId: professional.id, active: true },
+      select: { id: true, name: true, durationMin: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.staff.findMany({
+      where: { professionalId: professional.id, active: true },
+      select: { id: true, name: true },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+
+  return { services, staff };
+}
+
+/**
+ * Reserva creada por el profesional desde el panel (ej. cliente que llamó por
+ * teléfono). A diferencia de la reserva pública, no respeta el horario de
+ * disponibilidad configurado — el profesional puede anotar una cita fuera de
+ * su horario habitual si así lo decide — pero sí respeta el bloqueo contra
+ * doble reserva, igual que cualquier otra cita.
+ */
+export async function createManualBooking(formData: FormData): Promise<{ error?: string }> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  const serviceId = String(formData.get("serviceId") || "");
+  const staffId = String(formData.get("staffId") || "");
+  const dateStr = String(formData.get("date") || "");
+  const time = String(formData.get("time") || "");
+  const clientName = String(formData.get("clientName") || "").trim();
+  const clientPhone = String(formData.get("clientPhone") || "").trim();
+  const clientEmail = String(formData.get("clientEmail") || "").trim() || null;
+
+  if (!serviceId || !staffId || !dateStr || !time || !clientName || !clientPhone) {
+    return { error: "Completa todos los campos obligatorios." };
+  }
+
+  const service = await prisma.service.findFirst({
+    where: { id: serviceId, professionalId: professional.id },
+  });
+  if (!service) return { error: "Servicio no encontrado." };
+
+  const staff = await prisma.staff.findFirst({
+    where: { id: staffId, professionalId: professional.id },
+  });
+  if (!staff) return { error: "Profesional no encontrado." };
+
+  const startTime = wallClockDate(dateStr, time);
+  const endTime = new Date(startTime.getTime() + service.durationMin * 60000);
+
+  const booking = await withStaffLock(staffId, async (tx) => {
+    if (await hasOverlappingBooking(tx, staffId, startTime, endTime)) return null;
+    return tx.booking.create({
+      data: {
+        professionalId: professional.id,
+        staffId,
+        serviceId,
+        clientName,
+        clientPhone,
+        clientEmail,
+        startTime,
+        endTime,
+        source: "MANUAL",
+      },
+    });
+  });
+
+  if (!booking) {
+    return { error: "Ese horario ya está ocupado por otra cita de este profesional." };
+  }
+
+  await sendBookingEmails({
+    businessName: professional.businessName,
+    serviceName: service.name,
+    clientName,
+    clientEmail,
+    clientPhone,
+    startTime,
+    professionalEmail: professional.email,
+    manageToken: booking.manageToken,
+  });
+
+  revalidatePath("/dashboard");
+  return {};
 }
 
