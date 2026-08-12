@@ -1,5 +1,6 @@
 import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
+import { wallClockOf, weekdayOf } from "@/lib/dates";
 
 function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -48,6 +49,21 @@ export default async function EstadisticasPage() {
   const onlinePct = total > 0 ? Math.round((online / total) * 100) : 0;
   const manualPct = total > 0 ? 100 - onlinePct : 0;
 
+  // Factor de ocupación por día de la semana (lunes a domingo)
+  const nonCancelled = bookings.filter((b) => b.status !== "CANCELLED");
+  const countByWeekday = [0, 0, 0, 0, 0, 0, 0]; // índice 0 = domingo, igual que weekdayOf
+  for (const b of nonCancelled) {
+    const { dateStr } = wallClockOf(b.startTime);
+    countByWeekday[weekdayOf(dateStr)] += 1;
+  }
+  const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // empieza en lunes
+  const WEEKDAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+  const maxWeekdayCount = Math.max(1, ...countByWeekday);
+
+  // Recordatorios automáticos: cuántas citas con email ya recibieron su recordatorio
+  const withEmail = bookings.filter((b) => !!b.clientEmail);
+  const remindersSent = withEmail.filter((b) => !!b.reminderSentAt).length;
+
   return (
     <div className="flex flex-col gap-6 max-w-xl">
       <div>
@@ -69,6 +85,53 @@ export default async function EstadisticasPage() {
         />
         <StatCard label="Pendientes" value={String(confirmed)} hint="Citas confirmadas a futuro o sin marcar" />
       </div>
+
+      <section className="bg-surface border border-border rounded-xl p-4">
+        <h2 className="font-semibold mb-3">Ocupación por día de la semana</h2>
+        {total === 0 ? (
+          <p className="text-sm text-muted">Todavía no hay suficientes datos.</p>
+        ) : (
+          <div className="flex items-end gap-2 h-28">
+            {WEEKDAY_ORDER.map((weekday, i) => {
+              const count = countByWeekday[weekday];
+              const heightPct = Math.max((count / maxWeekdayCount) * 100, count > 0 ? 8 : 2);
+              return (
+                <div key={weekday} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                  <span className="text-xs font-medium">{count > 0 ? count : ""}</span>
+                  <div
+                    className={`w-full rounded ${count > 0 ? "bg-brand" : "bg-border"}`}
+                    style={{ height: `${heightPct}%` }}
+                  />
+                  <span className="text-xs text-muted">{WEEKDAY_LABELS[i]}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="bg-surface border border-border rounded-xl p-4">
+        <h2 className="font-semibold mb-3">Recordatorios por email</h2>
+        {withEmail.length === 0 ? (
+          <p className="text-sm text-muted">
+            Ningún cliente de este período dejó su email, así que no aplica el recordatorio automático.
+          </p>
+        ) : (
+          <>
+            <div className="h-2 rounded-full overflow-hidden bg-border">
+              <div
+                className="bg-brand h-full"
+                style={{ width: `${Math.round((remindersSent / withEmail.length) * 100)}%` }}
+              />
+            </div>
+            <p className="text-sm mt-2">
+              <span className="font-medium">{remindersSent}</span> de{" "}
+              <span className="font-medium">{withEmail.length}</span> recordatorios enviados
+              <span className="text-muted"> (el resto son citas cuyo día anterior aún no llega)</span>
+            </p>
+          </>
+        )}
+      </section>
 
       <section className="bg-surface border border-border rounded-xl p-4">
         <h2 className="font-semibold mb-3">Origen de las reservas</h2>
