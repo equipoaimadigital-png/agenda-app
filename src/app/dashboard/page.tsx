@@ -63,6 +63,27 @@ export default async function AgendaPage({ searchParams }: PageProps) {
 
   const hasAnyBookingEver = bookings.length > 0 || (await prisma.booking.count({ where: { professionalId: professional.id } })) > 0;
 
+  // Cumpleaños de hoy
+  const todayMMDD = now.dateStr.slice(5);
+  const birthdayClients = await prisma.client.findMany({
+    where: { professionalId: professional.id, birthday: todayMMDD },
+    select: { phone: true },
+  });
+  let birthdayPeople: { name: string; phone: string }[] = [];
+  if (birthdayClients.length > 0) {
+    const phones = birthdayClients.map((c) => c.phone);
+    const recentBookings = await prisma.booking.findMany({
+      where: { professionalId: professional.id, clientPhone: { in: phones } },
+      orderBy: { startTime: "desc" },
+      select: { clientName: true, clientPhone: true },
+    });
+    const nameByPhone = new Map<string, string>();
+    for (const b of recentBookings) {
+      if (!nameByPhone.has(b.clientPhone)) nameByPhone.set(b.clientPhone, b.clientName);
+    }
+    birthdayPeople = phones.map((phone) => ({ phone, name: nameByPhone.get(phone) ?? phone }));
+  }
+
   // Vista semana: lunes a domingo de la semana que contiene `week` (o la
   // fecha de hoy si no se especifica).
   let weekDates: string[] = [];
@@ -191,6 +212,15 @@ export default async function AgendaPage({ searchParams }: PageProps) {
               </p>
             </div>
           )}
+        </section>
+      )}
+
+      {birthdayPeople.length > 0 && (
+        <section className="bg-warning-soft border border-border rounded-xl p-4">
+          <p className="text-xs text-stone uppercase tracking-wide mb-1">🎂 Cumpleaños de hoy</p>
+          <p className="font-medium">
+            {birthdayPeople.map((p) => p.name).join(", ")}
+          </p>
         </section>
       )}
 

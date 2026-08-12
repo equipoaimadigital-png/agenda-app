@@ -56,6 +56,24 @@ model Professional {
   staff    Staff[]
   services Service[]
   bookings Booking[]
+  clients  Client[]
+}
+
+// Datos persistentes de un cliente que no cambian entre citas (ej. cumpleaños).
+// El resto de la info del cliente (nombre, teléfono, email) vive en cada
+// Booking — este modelo solo guarda lo que no tiene sentido repetir/editar
+// reserva por reserva. Se identifica por teléfono dentro de cada negocio.
+model Client {
+  id             String       @id @default(uuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  phone          String
+  // "MM-DD", sin año, para no pedir más datos personales de los necesarios
+  birthday       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([professionalId, phone])
 }
 
 // Un profesional que atiende dentro del negocio (ej. cada estilista de una
