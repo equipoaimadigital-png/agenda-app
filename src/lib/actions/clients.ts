@@ -11,12 +11,14 @@ export async function saveClientBirthday(formData: FormData): Promise<void> {
   if (!professional) redirect("/login");
 
   const phone = String(formData.get("phone") || "").trim();
-  const birthdayRaw = String(formData.get("birthday") || "").trim();
+  const month = Number(formData.get("month") || 0);
+  const day = Number(formData.get("day") || 0);
   if (!phone) return;
 
-  // El input type="date" manda "YYYY-MM-DD" — solo guardamos mes y día.
-  const match = birthdayRaw.match(/^\d{4}-(\d{2}-\d{2})$/);
-  const birthday = match ? match[1] : null;
+  const birthday =
+    month >= 1 && month <= 12 && day >= 1 && day <= 31
+      ? `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+      : null;
 
   await prisma.client.upsert({
     where: { professionalId_phone: { professionalId: professional.id, phone } },

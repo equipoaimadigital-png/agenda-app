@@ -93,16 +93,30 @@ export default async function ClientesPage() {
 
                 <form action={saveClientBirthday} className="flex items-center gap-2 shrink-0">
                   <input type="hidden" name="phone" value={row.phone} />
-                  <label htmlFor={`bday-${row.phone}`} className="text-xs text-muted">
+                  <label htmlFor={`bday-day-${row.phone}`} className="text-xs text-muted">
                     Cumpleaños
                   </label>
-                  <input
-                    id={`bday-${row.phone}`}
-                    name="birthday"
-                    type="date"
-                    defaultValue={birthday ? `2000-${birthday}` : ""}
-                    className="border border-border rounded-lg px-2 py-1.5 text-sm"
-                  />
+                  <select
+                    id={`bday-day-${row.phone}`}
+                    name="day"
+                    defaultValue={birthday ? Number(birthday.split("-")[1]) : ""}
+                    className="border border-border rounded-lg px-2 py-1.5 text-sm bg-surface"
+                  >
+                    <option value="">Día</option>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                  <select
+                    name="month"
+                    defaultValue={birthday ? Number(birthday.split("-")[0]) : ""}
+                    className="border border-border rounded-lg px-2 py-1.5 text-sm bg-surface"
+                  >
+                    <option value="">Mes</option>
+                    {MONTHS_SHORT.map((m, i) => (
+                      <option key={m} value={i + 1}>{m}</option>
+                    ))}
+                  </select>
                   <button
                     type="submit"
                     className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand"
