@@ -44,6 +44,9 @@ model Professional {
   // Estilo tipográfico del nombre/descripción en la página pública
   headingFont  HeadingFont @default(FRAUNCES)
   headingSize  HeadingSize @default(MEDIUM)
+  // Links de redes sociales, mostrados como botones en la página pública
+  instagramUrl String?
+  facebookUrl  String?
   // Política de cancelación: horas mínimas de anticipación para cancelar/reprogramar
   cancellationHours Int @default(24)
   // Zona horaria del negocio (los horarios se interpretan en esta zona) — la

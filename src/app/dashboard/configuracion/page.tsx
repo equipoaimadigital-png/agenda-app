@@ -118,6 +118,35 @@ export default async function ConfiguracionPage() {
           </div>
         </div>
 
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="instagramUrl" className="text-sm font-medium">
+              Instagram <span className="text-muted font-normal">(opcional)</span>
+            </label>
+            <input
+              id="instagramUrl"
+              name="instagramUrl"
+              type="url"
+              defaultValue={professional.instagramUrl ?? ""}
+              placeholder="https://instagram.com/tu_negocio"
+              className="border border-border rounded-lg px-3 py-2.5"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="facebookUrl" className="text-sm font-medium">
+              Facebook <span className="text-muted font-normal">(opcional)</span>
+            </label>
+            <input
+              id="facebookUrl"
+              name="facebookUrl"
+              type="url"
+              defaultValue={professional.facebookUrl ?? ""}
+              placeholder="https://facebook.com/tu_negocio"
+              className="border border-border rounded-lg px-3 py-2.5"
+            />
+          </div>
+        </div>
+
         <div className="flex flex-col gap-1">
           <label htmlFor="cancellationHours" className="text-sm font-medium">
             Política de cancelación

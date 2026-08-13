@@ -11,6 +11,13 @@ import { wallClockDate } from "@/lib/dates";
 const HEADING_FONTS: HeadingFont[] = ["FRAUNCES", "PLAYFAIR", "POPPINS", "WORK_SANS"];
 const HEADING_SIZES: HeadingSize[] = ["SMALL", "MEDIUM", "LARGE"];
 
+/** Solo acepta http(s) — evita guardar un "javascript:" u otro esquema como link social. */
+function parseHttpUrl(raw: FormDataEntryValue | null): string | null {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  return /^https?:\/\//i.test(value) ? value : null;
+}
+
 async function requireProfessional() {
   const professional = await getCurrentProfessional();
   if (!professional) redirect("/login");
@@ -193,6 +200,8 @@ export async function updateBusinessSettings(formData: FormData): Promise<void> 
   const headingSizeRaw = String(formData.get("headingSize") || "MEDIUM") as HeadingSize;
   const headingFont = HEADING_FONTS.includes(headingFontRaw) ? headingFontRaw : "FRAUNCES";
   const headingSize = HEADING_SIZES.includes(headingSizeRaw) ? headingSizeRaw : "MEDIUM";
+  const instagramUrl = parseHttpUrl(formData.get("instagramUrl"));
+  const facebookUrl = parseHttpUrl(formData.get("facebookUrl"));
 
   if (!businessName) return;
   if (!/^#[0-9a-fA-F]{6}$/.test(brandColor)) return;
@@ -208,6 +217,8 @@ export async function updateBusinessSettings(formData: FormData): Promise<void> 
       cancellationHours: Math.min(Math.max(cancellationHours, 0), 168),
       headingFont,
       headingSize,
+      instagramUrl,
+      facebookUrl,
     },
   });
   revalidatePath("/dashboard", "layout");

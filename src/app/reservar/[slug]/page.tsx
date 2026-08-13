@@ -166,7 +166,10 @@ export default async function ReservarPage({ params }: PageProps) {
               {professional.address && (
                 <p className="text-sm text-white/70 mt-1">{professional.address}</p>
               )}
-              {(professional.address || professional.phone) && (
+              {(professional.address ||
+                professional.phone ||
+                professional.instagramUrl ||
+                professional.facebookUrl) && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {professional.address && (
                     <a
@@ -191,6 +194,26 @@ export default async function ReservarPage({ params }: PageProps) {
                       className="text-xs bg-success/20 hover:bg-success/30 text-white rounded-lg px-2.5 py-1.5 flex items-center gap-1"
                     >
                       💬 WhatsApp
+                    </a>
+                  )}
+                  {professional.instagramUrl && (
+                    <a
+                      href={professional.instagramUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-white/10 hover:bg-white/15 rounded-lg px-2.5 py-1.5 flex items-center gap-1"
+                    >
+                      📷 Instagram
+                    </a>
+                  )}
+                  {professional.facebookUrl && (
+                    <a
+                      href={professional.facebookUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-white/10 hover:bg-white/15 rounded-lg px-2.5 py-1.5 flex items-center gap-1"
+                    >
+                      👍 Facebook
                     </a>
                   )}
                 </div>
