@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { requireDashboardAccess } from "@/lib/auth-helpers";
-import { updateBusinessSettings } from "@/lib/actions/dashboard";
 import { CoverImageUploader } from "@/components/dashboard/CoverImageUploader";
-import { HeadingStylePicker } from "@/components/dashboard/HeadingStylePicker";
+import { ConfiguracionForm } from "@/components/dashboard/ConfiguracionForm";
 
 const SUBSCRIPTION_LABEL: Record<string, string> = {
   TRIAL: "Prueba gratis",
@@ -42,137 +41,18 @@ export default async function ConfiguracionPage() {
         <CoverImageUploader currentUrl={professional.coverImageUrl} />
       </div>
 
-      <form
-        action={updateBusinessSettings}
-        className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-4"
-      >
-        <div className="flex flex-col gap-1">
-          <label htmlFor="businessName" className="text-sm font-medium">Nombre del negocio *</label>
-          <input
-            id="businessName"
-            name="businessName"
-            type="text"
-            required
-            defaultValue={professional.businessName}
-            className="border border-border rounded-lg px-3 py-2.5"
-          />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label htmlFor="description" className="text-sm font-medium">
-            Descripción <span className="text-muted font-normal">(se muestra bajo el nombre)</span>
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            rows={3}
-            defaultValue={professional.description ?? ""}
-            placeholder="Ej: Más de 10 años cuidando tu estilo. Atención personalizada en un ambiente cómodo."
-            className="border border-border rounded-lg px-3 py-2.5"
-          />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label htmlFor="address" className="text-sm font-medium">
-            Dirección o modalidad <span className="text-muted font-normal">(opcional)</span>
-          </label>
-          <input
-            id="address"
-            name="address"
-            type="text"
-            defaultValue={professional.address ?? ""}
-            placeholder="Ej: Av. Providencia 1234, Santiago — o 'Atención online'"
-            className="border border-border rounded-lg px-3 py-2.5"
-          />
-        </div>
-
-        <HeadingStylePicker
-          businessName={professional.businessName}
-          defaultFont={professional.headingFont}
-          defaultSize={professional.headingSize}
-        />
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="phone" className="text-sm font-medium">
-              Teléfono de contacto <span className="text-muted font-normal">(opcional)</span>
-            </label>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              defaultValue={professional.phone ?? ""}
-              placeholder="+56 9 1234 5678"
-              className="border border-border rounded-lg px-3 py-2.5"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="brandColor" className="text-sm font-medium">Color de tu marca</label>
-            <input
-              id="brandColor"
-              name="brandColor"
-              type="color"
-              defaultValue={professional.brandColor}
-              className="border border-border rounded-lg h-11 w-full cursor-pointer"
-            />
-          </div>
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="instagramUrl" className="text-sm font-medium">
-              Instagram <span className="text-muted font-normal">(opcional)</span>
-            </label>
-            <input
-              id="instagramUrl"
-              name="instagramUrl"
-              type="url"
-              defaultValue={professional.instagramUrl ?? ""}
-              placeholder="https://instagram.com/tu_negocio"
-              className="border border-border rounded-lg px-3 py-2.5"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="facebookUrl" className="text-sm font-medium">
-              Facebook <span className="text-muted font-normal">(opcional)</span>
-            </label>
-            <input
-              id="facebookUrl"
-              name="facebookUrl"
-              type="url"
-              defaultValue={professional.facebookUrl ?? ""}
-              placeholder="https://facebook.com/tu_negocio"
-              className="border border-border rounded-lg px-3 py-2.5"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label htmlFor="cancellationHours" className="text-sm font-medium">
-            Política de cancelación
-          </label>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted">Los clientes pueden cancelar/reprogramar hasta</span>
-            <input
-              id="cancellationHours"
-              name="cancellationHours"
-              type="number"
-              min={0}
-              max={168}
-              defaultValue={professional.cancellationHours}
-              className="border border-border rounded-lg px-3 py-2 w-20 text-center"
-            />
-            <span className="text-sm text-muted">horas antes de la cita.</span>
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium"
-        >
-          Guardar cambios
-        </button>
-      </form>
+      <ConfiguracionForm
+        businessName={professional.businessName}
+        description={professional.description}
+        address={professional.address}
+        phone={professional.phone}
+        brandColor={professional.brandColor}
+        headingFont={professional.headingFont}
+        headingSize={professional.headingSize}
+        instagramUrl={professional.instagramUrl}
+        facebookUrl={professional.facebookUrl}
+        cancellationHours={professional.cancellationHours}
+      />
     </div>
   );
 }

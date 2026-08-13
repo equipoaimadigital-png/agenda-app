@@ -187,7 +187,10 @@ export async function deleteDateException(id: string): Promise<void> {
   revalidatePath("/dashboard/disponibilidad");
 }
 
-export async function updateBusinessSettings(formData: FormData): Promise<void> {
+export async function updateBusinessSettings(
+  _prev: { error?: string; success?: boolean },
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
   const professional = await requireProfessional();
 
   const businessName = String(formData.get("businessName") || "").trim();
@@ -203,8 +206,10 @@ export async function updateBusinessSettings(formData: FormData): Promise<void> 
   const instagramUrl = parseHttpUrl(formData.get("instagramUrl"));
   const facebookUrl = parseHttpUrl(formData.get("facebookUrl"));
 
-  if (!businessName) return;
-  if (!/^#[0-9a-fA-F]{6}$/.test(brandColor)) return;
+  if (!businessName) return { error: "El nombre del negocio no puede estar vacío." };
+  if (!/^#[0-9a-fA-F]{6}$/.test(brandColor)) {
+    return { error: "El color de marca no es válido." };
+  }
 
   await prisma.professional.update({
     where: { id: professional.id },
@@ -223,6 +228,7 @@ export async function updateBusinessSettings(formData: FormData): Promise<void> 
   });
   revalidatePath("/dashboard", "layout");
   revalidatePath(`/reservar/${professional.slug}`);
+  return { success: true };
 }
 
 export async function dismissOnboarding(): Promise<void> {
