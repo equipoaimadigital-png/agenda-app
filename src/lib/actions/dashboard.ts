@@ -185,8 +185,6 @@ export async function updateBusinessSettings(formData: FormData): Promise<void> 
   const phone = String(formData.get("phone") || "").trim() || null;
   const brandColor = String(formData.get("brandColor") || "#0f766e");
   const cancellationHours = Number(formData.get("cancellationHours") || 24);
-  const coverImageUrlRaw = String(formData.get("coverImageUrl") || "").trim();
-  const coverImageUrl = /^https:\/\/.+/.test(coverImageUrlRaw) ? coverImageUrlRaw : null;
 
   if (!businessName) return;
   if (!/^#[0-9a-fA-F]{6}$/.test(brandColor)) return;
@@ -200,7 +198,6 @@ export async function updateBusinessSettings(formData: FormData): Promise<void> 
       phone,
       brandColor,
       cancellationHours: Math.min(Math.max(cancellationHours, 0), 168),
-      coverImageUrl,
     },
   });
   revalidatePath("/dashboard", "layout");

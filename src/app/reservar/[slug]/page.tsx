@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { BookingWidget } from "@/components/booking/BookingWidget";
 import { nowInTimeZone, weekdayOf } from "@/lib/dates";
+import { buildWhatsappLink } from "@/lib/whatsapp";
 
 const HERO_VERB = "Reserva tu hora";
 
@@ -157,6 +158,35 @@ export default async function ReservarPage({ params }: PageProps) {
               </h1>
               {professional.address && (
                 <p className="text-sm text-white/70 mt-1">{professional.address}</p>
+              )}
+              {(professional.address || professional.phone) && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {professional.address && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        professional.address
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-white/10 hover:bg-white/15 rounded-lg px-2.5 py-1.5 flex items-center gap-1"
+                    >
+                      📍 Ver en Google Maps
+                    </a>
+                  )}
+                  {professional.phone && (
+                    <a
+                      href={buildWhatsappLink(
+                        professional.phone,
+                        `Hola, vi tu página de reservas (${professional.businessName}) y quería consultar.`
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-success/20 hover:bg-success/30 text-white rounded-lg px-2.5 py-1.5 flex items-center gap-1"
+                    >
+                      💬 WhatsApp
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { updateBusinessSettings } from "@/lib/actions/dashboard";
+import { CoverImageUploader } from "@/components/dashboard/CoverImageUploader";
 
 const SUBSCRIPTION_LABEL: Record<string, string> = {
   TRIAL: "Prueba gratis",
@@ -35,6 +36,10 @@ export default async function ConfiguracionPage() {
           Ver detalle
         </Link>
       </section>
+
+      <div className="bg-surface border border-border rounded-xl p-4">
+        <CoverImageUploader currentUrl={professional.coverImageUrl} />
+      </div>
 
       <form
         action={updateBusinessSettings}
@@ -78,28 +83,6 @@ export default async function ConfiguracionPage() {
             placeholder="Ej: Av. Providencia 1234, Santiago — o 'Atención online'"
             className="border border-border rounded-lg px-3 py-2.5"
           />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label htmlFor="coverImageUrl" className="text-sm font-medium">
-            Imagen de portada <span className="text-muted font-normal">(opcional — pega el link de una foto)</span>
-          </label>
-          <input
-            id="coverImageUrl"
-            name="coverImageUrl"
-            type="url"
-            defaultValue={professional.coverImageUrl ?? ""}
-            placeholder="https://..."
-            className="border border-border rounded-lg px-3 py-2.5"
-          />
-          {professional.coverImageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={professional.coverImageUrl}
-              alt=""
-              className="mt-1 h-24 w-full object-cover rounded-lg border border-border"
-            />
-          )}
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
