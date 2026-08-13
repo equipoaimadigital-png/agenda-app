@@ -1,16 +1,33 @@
 import Link from "next/link";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
+import {
+  IconBook,
+  IconCalendar,
+  IconCard,
+  IconChart,
+  IconClipboard,
+  IconClock,
+  IconGear,
+  IconHelp,
+  IconMegaphone,
+  IconUsers,
+} from "@/components/dashboard/ManualIcons";
+import type { ComponentType, SVGProps } from "react";
+
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 type Section = {
   title: string;
-  icon: string;
+  icon: IconComponent;
+  intro: string;
   items: { label: string; body: string }[];
 };
 
 const SECTIONS: Section[] = [
   {
     title: "Agenda",
-    icon: "📅",
+    icon: IconCalendar,
+    intro: "Tu día a día: ver, crear y gestionar citas.",
     items: [
       {
         label: "Ver tus citas",
@@ -36,7 +53,8 @@ const SECTIONS: Section[] = [
   },
   {
     title: "Clientes",
-    icon: "👥",
+    icon: IconUsers,
+    intro: "Se arma sola con cada reserva — sin cargar nada a mano.",
     items: [
       {
         label: "Base de clientes",
@@ -52,7 +70,8 @@ const SECTIONS: Section[] = [
   },
   {
     title: "Campañas",
-    icon: "📣",
+    icon: IconMegaphone,
+    intro: "Reactiva clientes y avisa novedades por email.",
     items: [
       {
         label: "Enviar un email a tus clientes",
@@ -63,7 +82,8 @@ const SECTIONS: Section[] = [
   },
   {
     title: "Servicios",
-    icon: "📋",
+    icon: IconClipboard,
+    intro: "Lo que tus clientes pueden reservar, con precio a tu medida.",
     items: [
       {
         label: "Crear un servicio",
@@ -84,7 +104,8 @@ const SECTIONS: Section[] = [
   },
   {
     title: "Disponibilidad",
-    icon: "🕘",
+    icon: IconClock,
+    intro: "Cuándo atiendes — y cuándo no.",
     items: [
       {
         label: "Horario semanal",
@@ -100,7 +121,8 @@ const SECTIONS: Section[] = [
   },
   {
     title: "Estadísticas",
-    icon: "📊",
+    icon: IconChart,
+    intro: "Cómo le está yendo a tu negocio, de un vistazo.",
     items: [
       {
         label: "Qué muestra",
@@ -111,7 +133,8 @@ const SECTIONS: Section[] = [
   },
   {
     title: "Configuración",
-    icon: "⚙️",
+    icon: IconGear,
+    intro: "Cómo se ve y se presenta tu negocio hacia afuera.",
     items: [
       {
         label: "Imagen de portada",
@@ -145,7 +168,8 @@ const SECTIONS: Section[] = [
   },
   {
     title: "Suscripción",
-    icon: "💳",
+    icon: IconCard,
+    intro: "Tu prueba gratis y el cobro mensual.",
     items: [
       {
         label: "Prueba gratis y cobro",
@@ -175,69 +199,141 @@ const FAQ = [
   },
 ];
 
+function slug(title: string): string {
+  return title.toLowerCase();
+}
+
 export default async function ManualPage() {
   const professional = await getCurrentProfessional();
   if (!professional) return null;
 
   return (
-    <div className="flex flex-col gap-8 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-semibold font-display">Manual de uso</h1>
-        <p className="text-sm text-muted mt-1">
-          Guía rápida de todo lo que puedes hacer en tu panel de Tú Agenda.
-        </p>
+    <div className="flex flex-col gap-10 max-w-3xl">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl bg-ink text-white px-6 py-10 sm:px-10 sm:py-12">
+        <div aria-hidden className="absolute inset-0 seal-texture" />
+        <div className="relative flex items-start gap-4">
+          <div
+            aria-hidden
+            className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-brand items-center justify-center ring-2 ring-white/15"
+          >
+            <IconBook className="w-7 h-7 text-brand-foreground" />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-white/60 mb-1">Manual de uso</p>
+            <h1 className="font-display font-semibold text-3xl sm:text-4xl leading-tight">
+              Todo lo que puedes hacer en Tú Agenda
+            </h1>
+            <p className="text-white/70 mt-3 max-w-lg text-sm sm:text-base">
+              Guía rápida por secciones, pensada para volver cuando la necesites — no hace
+              falta leerla toda de una vez.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <nav className="flex flex-wrap gap-2">
-        {SECTIONS.map((s) => (
-          <a
-            key={s.title}
-            href={`#${s.title.toLowerCase()}`}
-            className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand"
-          >
-            {s.icon} {s.title}
-          </a>
-        ))}
+      {/* Navegación por temas */}
+      <nav className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {SECTIONS.map((s) => {
+          const Icon = s.icon;
+          return (
+            <a
+              key={s.title}
+              href={`#${slug(s.title)}`}
+              className="group flex items-start gap-3 bg-surface border border-border rounded-xl p-3.5 hover:border-brand hover:shadow-sm transition-all"
+            >
+              <span className="shrink-0 w-9 h-9 rounded-lg bg-brand-soft text-brand flex items-center justify-center group-hover:bg-brand group-hover:text-brand-foreground transition-colors">
+                <Icon className="w-4 h-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-medium text-sm">{s.title}</span>
+                <span className="block text-xs text-muted mt-0.5 line-clamp-2">{s.intro}</span>
+              </span>
+            </a>
+          );
+        })}
         <a
           href="#faq"
-          className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand"
+          className="group flex items-start gap-3 bg-surface border border-border rounded-xl p-3.5 hover:border-brand hover:shadow-sm transition-all"
         >
-          ❓ Preguntas frecuentes
+          <span className="shrink-0 w-9 h-9 rounded-lg bg-brand-soft text-brand flex items-center justify-center group-hover:bg-brand group-hover:text-brand-foreground transition-colors">
+            <IconHelp className="w-4 h-4" />
+          </span>
+          <span className="min-w-0">
+            <span className="block font-medium text-sm">Preguntas frecuentes</span>
+            <span className="block text-xs text-muted mt-0.5">Las dudas más comunes.</span>
+          </span>
         </a>
       </nav>
 
-      {SECTIONS.map((section) => (
-        <section key={section.title} id={section.title.toLowerCase()} className="scroll-mt-4">
-          <h2 className="font-semibold font-display text-lg mb-3">
-            {section.icon} {section.title}
-          </h2>
-          <div className="flex flex-col gap-2">
-            {section.items.map((item) => (
-              <div
-                key={item.label}
-                className="bg-surface border border-border rounded-xl p-4"
-              >
-                <p className="font-medium text-sm">{item.label}</p>
-                <p className="text-sm text-muted mt-1">{item.body}</p>
+      {/* Secciones */}
+      <div className="flex flex-col gap-8">
+        {SECTIONS.map((section) => {
+          const Icon = section.icon;
+          return (
+            <section key={section.title} id={slug(section.title)} className="scroll-mt-4">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-10 h-10 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0">
+                  <Icon className="w-5 h-5" />
+                </span>
+                <div>
+                  <h2 className="font-semibold font-display text-lg leading-tight">
+                    {section.title}
+                  </h2>
+                  <p className="text-xs text-muted">{section.intro}</p>
+                </div>
               </div>
-            ))}
-          </div>
-        </section>
-      ))}
+              <div className="grid sm:grid-cols-2 gap-2.5 sm:pl-[3.25rem]">
+                {section.items.map((item) => (
+                  <div
+                    key={item.label}
+                    className="bg-surface border border-border border-l-[3px] border-l-brass rounded-xl p-4"
+                  >
+                    <p className="font-medium text-sm">{item.label}</p>
+                    <p className="text-sm text-muted mt-1">{item.body}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
 
+      {/* FAQ */}
       <section id="faq" className="scroll-mt-4">
-        <h2 className="font-semibold font-display text-lg mb-3">❓ Preguntas frecuentes</h2>
-        <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="w-10 h-10 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0">
+            <IconHelp className="w-5 h-5" />
+          </span>
+          <div>
+            <h2 className="font-semibold font-display text-lg leading-tight">
+              Preguntas frecuentes
+            </h2>
+            <p className="text-xs text-muted">Lo que más preguntan otros negocios.</p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 sm:pl-[3.25rem]">
           {FAQ.map((f) => (
-            <details key={f.q} className="bg-surface border border-border rounded-xl p-4">
-              <summary className="font-medium text-sm cursor-pointer">{f.q}</summary>
+            <details
+              key={f.q}
+              className="group bg-surface border border-border rounded-xl p-4 open:border-brand"
+            >
+              <summary className="font-medium text-sm cursor-pointer list-none flex items-center justify-between gap-3">
+                {f.q}
+                <span
+                  aria-hidden
+                  className="shrink-0 text-muted group-open:rotate-180 transition-transform"
+                >
+                  ⌄
+                </span>
+              </summary>
               <p className="text-sm text-muted mt-2">{f.a}</p>
             </details>
           ))}
         </div>
       </section>
 
-      <p className="text-xs text-muted">
+      <p className="text-xs text-muted border-t border-border pt-6">
         ¿Tienes otra duda?{" "}
         <Link href={`/reservar/${professional.slug}`} target="_blank" className="underline">
           Revisa tu página pública
