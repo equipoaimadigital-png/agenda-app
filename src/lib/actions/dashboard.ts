@@ -201,6 +201,7 @@ export async function updateBusinessSettings(formData: FormData): Promise<void> 
     },
   });
   revalidatePath("/dashboard", "layout");
+  revalidatePath(`/reservar/${professional.slug}`);
 }
 
 /** Nota interna vía formulario simple. */

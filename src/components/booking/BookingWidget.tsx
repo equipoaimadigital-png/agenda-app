@@ -144,10 +144,15 @@ export function BookingWidget({
           {services.map((s) => {
             const selected = s.id === serviceId;
             return (
-              <div
+              <button
                 key={s.id}
-                className={`flex items-center justify-between gap-3 border rounded-xl p-4 bg-surface ${
-                  selected ? "border-brand ring-1 ring-brand" : "border-border"
+                type="button"
+                onClick={() => {
+                  setServiceId(s.id);
+                  setPicked(null);
+                }}
+                className={`w-full flex items-center justify-between gap-3 border rounded-xl p-4 bg-surface text-left cursor-pointer transition-colors ${
+                  selected ? "border-brand ring-1 ring-brand" : "border-border hover:border-brand/50"
                 }`}
               >
                 <div className="min-w-0">
@@ -159,21 +164,16 @@ export function BookingWidget({
                     <p className="text-sm text-muted mt-1">{s.description}</p>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setServiceId(s.id);
-                    setPicked(null);
-                  }}
+                <span
                   className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium ${
                     selected
                       ? "bg-brand text-brand-foreground"
-                      : "border border-border hover:border-brand"
+                      : "border border-border"
                   }`}
                 >
                   {selected ? "✓ Elegido" : "Agendar"}
-                </button>
-              </div>
+                </span>
+              </button>
             );
           })}
         </div>

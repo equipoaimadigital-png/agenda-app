@@ -153,7 +153,7 @@ export default async function ReservarPage({ params }: PageProps) {
                   {openNow ? "● Abierto ahora" : "Cerrado ahora"}
                 </span>
               </div>
-              <h1 className="font-display text-2xl sm:text-3xl leading-tight">
+              <h1 className="font-display font-semibold text-3xl sm:text-4xl leading-tight tracking-tight">
                 {professional.businessName}
               </h1>
               {professional.address && (
