@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { FieldType } from "@prisma/client";
+import { FieldType, ServicePriceType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 
@@ -13,8 +13,12 @@ export async function createService(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const description = String(formData.get("description") || "").trim() || null;
   const durationMin = Number(formData.get("durationMin") || 0);
+  const priceTypeRaw = String(formData.get("priceType") || "FIXED");
+  const priceType: ServicePriceType =
+    priceTypeRaw === "FROM" || priceTypeRaw === "QUOTE" ? priceTypeRaw : "FIXED";
   const priceRaw = String(formData.get("price") || "").trim();
-  const price = priceRaw ? Number(priceRaw) : null;
+  // "A cotizar" no lleva precio público — cualquier valor ingresado se ignora.
+  const price = priceType !== "QUOTE" && priceRaw ? Number(priceRaw) : null;
 
   if (!name || !durationMin || durationMin <= 0) {
     return;
@@ -36,6 +40,7 @@ export async function createService(formData: FormData) {
       description,
       durationMin,
       price,
+      priceType,
       staff: { connect: activeStaff.map((s) => ({ id: s.id })) },
     },
   });

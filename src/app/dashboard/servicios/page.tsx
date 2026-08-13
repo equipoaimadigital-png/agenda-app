@@ -7,6 +7,8 @@ import {
   deleteServiceField,
   toggleServiceActive,
 } from "@/lib/actions/services";
+import { formatServicePrice } from "@/lib/price";
+import { ServicePriceFields } from "@/components/dashboard/ServicePriceFields";
 
 export default async function ServiciosPage() {
   const professional = await requireDashboardAccess();
@@ -54,32 +56,20 @@ export default async function ServiciosPage() {
             className="border border-border rounded-lg px-3 py-2.5"
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="durationMin" className="text-sm font-medium">Duración (min) *</label>
-            <input
-              id="durationMin"
-              name="durationMin"
-              type="number"
-              min={5}
-              step={5}
-              required
-              placeholder="30"
-              className="border border-border rounded-lg px-3 py-2.5"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="price" className="text-sm font-medium">Precio (CLP)</label>
-            <input
-              id="price"
-              name="price"
-              type="number"
-              min={0}
-              placeholder="10000"
-              className="border border-border rounded-lg px-3 py-2.5"
-            />
-          </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="durationMin" className="text-sm font-medium">Duración (min) *</label>
+          <input
+            id="durationMin"
+            name="durationMin"
+            type="number"
+            min={5}
+            step={5}
+            required
+            placeholder="30"
+            className="border border-border rounded-lg px-3 py-2.5"
+          />
         </div>
+        <ServicePriceFields />
         <button
           type="submit"
           className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium"
@@ -111,7 +101,10 @@ export default async function ServiciosPage() {
                 </p>
                 <p className="text-sm text-muted">
                   {service.durationMin} min
-                  {service.price ? ` · $${service.price.toLocaleString("es-CL")}` : ""}
+                  {(() => {
+                    const label = formatServicePrice(service.price, service.priceType);
+                    return label ? ` · ${label}` : "";
+                  })()}
                 </p>
                 {service.description && (
                   <p className="text-sm text-muted mt-0.5">{service.description}</p>

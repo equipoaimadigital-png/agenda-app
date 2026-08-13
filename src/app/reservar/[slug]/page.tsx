@@ -102,7 +102,9 @@ export default async function ReservarPage({ params }: PageProps) {
     makesOffer: professional.services.map((s) => ({
       "@type": "Offer",
       itemOffered: { "@type": "Service", name: s.name, description: s.description ?? undefined },
-      ...(s.price ? { price: s.price, priceCurrency: "CLP" } : {}),
+      ...(s.priceType === "FIXED" && s.price
+        ? { price: s.price, priceCurrency: "CLP" }
+        : {}),
     })),
   };
 
@@ -224,6 +226,7 @@ export default async function ReservarPage({ params }: PageProps) {
               description: s.description,
               durationMin: s.durationMin,
               price: s.price,
+              priceType: s.priceType,
             }))}
           />
         )}

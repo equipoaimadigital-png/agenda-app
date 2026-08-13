@@ -107,21 +107,31 @@ model Staff {
 }
 
 model Service {
-  id             String       @id @default(uuid())
+  id             String           @id @default(uuid())
   professionalId String
-  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  professional   Professional     @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   name           String
   description    String?
   durationMin    Int
   price          Int?
-  active         Boolean      @default(true)
-  createdAt      DateTime     @default(now())
+  priceType      ServicePriceType @default(FIXED)
+  active         Boolean          @default(true)
+  createdAt      DateTime         @default(now())
 
   staff    Staff[]        // qué profesionales pueden realizar este servicio
   bookings Booking[]
   fields   ServiceField[] // preguntas personalizadas que el cliente responde al reservar
 
   @@index([professionalId])
+}
+
+// FIXED: precio informativo fijo (ej. corte de pelo). FROM: precio desde X,
+// para servicios cuyo costo final varía (ej. consultoría por horas).
+// QUOTE: sin precio público, se cotiza en la consulta (ej. estudio jurídico).
+enum ServicePriceType {
+  FIXED
+  FROM
+  QUOTE
 }
 
 enum FieldType {

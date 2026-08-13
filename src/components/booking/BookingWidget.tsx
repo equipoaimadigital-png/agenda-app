@@ -13,6 +13,7 @@ import {
 import { ANY_STAFF, type StaffSelection } from "@/lib/booking-logic";
 import { DateTimePicker } from "@/components/booking/DateTimePicker";
 import { formatDateLong } from "@/lib/dates";
+import { formatServicePrice, type ServicePriceType } from "@/lib/price";
 
 type Service = {
   id: string;
@@ -20,11 +21,8 @@ type Service = {
   description: string | null;
   durationMin: number;
   price: number | null;
+  priceType: ServicePriceType;
 };
-
-function formatPrice(price: number): string {
-  return `$${price.toLocaleString("es-CL")}`;
-}
 
 export function BookingWidget({
   slug,
@@ -158,7 +156,11 @@ export function BookingWidget({
                 <div className="min-w-0">
                   <p className="font-medium">{s.name}</p>
                   <p className="text-sm text-muted whitespace-nowrap">
-                    {s.durationMin} min{s.price ? ` · ${formatPrice(s.price)}` : ""}
+                    {s.durationMin} min
+                    {(() => {
+                      const label = formatServicePrice(s.price, s.priceType);
+                      return label ? ` · ${label}` : "";
+                    })()}
                   </p>
                   {s.description && (
                     <p className="text-sm text-muted mt-1">{s.description}</p>
