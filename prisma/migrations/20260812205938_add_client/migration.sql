@@ -15,7 +15,3 @@ CREATE UNIQUE INDEX "Client_professionalId_phone_key" ON "Client"("professionalI
 
 -- AddForeignKey
 ALTER TABLE "Client" ADD CONSTRAINT "Client_professionalId_fkey" FOREIGN KEY ("professionalId") REFERENCES "Professional"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Toda tabla nueva necesita RLS activado, si no queda expuesta por la API
--- publica de Supabase (ver migracion 20260810212855_enable_row_level_security).
-ALTER TABLE "Client" ENABLE ROW LEVEL SECURITY;

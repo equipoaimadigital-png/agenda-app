@@ -80,6 +80,28 @@ export default async function ConfiguracionPage() {
           />
         </div>
 
+        <div className="flex flex-col gap-1">
+          <label htmlFor="coverImageUrl" className="text-sm font-medium">
+            Imagen de portada <span className="text-muted font-normal">(opcional — pega el link de una foto)</span>
+          </label>
+          <input
+            id="coverImageUrl"
+            name="coverImageUrl"
+            type="url"
+            defaultValue={professional.coverImageUrl ?? ""}
+            placeholder="https://..."
+            className="border border-border rounded-lg px-3 py-2.5"
+          />
+          {professional.coverImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={professional.coverImageUrl}
+              alt=""
+              className="mt-1 h-24 w-full object-cover rounded-lg border border-border"
+            />
+          )}
+        </div>
+
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
             <label htmlFor="phone" className="text-sm font-medium">

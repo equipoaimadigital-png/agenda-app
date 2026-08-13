@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { BookingWidget } from "@/components/booking/BookingWidget";
+import { nowInTimeZone, weekdayOf } from "@/lib/dates";
 
 const HERO_VERB = "Reserva tu hora";
 
@@ -11,6 +12,26 @@ async function loadProfessional(slug: string) {
     where: { slug },
     include: { services: { where: { active: true }, orderBy: { createdAt: "asc" } } },
   });
+}
+
+/** ¿Algún Staff activo tiene un bloque de disponibilidad que cubre el momento actual? */
+async function isOpenNow(professionalId: string, timezone: string): Promise<boolean> {
+  const now = nowInTimeZone(timezone);
+  const weekday = weekdayOf(now.dateStr);
+
+  const staff = await prisma.staff.findMany({
+    where: { professionalId, active: true },
+    include: {
+      availability: { where: { weekday } },
+      dateExceptions: { where: { date: now.dateStr } },
+    },
+  });
+
+  return staff.some(
+    (s) =>
+      s.dateExceptions.length === 0 &&
+      s.availability.some((b) => now.minutes >= b.startMinutes && now.minutes < b.endMinutes)
+  );
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -67,6 +88,8 @@ export default async function ReservarPage({ params }: PageProps) {
     );
   }
 
+  const openNow = await isOpenNow(professional.id, professional.timezone);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -97,7 +120,19 @@ export default async function ReservarPage({ params }: PageProps) {
 
       {/* Hero del negocio — el nombre es lo primero que se lee */}
       <header className="relative bg-ink text-white overflow-hidden">
-        <div aria-hidden className="absolute inset-0 seal-texture" />
+        {professional.coverImageUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={professional.coverImageUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div aria-hidden className="absolute inset-0 bg-ink/70" />
+          </>
+        ) : (
+          <div aria-hidden className="absolute inset-0 seal-texture" />
+        )}
         <div className="relative max-w-lg mx-auto px-5 pt-10 pb-8 sm:pt-14 sm:pb-10">
           <div className="flex items-start gap-4">
             <div
@@ -107,7 +142,16 @@ export default async function ReservarPage({ params }: PageProps) {
               {professional.businessName.slice(0, 1).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-xs uppercase tracking-wide text-white/60 mb-0.5">{HERO_VERB}</p>
+              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                <p className="text-xs uppercase tracking-wide text-white/60">{HERO_VERB}</p>
+                <span
+                  className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${
+                    openNow ? "bg-success/20 text-success" : "bg-white/10 text-white/60"
+                  }`}
+                >
+                  {openNow ? "● Abierto ahora" : "Cerrado ahora"}
+                </span>
+              </div>
               <h1 className="font-display text-2xl sm:text-3xl leading-tight">
                 {professional.businessName}
               </h1>

@@ -36,6 +36,9 @@ model Professional {
   // Portal público
   description  String?
   address      String?
+  // URL de una imagen de portada (el profesional la sube a donde quiera y
+  // pega el link — no manejamos subida de archivos todavía)
+  coverImageUrl String?
   // Color de acento de la marca (hex, ej. #2f4a3e)
   brandColor   String   @default("#2f4a3e")
   // Política de cancelación: horas mínimas de anticipación para cancelar/reprogramar

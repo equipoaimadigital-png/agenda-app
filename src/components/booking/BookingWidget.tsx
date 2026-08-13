@@ -144,32 +144,36 @@ export function BookingWidget({
           {services.map((s) => {
             const selected = s.id === serviceId;
             return (
-              <button
+              <div
                 key={s.id}
-                type="button"
-                onClick={() => {
-                  setServiceId(s.id);
-                  setPicked(null);
-                }}
-                className={`text-left border rounded-xl p-4 bg-surface ${
-                  selected ? "border-brand ring-1 ring-brand" : "border-border hover:border-brand/50"
+                className={`flex items-center justify-between gap-3 border rounded-xl p-4 bg-surface ${
+                  selected ? "border-brand ring-1 ring-brand" : "border-border"
                 }`}
               >
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="font-medium flex items-center gap-2">
-                    {selected && (
-                      <span aria-hidden className="text-brand">✓</span>
-                    )}
-                    {s.name}
-                  </p>
+                <div className="min-w-0">
+                  <p className="font-medium">{s.name}</p>
                   <p className="text-sm text-muted whitespace-nowrap">
                     {s.durationMin} min{s.price ? ` · ${formatPrice(s.price)}` : ""}
                   </p>
+                  {s.description && (
+                    <p className="text-sm text-muted mt-1">{s.description}</p>
+                  )}
                 </div>
-                {s.description && (
-                  <p className="text-sm text-muted mt-1">{s.description}</p>
-                )}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setServiceId(s.id);
+                    setPicked(null);
+                  }}
+                  className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium ${
+                    selected
+                      ? "bg-brand text-brand-foreground"
+                      : "border border-border hover:border-brand"
+                  }`}
+                >
+                  {selected ? "✓ Elegido" : "Agendar"}
+                </button>
+              </div>
             );
           })}
         </div>
