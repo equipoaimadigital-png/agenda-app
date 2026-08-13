@@ -138,7 +138,7 @@ export function BookingWidget({
         <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
           1 · Elige el servicio
         </h2>
-        <div className="grid gap-2">
+        <div className="rounded-2xl border border-border bg-surface divide-y divide-border overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_rgba(0,0,0,0.06)]">
           {services.map((s) => {
             const selected = s.id === serviceId;
             return (
@@ -149,13 +149,13 @@ export function BookingWidget({
                   setServiceId(s.id);
                   setPicked(null);
                 }}
-                className={`w-full flex items-center justify-between gap-3 border rounded-xl p-4 bg-surface text-left cursor-pointer transition-colors ${
-                  selected ? "border-brand ring-1 ring-brand" : "border-border hover:border-brand/50"
+                className={`w-full flex items-center justify-between gap-3 p-4 sm:p-5 text-left cursor-pointer transition-colors ${
+                  selected ? "bg-brand-soft" : "hover:bg-paper"
                 }`}
               >
                 <div className="min-w-0">
-                  <p className="font-medium">{s.name}</p>
-                  <p className="text-sm text-muted whitespace-nowrap">
+                  <p className="font-semibold">{s.name}</p>
+                  <p className="text-sm text-muted font-medium whitespace-nowrap">
                     {s.durationMin} min
                     {(() => {
                       const label = formatServicePrice(s.price, s.priceType);
@@ -167,10 +167,10 @@ export function BookingWidget({
                   )}
                 </div>
                 <span
-                  className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium ${
+                  className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
                     selected
-                      ? "bg-brand text-brand-foreground"
-                      : "border border-border"
+                      ? "bg-brand text-brand-foreground shadow-[0_3px_0_rgba(0,0,0,0.18),0_6px_14px_rgba(0,0,0,0.14)]"
+                      : "bg-surface border border-border shadow-[0_2px_0_rgba(0,0,0,0.06),0_4px_10px_rgba(0,0,0,0.05)]"
                   }`}
                 >
                   {selected ? "✓ Elegido" : "Agendar"}
@@ -368,7 +368,7 @@ export function BookingWidget({
             <button
               type="submit"
               disabled={isPending || !!nameError || !!phoneError || !!emailError}
-              className="bg-brand text-brand-foreground rounded-lg px-4 py-3 font-medium disabled:opacity-50"
+              className="bg-brand text-brand-foreground rounded-xl px-4 py-3.5 font-semibold shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0"
             >
               {isPending ? "Confirmando tu reserva…" : "Confirmar reserva"}
             </button>

@@ -241,9 +241,8 @@ export default async function ReservarPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* Franja de confianza */}
-      <div className="bg-brand-soft border-b border-border">
-        <ul className="max-w-lg mx-auto px-5 py-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs sm:text-sm text-ink">
+      <div className="max-w-lg mx-auto px-5 -mt-5 relative z-10">
+        <ul className="bg-surface border border-border rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_rgba(0,0,0,0.08)] px-4 py-3.5 flex flex-wrap gap-x-5 gap-y-2 text-xs sm:text-sm font-medium text-ink">
           {TRUST_ITEMS.map((item) => (
             <li key={item.text} className="flex items-center gap-1.5">
               <span aria-hidden>{item.icon}</span>
@@ -253,7 +252,7 @@ export default async function ReservarPage({ params }: PageProps) {
         </ul>
       </div>
 
-      <div className="max-w-lg mx-auto px-5 py-6 pb-16">
+      <div className="max-w-lg mx-auto px-5 pt-6 pb-16">
         {professional.services.length === 0 ? (
           <p className="text-stone">
             Este negocio todavía no tiene servicios disponibles para reservar.
@@ -271,7 +270,7 @@ export default async function ReservarPage({ params }: PageProps) {
             }))}
           />
         )}
-        <p className="text-xs text-stone text-center mt-10">
+        <p className="text-xs text-stone font-medium text-center mt-10">
           Cancelaciones y cambios hasta {professional.cancellationHours} h antes de la cita.
         </p>
       </div>
