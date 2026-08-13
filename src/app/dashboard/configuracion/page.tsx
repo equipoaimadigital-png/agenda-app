@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { updateBusinessSettings } from "@/lib/actions/dashboard";
 import { CoverImageUploader } from "@/components/dashboard/CoverImageUploader";
+import { HeadingStylePicker } from "@/components/dashboard/HeadingStylePicker";
 
 const SUBSCRIPTION_LABEL: Record<string, string> = {
   TRIAL: "Prueba gratis",
@@ -84,6 +85,12 @@ export default async function ConfiguracionPage() {
             className="border border-border rounded-lg px-3 py-2.5"
           />
         </div>
+
+        <HeadingStylePicker
+          businessName={professional.businessName}
+          defaultFont={professional.headingFont}
+          defaultSize={professional.headingSize}
+        />
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">

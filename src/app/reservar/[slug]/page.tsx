@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { BookingWidget } from "@/components/booking/BookingWidget";
 import { nowInTimeZone, weekdayOf } from "@/lib/dates";
 import { buildWhatsappLink } from "@/lib/whatsapp";
+import { headingFontClassName, headingSizeClasses } from "@/lib/heading-style";
 
 const HERO_VERB = "Reserva tu hora";
 
@@ -90,6 +91,8 @@ export default async function ReservarPage({ params }: PageProps) {
   }
 
   const openNow = await isOpenNow(professional.id, professional.timezone);
+  const headingFontClass = headingFontClassName(professional.headingFont);
+  const headingSizes = headingSizeClasses(professional.headingSize);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -155,7 +158,9 @@ export default async function ReservarPage({ params }: PageProps) {
                   {openNow ? "● Abierto ahora" : "Cerrado ahora"}
                 </span>
               </div>
-              <h1 className="font-display font-semibold text-3xl sm:text-4xl leading-tight tracking-tight">
+              <h1
+                className={`${headingFontClass} font-semibold leading-tight tracking-tight ${headingSizes.nameClass}`}
+              >
                 {professional.businessName}
               </h1>
               {professional.address && (
@@ -193,7 +198,9 @@ export default async function ReservarPage({ params }: PageProps) {
             </div>
           </div>
           {professional.description && (
-            <p className="text-white/80 mt-4 text-sm sm:text-base max-w-md">
+            <p
+              className={`${headingFontClass} text-white/80 mt-4 max-w-md ${headingSizes.descriptionClass}`}
+            >
               {professional.description}
             </p>
           )}

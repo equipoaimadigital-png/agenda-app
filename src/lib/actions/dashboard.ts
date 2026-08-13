@@ -2,10 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { HeadingFont, HeadingSize } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional, getPrimaryStaffId } from "@/lib/auth-helpers";
 import { sendCancellationEmails } from "@/lib/email";
 import { wallClockDate } from "@/lib/dates";
+
+const HEADING_FONTS: HeadingFont[] = ["FRAUNCES", "PLAYFAIR", "POPPINS", "WORK_SANS"];
+const HEADING_SIZES: HeadingSize[] = ["SMALL", "MEDIUM", "LARGE"];
 
 async function requireProfessional() {
   const professional = await getCurrentProfessional();
@@ -185,6 +189,10 @@ export async function updateBusinessSettings(formData: FormData): Promise<void> 
   const phone = String(formData.get("phone") || "").trim() || null;
   const brandColor = String(formData.get("brandColor") || "#0f766e");
   const cancellationHours = Number(formData.get("cancellationHours") || 24);
+  const headingFontRaw = String(formData.get("headingFont") || "FRAUNCES") as HeadingFont;
+  const headingSizeRaw = String(formData.get("headingSize") || "MEDIUM") as HeadingSize;
+  const headingFont = HEADING_FONTS.includes(headingFontRaw) ? headingFontRaw : "FRAUNCES";
+  const headingSize = HEADING_SIZES.includes(headingSizeRaw) ? headingSizeRaw : "MEDIUM";
 
   if (!businessName) return;
   if (!/^#[0-9a-fA-F]{6}$/.test(brandColor)) return;
@@ -198,6 +206,8 @@ export async function updateBusinessSettings(formData: FormData): Promise<void> 
       phone,
       brandColor,
       cancellationHours: Math.min(Math.max(cancellationHours, 0), 168),
+      headingFont,
+      headingSize,
     },
   });
   revalidatePath("/dashboard", "layout");

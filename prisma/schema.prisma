@@ -41,6 +41,9 @@ model Professional {
   coverImageUrl String?
   // Color de acento de la marca (hex, ej. #2f4a3e)
   brandColor   String   @default("#2f4a3e")
+  // Estilo tipográfico del nombre/descripción en la página pública
+  headingFont  HeadingFont @default(FRAUNCES)
+  headingSize  HeadingSize @default(MEDIUM)
   // Política de cancelación: horas mínimas de anticipación para cancelar/reprogramar
   cancellationHours Int @default(24)
   // Zona horaria del negocio (los horarios se interpretan en esta zona) — la
@@ -132,6 +135,22 @@ enum ServicePriceType {
   FIXED
   FROM
   QUOTE
+}
+
+// Combinaciones de tipografía curadas para el nombre/descripción del
+// negocio en la página pública — no es un selector libre de fuentes,
+// para no romper el sistema de diseño.
+enum HeadingFont {
+  FRAUNCES // Clásico — serif actual
+  PLAYFAIR // Editorial — serif alto, estudios/consultoría
+  POPPINS  // Moderno — sans geométrico
+  WORK_SANS // Cercano — igual al texto del cuerpo, en negrita
+}
+
+enum HeadingSize {
+  SMALL
+  MEDIUM
+  LARGE
 }
 
 enum FieldType {

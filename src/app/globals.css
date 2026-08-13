@@ -64,6 +64,21 @@
   --font-mono: var(--font-plex-mono);
 }
 
+/* Estilos de encabezado seleccionables (nombre/descripción del negocio en
+   la página pública) — ver src/lib/heading-style.ts para el mapeo. */
+.heading-fraunces {
+  font-family: var(--font-fraunces), Georgia, serif;
+}
+.heading-playfair {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+.heading-poppins {
+  font-family: var(--font-poppins), system-ui, sans-serif;
+}
+.heading-work-sans {
+  font-family: var(--font-work-sans), system-ui, sans-serif;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
