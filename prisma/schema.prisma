@@ -47,6 +47,8 @@ model Professional {
   // Links de redes sociales, mostrados como botones en la página pública
   instagramUrl String?
   facebookUrl  String?
+  // El profesional cerró el checklist de "Primeros pasos" del dashboard
+  onboardingDismissed Boolean @default(false)
   // Política de cancelación: horas mínimas de anticipación para cancelar/reprogramar
   cancellationHours Int @default(24)
   // Zona horaria del negocio (los horarios se interpretan en esta zona) — la

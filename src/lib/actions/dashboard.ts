@@ -225,6 +225,15 @@ export async function updateBusinessSettings(formData: FormData): Promise<void> 
   revalidatePath(`/reservar/${professional.slug}`);
 }
 
+export async function dismissOnboarding(): Promise<void> {
+  const professional = await requireProfessional();
+  await prisma.professional.update({
+    where: { id: professional.id },
+    data: { onboardingDismissed: true },
+  });
+  revalidatePath("/dashboard");
+}
+
 /** Nota interna vía formulario simple. */
 export async function saveInternalNoteForm(formData: FormData): Promise<void> {
   const bookingId = String(formData.get("bookingId") || "");

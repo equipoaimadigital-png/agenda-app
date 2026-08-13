@@ -5,6 +5,7 @@ import { BookingRow, type BookingRowData } from "@/components/dashboard/BookingR
 import { CancelDayButton } from "@/components/dashboard/CancelDayButton";
 import { EmptyAgenda } from "@/components/dashboard/EmptyAgenda";
 import { NewBookingForm } from "@/components/dashboard/NewBookingForm";
+import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { StaffFilter } from "@/components/dashboard/StaffFilter";
 import { WeekView, type WeekBooking } from "@/components/dashboard/WeekView";
 import { addDays, formatDateLong, nowInTimeZone, timeToMinutes, wallClockOf, weekdayOf } from "@/lib/dates";
@@ -163,6 +164,17 @@ export default async function AgendaPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <OnboardingChecklist
+        professionalId={professional.id}
+        slug={professional.slug}
+        phone={professional.phone}
+        description={professional.description}
+        coverImageUrl={professional.coverImageUrl}
+        instagramUrl={professional.instagramUrl}
+        facebookUrl={professional.facebookUrl}
+        onboardingDismissed={professional.onboardingDismissed}
+      />
+
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold font-display">Agenda</h1>
