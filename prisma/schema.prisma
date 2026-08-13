@@ -56,10 +56,11 @@ model Professional {
   // ID de la suscripción (Preapproval) en Mercado Pago, una vez autorizada
   mpPreapprovalId    String?
 
-  staff    Staff[]
-  services Service[]
-  bookings Booking[]
-  clients  Client[]
+  staff     Staff[]
+  services  Service[]
+  bookings  Booking[]
+  clients   Client[]
+  campaigns EmailCampaign[]
 }
 
 // Datos persistentes de un cliente que no cambian entre citas (ej. cumpleaños).
@@ -73,6 +74,11 @@ model Client {
   phone          String
   // "MM-DD", sin año, para no pedir más datos personales de los necesarios
   birthday       String?
+  // Se desuscribió de campañas de email marketing (nunca se le vuelve a
+  // mandar una, aunque el negocio elija "todos los clientes")
+  unsubscribed      Boolean  @default(false)
+  // Token impredecible para el link de desuscripción de un clic, sin login
+  unsubscribeToken  String   @unique @default(uuid())
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -212,4 +218,26 @@ model Booking {
 
   @@index([staffId, startTime])
   @@index([professionalId, startTime])
+}
+
+// A quién se le mandó la campaña: todos los clientes, o solo los que no
+// reservan hace 30+ días (para reactivarlos).
+enum CampaignAudience {
+  ALL
+  INACTIVE_30D
+}
+
+// Registro de una campaña de email marketing ya enviada. Se guarda después
+// de mandarla (no hay borradores) — sirve como historial para el negocio.
+model EmailCampaign {
+  id             String           @id @default(uuid())
+  professionalId String
+  professional   Professional     @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  subject        String
+  body           String
+  audience       CampaignAudience
+  recipientCount Int
+  createdAt      DateTime         @default(now())
+
+  @@index([professionalId, createdAt])
 }

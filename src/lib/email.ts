@@ -36,6 +36,15 @@ function wrapEmail(bodyHtml: string): string {
 </div>`;
 }
 
+/** Convierte texto plano (con saltos de línea) a HTML seguro, escapando <, >, & */
+function escapeAndBreak(text: string): string {
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return escaped.replace(/\n/g, "<br/>");
+}
+
 async function sendAll(tasks: Promise<unknown>[]): Promise<void> {
   const results = await Promise.allSettled(tasks);
   for (const r of results) {
@@ -240,4 +249,50 @@ export async function sendReminderEmail(info: ReminderEmailInfo): Promise<boolea
   });
 
   return !result.error;
+}
+
+type CampaignRecipient = { email: string; unsubscribeToken: string };
+
+/**
+ * Manda una campaña a cada destinatario por separado (nunca en un solo "to"
+ * con varios correos — eso expondría la lista de clientes entre ellos). Cada
+ * envío lleva su propio link de desuscripción de un clic.
+ */
+export async function sendCampaignEmails(info: {
+  businessName: string;
+  subject: string;
+  body: string;
+  bookingUrl: string;
+  recipients: CampaignRecipient[];
+}): Promise<{ sent: number }> {
+  const client = getClient();
+  if (!client) return { sent: 0 };
+
+  const tasks = info.recipients.map((r) => {
+    const unsubscribeUrl = `${siteUrl()}/desuscribir/${r.unsubscribeToken}`;
+    return client.emails.send({
+      from: FROM,
+      to: r.email,
+      subject: info.subject,
+      html: wrapEmail(`${escapeAndBreak(info.body)}
+<p style="margin-top:20px;">
+  <a href="${info.bookingUrl}" style="display:inline-block;background:#2f4a3e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Reservar ahora</a>
+</p>
+<p style="margin-top:24px;font-size:11px;color:#a0a09a;">
+  Recibiste este correo porque eres cliente de ${info.businessName}.
+  <a href="${unsubscribeUrl}" style="color:#a0a09a;">Dejar de recibir estos correos</a>.
+</p>`),
+    });
+  });
+
+  const results = await Promise.allSettled(tasks);
+  let sent = 0;
+  for (const r of results) {
+    if (r.status === "fulfilled" && !(r.value && typeof r.value === "object" && "error" in r.value && r.value.error)) {
+      sent += 1;
+    } else if (r.status === "rejected") {
+      console.error("Error enviando campaña:", r.reason);
+    }
+  }
+  return { sent };
 }
