@@ -49,6 +49,7 @@ export default async function ConfiguracionPage() {
         brandColor={professional.brandColor}
         headingFont={professional.headingFont}
         headingSize={professional.headingSize}
+        websiteUrl={professional.websiteUrl}
         instagramUrl={professional.instagramUrl}
         facebookUrl={professional.facebookUrl}
         cancellationHours={professional.cancellationHours}

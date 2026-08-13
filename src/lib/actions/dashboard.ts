@@ -203,6 +203,7 @@ export async function updateBusinessSettings(
   const headingSizeRaw = String(formData.get("headingSize") || "MEDIUM") as HeadingSize;
   const headingFont = HEADING_FONTS.includes(headingFontRaw) ? headingFontRaw : "FRAUNCES";
   const headingSize = HEADING_SIZES.includes(headingSizeRaw) ? headingSizeRaw : "MEDIUM";
+  const websiteUrl = parseHttpUrl(formData.get("websiteUrl"));
   const instagramUrl = parseHttpUrl(formData.get("instagramUrl"));
   const facebookUrl = parseHttpUrl(formData.get("facebookUrl"));
 
@@ -222,6 +223,7 @@ export async function updateBusinessSettings(
       cancellationHours: Math.min(Math.max(cancellationHours, 0), 168),
       headingFont,
       headingSize,
+      websiteUrl,
       instagramUrl,
       facebookUrl,
     },

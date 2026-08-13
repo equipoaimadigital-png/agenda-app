@@ -13,6 +13,7 @@ type Props = {
   brandColor: string;
   headingFont: HeadingFont;
   headingSize: HeadingSize;
+  websiteUrl: string | null;
   instagramUrl: string | null;
   facebookUrl: string | null;
   cancellationHours: number;
@@ -26,6 +27,7 @@ export function ConfiguracionForm({
   brandColor,
   headingFont,
   headingSize,
+  websiteUrl,
   instagramUrl,
   facebookUrl,
   cancellationHours,
@@ -110,6 +112,20 @@ export function ConfiguracionForm({
             className="border border-border rounded-lg h-11 w-full cursor-pointer"
           />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="websiteUrl" className="text-sm font-medium">
+          Sitio web <span className="text-muted font-normal">(opcional)</span>
+        </label>
+        <input
+          id="websiteUrl"
+          name="websiteUrl"
+          type="url"
+          defaultValue={websiteUrl ?? ""}
+          placeholder="https://tu-negocio.com"
+          className="border border-border rounded-lg px-3 py-2.5"
+        />
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">

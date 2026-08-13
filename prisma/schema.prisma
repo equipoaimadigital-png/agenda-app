@@ -45,6 +45,7 @@ model Professional {
   headingFont  HeadingFont @default(FRAUNCES)
   headingSize  HeadingSize @default(MEDIUM)
   // Links de redes sociales, mostrados como botones en la página pública
+  websiteUrl   String?
   instagramUrl String?
   facebookUrl  String?
   // El profesional cerró el checklist de "Primeros pasos" del dashboard

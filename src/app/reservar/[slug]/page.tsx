@@ -168,6 +168,7 @@ export default async function ReservarPage({ params }: PageProps) {
               )}
               {(professional.address ||
                 professional.phone ||
+                professional.websiteUrl ||
                 professional.instagramUrl ||
                 professional.facebookUrl) && (
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -194,6 +195,16 @@ export default async function ReservarPage({ params }: PageProps) {
                       className="text-xs bg-success/20 hover:bg-success/30 text-white rounded-lg px-2.5 py-1.5 flex items-center gap-1"
                     >
                       💬 WhatsApp
+                    </a>
+                  )}
+                  {professional.websiteUrl && (
+                    <a
+                      href={professional.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-white/10 hover:bg-white/15 rounded-lg px-2.5 py-1.5 flex items-center gap-1"
+                    >
+                      🌐 Sitio web
                     </a>
                   )}
                   {professional.instagramUrl && (
