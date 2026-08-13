@@ -95,24 +95,24 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
   return (
     <div className="flex flex-col gap-4">
       {/* Calendario */}
-      <div className="bg-surface border border-border rounded-xl p-4">
+      <div className="bg-surface border border-border rounded-2xl p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-between mb-3">
           <button
             type="button"
             onClick={() => shiftMonth(-1)}
             aria-label="Mes anterior"
-            className="w-8 h-8 rounded-lg border border-border hover:bg-brand-soft"
+            className="w-8 h-8 rounded-lg border border-border bg-surface shadow-[0_2px_0_rgba(0,0,0,0.06),0_3px_8px_rgba(0,0,0,0.05)] active:shadow-none active:translate-y-[1px] transition-all hover:bg-brand-soft"
           >
             ‹
           </button>
-          <p className="font-medium">
+          <p className="font-semibold">
             {MONTHS_ES[viewMonth - 1]} {viewYear}
           </p>
           <button
             type="button"
             onClick={() => shiftMonth(1)}
             aria-label="Mes siguiente"
-            className="w-8 h-8 rounded-lg border border-border hover:bg-brand-soft"
+            className="w-8 h-8 rounded-lg border border-border bg-surface shadow-[0_2px_0_rgba(0,0,0,0.06),0_3px_8px_rgba(0,0,0,0.05)] active:shadow-none active:translate-y-[1px] transition-all hover:bg-brand-soft"
           >
             ›
           </button>
@@ -138,11 +138,11 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
                 type="button"
                 disabled={disabled}
                 onClick={() => selectDate(dateStr)}
-                className={`h-9 rounded-lg text-sm ${
+                className={`h-9 rounded-lg text-sm transition-all ${
                   isSelected
-                    ? "bg-brand text-brand-foreground font-medium"
+                    ? "bg-brand text-brand-foreground font-semibold shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)]"
                     : hasSlots
-                      ? "bg-brand-soft text-foreground font-medium hover:opacity-80"
+                      ? "bg-brand-soft text-foreground font-semibold hover:opacity-80"
                       : "text-muted/50"
                 } disabled:cursor-not-allowed`}
               >
@@ -159,7 +159,7 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
       {/* Horarios del día elegido */}
       {selectedDate && (
         <div aria-live="polite" aria-busy={loadingSlots}>
-          <p className="text-sm font-medium mb-2 capitalize">
+          <p className="text-sm font-semibold mb-2 capitalize">
             {formatDateLong(selectedDate)}
           </p>
           {loadingSlots ? (
@@ -181,10 +181,10 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
                     key={slot}
                     type="button"
                     onClick={() => onPick(selectedDate, slot)}
-                    className={`border rounded-lg px-3.5 py-2 text-sm ${
+                    className={`border rounded-lg px-3.5 py-2 text-sm font-semibold transition-all ${
                       isPicked
-                        ? "bg-brand text-brand-foreground border-brand font-medium"
-                        : "border-border bg-surface hover:border-brand"
+                        ? "bg-brand text-brand-foreground border-brand shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)]"
+                        : "border-border bg-surface hover:border-brand shadow-[0_2px_0_rgba(0,0,0,0.05),0_3px_8px_rgba(0,0,0,0.04)]"
                     }`}
                   >
                     {slot}
@@ -193,8 +193,8 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
               })}
             </div>
           ) : (
-            <div className="bg-warning-soft border border-border rounded-xl p-4 flex flex-col gap-3">
-              <p className="text-sm">
+            <div className="bg-warning-soft border border-border rounded-2xl p-4 flex flex-col gap-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_20px_rgba(0,0,0,0.05)]">
+              <p className="text-sm font-medium">
                 Ese día no quedan horarios. Los más cercanos disponibles son:
               </p>
               {suggestions.length === 0 && (
@@ -204,7 +204,7 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
               )}
               {suggestions.map((s) => (
                 <div key={s.dateStr} className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium capitalize w-full sm:w-auto">
+                  <span className="text-sm font-semibold capitalize w-full sm:w-auto">
                     {formatDateLong(s.dateStr)}:
                   </span>
                   {s.slots.map((slot) => (
@@ -217,7 +217,7 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
                         onPick(s.dateStr, slot);
                         selectDate(s.dateStr);
                       }}
-                      className="border border-border bg-surface rounded-lg px-3 py-1.5 text-sm hover:border-brand"
+                      className="border border-border bg-surface rounded-lg px-3 py-1.5 text-sm font-semibold hover:border-brand shadow-[0_2px_0_rgba(0,0,0,0.05),0_3px_8px_rgba(0,0,0,0.04)] transition-all"
                     >
                       {slot}
                     </button>
