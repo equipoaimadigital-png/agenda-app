@@ -12,6 +12,7 @@ const ITEMS = [
   { href: "/dashboard/estadisticas", label: "Estadísticas", icon: "📊" },
   { href: "/dashboard/configuracion", label: "Configuración", icon: "⚙️" },
   { href: "/dashboard/suscripcion", label: "Suscripción", icon: "💳" },
+  { href: "/dashboard/manual", label: "Manual de uso", icon: "📖" },
 ] as const;
 
 export function DashboardNav() {
