@@ -3,6 +3,10 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { createAndSendCampaign, getAudienceCount, sendTestCampaign } from "@/lib/actions/campaigns";
 import { IconUsers } from "@/components/dashboard/ManualIcons";
+import { CampaignClientPicker } from "@/components/dashboard/CampaignClientPicker";
+import { CLIENT_NAME_VAR, personalizeCampaignBody } from "@/lib/campaign-copy";
+
+type Audience = "ALL" | "INACTIVE_30D" | "CUSTOM";
 
 type Template = {
   id: string;
@@ -17,25 +21,25 @@ function buildTemplates(businessName: string): Template[] {
       id: "reactivacion",
       label: "Reactivar",
       subject: `Hace tiempo no te vemos, ${businessName} 💚`,
-      body: `Hola {{Nombre Cliente}},\n\nNotamos que ha pasado un tiempo desde tu última visita y nos encantaría verte de nuevo.\n\nReserva tu próxima hora esta semana y te damos atención preferencial.\n\n¡Te esperamos!`,
+      body: `Hola ${CLIENT_NAME_VAR},\n\nNotamos que ha pasado un tiempo desde tu última visita y nos encantaría verte de nuevo.\n\nReserva tu próxima hora esta semana y te damos atención preferencial.\n\n¡Te esperamos!`,
     },
     {
       id: "promocion",
       label: "Promociones",
       subject: `Oferta especial esta semana en ${businessName}`,
-      body: `Hola {{Nombre Cliente}},\n\nEsta semana tenemos una promoción especial para ti. Los cupos son limitados, así que te recomendamos reservar pronto para asegurar tu horario preferido.\n\n¡No te la pierdas!`,
+      body: `Hola ${CLIENT_NAME_VAR},\n\nEsta semana tenemos una promoción especial para ti. Los cupos son limitados, así que te recomendamos reservar pronto para asegurar tu horario preferido.\n\n¡No te la pierdas!`,
     },
     {
       id: "nuevo-servicio",
       label: "Nuevo",
       subject: `Tenemos algo nuevo para ti en ${businessName}`,
-      body: `Hola {{Nombre Cliente}},\n\nQueremos contarte que sumamos un nuevo servicio que seguramente te va a interesar.\n\nSi quieres saber más o reservar directamente, hazlo desde el botón de abajo.\n\n¡Esperamos verte pronto!`,
+      body: `Hola ${CLIENT_NAME_VAR},\n\nQueremos contarte que sumamos un nuevo servicio que seguramente te va a interesar.\n\nSi quieres saber más o reservar directamente, hazlo desde el botón de abajo.\n\n¡Esperamos verte pronto!`,
     },
     {
       id: "agradecimiento",
       label: "Fidelización",
       subject: `Gracias por confiar en ${businessName}`,
-      body: `Hola {{Nombre Cliente}},\n\nQueríamos agradecerte por elegirnos. Tu confianza es muy importante para nosotros y seguimos trabajando para darte la mejor atención.\n\nSi ya es momento de tu próxima visita, aquí puedes reservar fácilmente.`,
+      body: `Hola ${CLIENT_NAME_VAR},\n\nQueríamos agradecerte por elegirnos. Tu confianza es muy importante para nosotros y seguimos trabajando para darte la mejor atención.\n\nSi ya es momento de tu próxima visita, aquí puedes reservar fácilmente.`,
     },
     {
       id: "personalizado",
@@ -46,12 +50,11 @@ function buildTemplates(businessName: string): Template[] {
   ];
 }
 
-const CLIENT_NAME_VAR = "{{Nombre Cliente}}";
 const DEMO_NAME = "María";
 
-/** Divide el texto en el marcador de variable para poder resaltar el nombre de prueba en la vista previa. */
-function renderPersonalizedPreview(body: string): React.ReactNode[] {
-  const parts = body.split(CLIENT_NAME_VAR);
+/** Resalta el nombre de prueba dentro del texto ya personalizado, para que se note en la vista previa. */
+function renderWithHighlightedName(text: string): React.ReactNode[] {
+  const parts = text.split(DEMO_NAME);
   return parts.flatMap((part, i) =>
     i === 0
       ? [part]
@@ -64,16 +67,28 @@ function renderPersonalizedPreview(body: string): React.ReactNode[] {
   );
 }
 
+const AUDIENCE_OPTIONS: { value: Audience; label: string }[] = [
+  { value: "ALL", label: "Todos mis clientes" },
+  { value: "INACTIVE_30D", label: "Inactivos hace 30+ días" },
+  { value: "CUSTOM", label: "Clientes específicos" },
+];
+
 export function CampaignForm({ businessName }: { businessName: string }) {
   const templates = buildTemplates(businessName);
   const [templateId, setTemplateId] = useState(templates[0].id);
   const [subject, setSubject] = useState(templates[0].subject);
   const [body, setBody] = useState(templates[0].body);
-  const [audience, setAudience] = useState<"ALL" | "INACTIVE_30D">("ALL");
+  const [audience, setAudience] = useState<Audience>("ALL");
+  const [customPhones, setCustomPhones] = useState<string[]>([]);
   const [count, setCount] = useState<number | null>(null);
   const [loadingCount, setLoadingCount] = useState(true);
 
   useEffect(() => {
+    if (audience === "CUSTOM") {
+      setCount(customPhones.length);
+      setLoadingCount(false);
+      return;
+    }
     let cancelled = false;
     setLoadingCount(true);
     getAudienceCount(audience).then((n) => {
@@ -85,7 +100,7 @@ export function CampaignForm({ businessName }: { businessName: string }) {
     return () => {
       cancelled = true;
     };
-  }, [audience]);
+  }, [audience, customPhones]);
 
   const [state, formAction, isPending] = useActionState<
     { error?: string; sent?: number },
@@ -112,6 +127,10 @@ export function CampaignForm({ businessName }: { businessName: string }) {
       setTestState(result);
     });
   }
+
+  const previewBody = body
+    ? renderWithHighlightedName(personalizeCampaignBody(body, DEMO_NAME))
+    : "Tu mensaje aparece aquí a medida que lo escribes.";
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-8">
@@ -166,54 +185,46 @@ export function CampaignForm({ businessName }: { businessName: string }) {
           />
           <p className="text-xs text-muted">
             Se agrega automáticamente un botón &quot;Reservar ahora&quot; y el link de
-            desuscripción al final. Escribe <code className="font-numeric">{CLIENT_NAME_VAR}</code>{" "}
-            donde quieras que aparezca el nombre de cada cliente.
+            desuscripción al final. Si no escribes{" "}
+            <code className="font-numeric">{CLIENT_NAME_VAR}</code>, igual saludamos a cada
+            cliente por su nombre al principio — ya tenemos el dato.
           </p>
         </div>
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-semibold text-ink">¿A quién le llega?</label>
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => setAudience("ALL")}
-              className={`flex-1 text-left rounded-xl p-3 flex items-center gap-2.5 transition-all ${
-                audience === "ALL"
-                  ? "border-2 border-brand bg-paper"
-                  : "border border-border hover:border-brand/40"
-              }`}
-            >
-              <span
-                aria-hidden
-                className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                  audience === "ALL" ? "border-brand" : "border-border-strong"
+          <div className="flex flex-wrap gap-3">
+            {AUDIENCE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setAudience(opt.value)}
+                className={`flex-1 min-w-[150px] text-left rounded-xl p-3 flex items-center gap-2.5 transition-all ${
+                  audience === opt.value
+                    ? "border-2 border-brand bg-paper"
+                    : "border border-border hover:border-brand/40"
                 }`}
               >
-                {audience === "ALL" && <span className="w-2 h-2 rounded-full bg-brand" />}
-              </span>
-              <span className="text-sm font-medium">Todos mis clientes</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setAudience("INACTIVE_30D")}
-              className={`flex-1 text-left rounded-xl p-3 flex items-center gap-2.5 transition-all ${
-                audience === "INACTIVE_30D"
-                  ? "border-2 border-brand bg-paper"
-                  : "border border-border hover:border-brand/40"
-              }`}
-            >
-              <span
-                aria-hidden
-                className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                  audience === "INACTIVE_30D" ? "border-brand" : "border-border-strong"
-                }`}
-              >
-                {audience === "INACTIVE_30D" && <span className="w-2 h-2 rounded-full bg-brand" />}
-              </span>
-              <span className="text-sm font-medium">Inactivos hace 30+ días</span>
-            </button>
+                <span
+                  aria-hidden
+                  className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                    audience === opt.value ? "border-brand" : "border-border-strong"
+                  }`}
+                >
+                  {audience === opt.value && <span className="w-2 h-2 rounded-full bg-brand" />}
+                </span>
+                <span className="text-sm font-medium">{opt.label}</span>
+              </button>
+            ))}
           </div>
           <input type="hidden" name="audience" value={audience} />
+
+          {audience === "CUSTOM" && (
+            <>
+              <input type="hidden" name="customPhones" value={JSON.stringify(customPhones)} />
+              <CampaignClientPicker selected={customPhones} onChange={setCustomPhones} />
+            </>
+          )}
         </div>
 
         {state.error && (
@@ -284,7 +295,7 @@ export function CampaignForm({ businessName }: { businessName: string }) {
               </div>
 
               <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
-                {body ? renderPersonalizedPreview(body) : "Tu mensaje aparece aquí a medida que lo escribes."}
+                {previewBody}
               </p>
 
               <span className="w-full max-w-[200px] mx-auto block text-center bg-brand text-brand-foreground py-3 rounded-lg font-semibold mt-6">

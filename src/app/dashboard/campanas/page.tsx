@@ -6,6 +6,7 @@ import { formatDateLong, toDateStr } from "@/lib/dates";
 const AUDIENCE_LABEL: Record<string, string> = {
   ALL: "Todos los clientes",
   INACTIVE_30D: "Inactivos 30+ días",
+  CUSTOM: "Clientes específicos",
 };
 
 export default async function CampanasPage() {

@@ -12,7 +12,8 @@ type Recipient = { phone: string; email: string; name: string };
 /** Un cliente por teléfono (el email y nombre más reciente que dejó), con su última visita. */
 async function getRecipients(
   professionalId: string,
-  audience: CampaignAudience
+  audience: CampaignAudience,
+  customPhones?: string[]
 ): Promise<Recipient[]> {
   const bookings = await prisma.booking.findMany({
     where: { professionalId },
@@ -36,6 +37,10 @@ async function getRecipients(
     cutoff.setDate(cutoff.getDate() - 30);
     candidates = candidates.filter(([, v]) => v.lastVisit < cutoff);
   }
+  if (audience === "CUSTOM") {
+    const selected = new Set(customPhones ?? []);
+    candidates = candidates.filter(([phone]) => selected.has(phone));
+  }
   if (candidates.length === 0) return [];
 
   const phones = candidates.map(([phone]) => phone);
@@ -51,11 +56,25 @@ async function getRecipients(
 }
 
 /** Para mostrar "esto le va a llegar a N personas" antes de enviar. */
-export async function getAudienceCount(audience: CampaignAudience): Promise<number> {
+export async function getAudienceCount(
+  audience: CampaignAudience,
+  customPhones?: string[]
+): Promise<number> {
   const professional = await getCurrentProfessional();
   if (!professional) return 0;
-  const recipients = await getRecipients(professional.id, audience);
+  const recipients = await getRecipients(professional.id, audience, customPhones);
   return recipients.length;
+}
+
+/** Lista de clientes con email (y no desuscritos) para el selector de "Clientes específicos". */
+export async function listClientsForCampaign(): Promise<
+  { phone: string; name: string; email: string }[]
+> {
+  const professional = await getCurrentProfessional();
+  if (!professional) return [];
+
+  const all = await getRecipients(professional.id, "ALL");
+  return all.sort((a, b) => a.name.localeCompare(b.name, "es"));
 }
 
 export async function createAndSendCampaign(
@@ -69,12 +88,24 @@ export async function createAndSendCampaign(
   const audienceRaw = String(formData.get("audience") || "ALL");
 
   if (!subject || !body) return { error: "Completa el asunto y el mensaje." };
-  if (audienceRaw !== "ALL" && audienceRaw !== "INACTIVE_30D") {
+  if (audienceRaw !== "ALL" && audienceRaw !== "INACTIVE_30D" && audienceRaw !== "CUSTOM") {
     return { error: "Audiencia inválida." };
   }
   const audience = audienceRaw as CampaignAudience;
 
-  const recipients = await getRecipients(professional.id, audience);
+  let customPhones: string[] | undefined;
+  if (audience === "CUSTOM") {
+    try {
+      customPhones = JSON.parse(String(formData.get("customPhones") || "[]"));
+    } catch {
+      customPhones = [];
+    }
+    if (!customPhones || customPhones.length === 0) {
+      return { error: "Elige al menos un cliente." };
+    }
+  }
+
+  const recipients = await getRecipients(professional.id, audience, customPhones);
   if (recipients.length === 0) {
     return { error: "No hay destinatarios para esta audiencia (o todos se desuscribieron)." };
   }

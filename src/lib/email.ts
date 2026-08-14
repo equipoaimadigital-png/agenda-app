@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { formatDateLong, wallClockOf } from "@/lib/dates";
+import { personalizeCampaignBody } from "@/lib/campaign-copy";
 
 const FROM = "Tú Agenda <onboarding@resend.dev>";
 
@@ -253,13 +254,6 @@ export async function sendReminderEmail(info: ReminderEmailInfo): Promise<boolea
 
 type CampaignRecipient = { email: string; unsubscribeToken: string; name: string | null };
 
-/** Variable de personalización que el negocio puede escribir en el mensaje. */
-const CLIENT_NAME_VAR = "{{Nombre Cliente}}";
-
-function personalize(body: string, name: string | null): string {
-  return body.replaceAll(CLIENT_NAME_VAR, name?.trim() || "cliente");
-}
-
 /**
  * Manda una campaña a cada destinatario por separado (nunca en un solo "to"
  * con varios correos — eso expondría la lista de clientes entre ellos). Cada
@@ -282,7 +276,7 @@ export async function sendCampaignEmails(info: {
       from: FROM,
       to: r.email,
       subject: info.subject,
-      html: wrapEmail(`${escapeAndBreak(personalize(info.body, r.name))}
+      html: wrapEmail(`${escapeAndBreak(personalizeCampaignBody(info.body, r.name))}
 <p style="margin-top:20px;">
   <a href="${info.bookingUrl}" style="display:inline-block;background:#2f4a3e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Reservar ahora</a>
 </p>
@@ -319,7 +313,7 @@ export async function sendTestCampaignEmail(info: {
     from: FROM,
     to: info.toEmail,
     subject: `[Prueba] ${info.subject}`,
-    html: wrapEmail(`${escapeAndBreak(personalize(info.body, "María"))}
+    html: wrapEmail(`${escapeAndBreak(personalizeCampaignBody(info.body, "María"))}
 <p style="margin-top:20px;">
   <a href="${info.bookingUrl}" style="display:inline-block;background:#2f4a3e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Reservar ahora</a>
 </p>

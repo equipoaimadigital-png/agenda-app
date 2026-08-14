@@ -255,11 +255,12 @@ model Booking {
   @@index([professionalId, startTime])
 }
 
-// A quién se le mandó la campaña: todos los clientes, o solo los que no
-// reservan hace 30+ días (para reactivarlos).
+// A quién se le mandó la campaña: todos los clientes, solo los que no
+// reservan hace 30+ días (para reactivarlos), o una selección puntual.
 enum CampaignAudience {
   ALL
   INACTIVE_30D
+  CUSTOM
 }
 
 // Registro de una campaña de email marketing ya enviada. Se guarda después
