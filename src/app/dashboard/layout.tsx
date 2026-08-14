@@ -2,6 +2,7 @@ import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { signOut } from "@/lib/actions/auth";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
+import { TrialWarningBanner } from "@/components/dashboard/TrialWarningBanner";
 
 export default async function DashboardLayout({
   children,
@@ -11,6 +12,11 @@ export default async function DashboardLayout({
   const professional = await getCurrentProfessional();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const publicUrl = professional ? `${siteUrl}/reservar/${professional.slug}` : "";
+
+  const daysLeft =
+    professional?.subscriptionStatus === "TRIAL" && professional.trialEndsAt
+      ? Math.ceil((professional.trialEndsAt.getTime() - Date.now()) / 86_400_000)
+      : null;
 
   return (
     <div
@@ -61,6 +67,10 @@ export default async function DashboardLayout({
       </aside>
 
       <main className="flex-1 p-4 md:p-8 max-w-4xl">{children}</main>
+
+      {professional && daysLeft !== null && daysLeft <= 3 && daysLeft >= 0 && (
+        <TrialWarningBanner professionalId={professional.id} daysLeft={daysLeft} />
+      )}
     </div>
   );
 }
