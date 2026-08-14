@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { createAndSendCampaign, getAudienceCount } from "@/lib/actions/campaigns";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { createAndSendCampaign, getAudienceCount, sendTestCampaign } from "@/lib/actions/campaigns";
+import { IconUsers } from "@/components/dashboard/ManualIcons";
 
 type Template = {
   id: string;
@@ -14,35 +15,53 @@ function buildTemplates(businessName: string): Template[] {
   return [
     {
       id: "reactivacion",
-      label: "Reactivar clientes",
+      label: "Reactivar",
       subject: `Hace tiempo no te vemos, ${businessName} 💚`,
-      body: `Hola,\n\nNotamos que ha pasado un tiempo desde tu última visita y nos encantaría verte de nuevo.\n\nReserva tu próxima hora esta semana y te damos atención preferencial.\n\n¡Te esperamos!`,
+      body: `Hola {{Nombre Cliente}},\n\nNotamos que ha pasado un tiempo desde tu última visita y nos encantaría verte de nuevo.\n\nReserva tu próxima hora esta semana y te damos atención preferencial.\n\n¡Te esperamos!`,
     },
     {
       id: "promocion",
-      label: "Promoción por tiempo limitado",
+      label: "Promociones",
       subject: `Oferta especial esta semana en ${businessName}`,
-      body: `Hola,\n\nEsta semana tenemos una promoción especial para ti. Los cupos son limitados, así que te recomendamos reservar pronto para asegurar tu horario preferido.\n\n¡No te la pierdas!`,
+      body: `Hola {{Nombre Cliente}},\n\nEsta semana tenemos una promoción especial para ti. Los cupos son limitados, así que te recomendamos reservar pronto para asegurar tu horario preferido.\n\n¡No te la pierdas!`,
     },
     {
       id: "nuevo-servicio",
-      label: "Anunciar nuevo servicio",
+      label: "Nuevo",
       subject: `Tenemos algo nuevo para ti en ${businessName}`,
-      body: `Hola,\n\nQueremos contarte que sumamos un nuevo servicio que seguramente te va a interesar.\n\nSi quieres saber más o reservar directamente, hazlo desde el botón de abajo.\n\n¡Esperamos verte pronto!`,
+      body: `Hola {{Nombre Cliente}},\n\nQueremos contarte que sumamos un nuevo servicio que seguramente te va a interesar.\n\nSi quieres saber más o reservar directamente, hazlo desde el botón de abajo.\n\n¡Esperamos verte pronto!`,
     },
     {
       id: "agradecimiento",
-      label: "Agradecimiento y fidelización",
+      label: "Fidelización",
       subject: `Gracias por confiar en ${businessName}`,
-      body: `Hola,\n\nQueríamos agradecerte por elegirnos. Tu confianza es muy importante para nosotros y seguimos trabajando para darte la mejor atención.\n\nSi ya es momento de tu próxima visita, aquí puedes reservar fácilmente.`,
+      body: `Hola {{Nombre Cliente}},\n\nQueríamos agradecerte por elegirnos. Tu confianza es muy importante para nosotros y seguimos trabajando para darte la mejor atención.\n\nSi ya es momento de tu próxima visita, aquí puedes reservar fácilmente.`,
     },
     {
       id: "personalizado",
-      label: "Empezar en blanco",
+      label: "En blanco",
       subject: "",
       body: "",
     },
   ];
+}
+
+const CLIENT_NAME_VAR = "{{Nombre Cliente}}";
+const DEMO_NAME = "María";
+
+/** Divide el texto en el marcador de variable para poder resaltar el nombre de prueba en la vista previa. */
+function renderPersonalizedPreview(body: string): React.ReactNode[] {
+  const parts = body.split(CLIENT_NAME_VAR);
+  return parts.flatMap((part, i) =>
+    i === 0
+      ? [part]
+      : [
+          <strong key={`name-${i}`} className="font-semibold">
+            {DEMO_NAME}
+          </strong>,
+          part,
+        ]
+  );
 }
 
 export function CampaignForm({ businessName }: { businessName: string }) {
@@ -73,6 +92,9 @@ export function CampaignForm({ businessName }: { businessName: string }) {
     FormData
   >(async (_prev, formData) => createAndSendCampaign(formData), {});
 
+  const [testState, setTestState] = useState<{ error?: string; sent?: boolean }>({});
+  const [isTestPending, startTestTransition] = useTransition();
+
   function applyTemplate(id: string) {
     const t = templates.find((x) => x.id === id);
     if (!t) return;
@@ -81,112 +103,200 @@ export function CampaignForm({ businessName }: { businessName: string }) {
     setBody(t.body);
   }
 
+  function runTestSend() {
+    const fd = new FormData();
+    fd.set("subject", subject);
+    fd.set("body", body);
+    startTestTransition(async () => {
+      const result = await sendTestCampaign(fd);
+      setTestState(result);
+    });
+  }
+
   return (
-    <form action={formAction} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium">Plantilla</label>
-        <div className="grid sm:grid-cols-2 gap-2">
-          {templates.map((t) => (
+    <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-8">
+      {/* Editor */}
+      <form action={formAction} className="bg-surface border border-border rounded-2xl p-4 flex flex-col gap-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_rgba(0,0,0,0.06)]">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-semibold">Plantilla</label>
+          <div className="flex flex-wrap gap-1.5">
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => applyTemplate(t.id)}
+                className={`text-sm font-medium rounded-full px-3.5 py-1.5 border transition-colors ${
+                  templateId === t.id
+                    ? "bg-brand-soft text-brand border-brand"
+                    : "bg-surface text-stone border-border hover:border-brand/50"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label htmlFor="subject" className="text-sm font-semibold text-ink">
+            Asunto <span className="text-danger">*</span>
+          </label>
+          <input
+            id="subject"
+            name="subject"
+            type="text"
+            required
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="w-full rounded-xl border border-border p-2.5 bg-surface focus:ring-2 focus:ring-brand/40 focus:border-brand outline-none"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label htmlFor="body" className="text-sm font-semibold text-ink">
+            Mensaje <span className="text-danger">*</span>
+          </label>
+          <textarea
+            id="body"
+            name="body"
+            required
+            className="w-full min-h-[200px] rounded-xl border border-border p-2.5 bg-surface focus:ring-2 focus:ring-brand/40 focus:border-brand outline-none"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+          />
+          <p className="text-xs text-muted">
+            Se agrega automáticamente un botón &quot;Reservar ahora&quot; y el link de
+            desuscripción al final. Escribe <code className="font-numeric">{CLIENT_NAME_VAR}</code>{" "}
+            donde quieras que aparezca el nombre de cada cliente.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-semibold text-ink">¿A quién le llega?</label>
+          <div className="flex gap-4">
             <button
-              key={t.id}
               type="button"
-              onClick={() => applyTemplate(t.id)}
-              className={`text-left text-sm border rounded-lg px-3 py-2 ${
-                templateId === t.id
-                  ? "border-brand ring-1 ring-brand bg-brand-soft"
-                  : "border-border hover:border-brand/50"
+              onClick={() => setAudience("ALL")}
+              className={`flex-1 text-left rounded-xl p-3 flex items-center gap-2.5 transition-all ${
+                audience === "ALL"
+                  ? "border-2 border-brand bg-paper"
+                  : "border border-border hover:border-brand/40"
               }`}
             >
-              {t.label}
+              <span
+                aria-hidden
+                className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                  audience === "ALL" ? "border-brand" : "border-border-strong"
+                }`}
+              >
+                {audience === "ALL" && <span className="w-2 h-2 rounded-full bg-brand" />}
+              </span>
+              <span className="text-sm font-medium">Todos mis clientes</span>
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => setAudience("INACTIVE_30D")}
+              className={`flex-1 text-left rounded-xl p-3 flex items-center gap-2.5 transition-all ${
+                audience === "INACTIVE_30D"
+                  ? "border-2 border-brand bg-paper"
+                  : "border border-border hover:border-brand/40"
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                  audience === "INACTIVE_30D" ? "border-brand" : "border-border-strong"
+                }`}
+              >
+                {audience === "INACTIVE_30D" && <span className="w-2 h-2 rounded-full bg-brand" />}
+              </span>
+              <span className="text-sm font-medium">Inactivos hace 30+ días</span>
+            </button>
+          </div>
+          <input type="hidden" name="audience" value={audience} />
+        </div>
+
+        {state.error && (
+          <p className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">{state.error}</p>
+        )}
+        {typeof state.sent === "number" && (
+          <p className="text-sm text-success bg-success-soft rounded-lg px-3 py-2">
+            ¡Campaña enviada a {state.sent} cliente{state.sent === 1 ? "" : "s"}!
+          </p>
+        )}
+        {testState.error && (
+          <p className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">{testState.error}</p>
+        )}
+        {testState.sent && (
+          <p className="text-sm text-success bg-success-soft rounded-lg px-3 py-2">
+            Te mandamos la prueba a tu propio correo.
+          </p>
+        )}
+
+        <div className="flex justify-between items-center flex-wrap gap-3 mt-1 pt-5 border-t border-border">
+          <span className="text-sm font-medium text-stone flex items-center gap-1.5">
+            <IconUsers className="w-4 h-4" aria-hidden />
+            {loadingCount
+              ? "Calculando destinatarios…"
+              : `Le va a llegar a ${count ?? 0} cliente${count === 1 ? "" : "s"}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={runTestSend}
+              disabled={isTestPending || !subject || !body}
+              className="bg-surface border border-border hover:bg-paper text-ink font-medium py-2 px-4 rounded-xl disabled:opacity-50"
+            >
+              {isTestPending ? "Enviando prueba…" : "Test de envío"}
+            </button>
+            <button
+              type="submit"
+              disabled={isPending || (count ?? 0) === 0}
+              className="bg-brand hover:opacity-90 text-brand-foreground font-semibold py-2.5 px-6 rounded-xl shadow-[0_2px_0_rgba(0,0,0,0.14),0_4px_10px_rgba(0,0,0,0.1)] transition-colors disabled:opacity-50 disabled:shadow-none"
+            >
+              {isPending ? "Enviando…" : "Enviar campaña"}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* Vista previa en vivo */}
+      <div className="hidden lg:block">
+        <div className="sticky top-6">
+          <div className="w-[320px] h-[650px] mx-auto border-[10px] border-ink rounded-[3rem] relative bg-paper shadow-2xl overflow-hidden">
+            <div
+              aria-hidden
+              className="absolute top-0 inset-x-0 h-6 w-32 mx-auto bg-ink rounded-b-2xl z-10"
+            />
+            <div className="h-full overflow-y-auto pt-9 pb-6 px-4">
+              <div className="bg-surface rounded-xl p-3 mb-3">
+                <p className="font-semibold text-sm leading-snug">
+                  {subject || "(sin asunto todavía)"}
+                </p>
+                <p className="text-xs text-muted mt-0.5">Remitente: {businessName}</p>
+              </div>
+
+              <div
+                aria-hidden
+                className="bg-border/60 rounded-md h-32 w-full mb-4 flex items-center justify-center text-muted"
+              >
+                <IconUsers className="w-6 h-6 opacity-40" />
+              </div>
+
+              <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
+                {body ? renderPersonalizedPreview(body) : "Tu mensaje aparece aquí a medida que lo escribes."}
+              </p>
+
+              <span className="w-full max-w-[200px] mx-auto block text-center bg-brand text-brand-foreground py-3 rounded-lg font-semibold mt-6">
+                Reservar ahora
+              </span>
+            </div>
+          </div>
+          <p className="text-xs text-muted text-center mt-3">
+            Así se ve en el teléfono de tu cliente.
+          </p>
         </div>
       </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="subject" className="text-sm font-medium">Asunto *</label>
-        <input
-          id="subject"
-          name="subject"
-          type="text"
-          required
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          className="border border-border rounded-lg px-3 py-2.5 bg-surface"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="body" className="text-sm font-medium">Mensaje *</label>
-        <textarea
-          id="body"
-          name="body"
-          required
-          rows={7}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          className="border border-border rounded-lg px-3 py-2.5 bg-surface"
-        />
-        <p className="text-xs text-muted">
-          Se agrega automáticamente un botón "Reservar ahora" y el link de desuscripción al final.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium">¿A quién le llega?</label>
-        <div className="grid sm:grid-cols-2 gap-2">
-          <label
-            className={`text-sm border rounded-lg px-3 py-2 cursor-pointer flex items-center gap-2 ${
-              audience === "ALL" ? "border-brand ring-1 ring-brand bg-brand-soft" : "border-border"
-            }`}
-          >
-            <input
-              type="radio"
-              name="audience"
-              value="ALL"
-              checked={audience === "ALL"}
-              onChange={() => setAudience("ALL")}
-              className="accent-(--brand)"
-            />
-            Todos mis clientes
-          </label>
-          <label
-            className={`text-sm border rounded-lg px-3 py-2 cursor-pointer flex items-center gap-2 ${
-              audience === "INACTIVE_30D" ? "border-brand ring-1 ring-brand bg-brand-soft" : "border-border"
-            }`}
-          >
-            <input
-              type="radio"
-              name="audience"
-              value="INACTIVE_30D"
-              checked={audience === "INACTIVE_30D"}
-              onChange={() => setAudience("INACTIVE_30D")}
-              className="accent-(--brand)"
-            />
-            Inactivos hace 30+ días
-          </label>
-        </div>
-        <p className="text-xs text-muted mt-1">
-          {loadingCount ? "Calculando…" : `Le va a llegar a ${count ?? 0} cliente${count === 1 ? "" : "s"}.`}
-        </p>
-      </div>
-
-      {state.error && (
-        <p className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">{state.error}</p>
-      )}
-      {typeof state.sent === "number" && (
-        <p className="text-sm text-success bg-success-soft rounded-lg px-3 py-2">
-          ¡Campaña enviada a {state.sent} cliente{state.sent === 1 ? "" : "s"}!
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={isPending || (count ?? 0) === 0}
-        className="self-start bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium disabled:opacity-50"
-      >
-        {isPending ? "Enviando…" : "Enviar campaña"}
-      </button>
-    </form>
+    </div>
   );
 }

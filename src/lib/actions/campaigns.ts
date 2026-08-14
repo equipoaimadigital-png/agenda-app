@@ -5,11 +5,11 @@ import { redirect } from "next/navigation";
 import { CampaignAudience } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
-import { sendCampaignEmails } from "@/lib/email";
+import { sendCampaignEmails, sendTestCampaignEmail } from "@/lib/email";
 
-type Recipient = { phone: string; email: string };
+type Recipient = { phone: string; email: string; name: string };
 
-/** Un cliente por teléfono (el email más reciente que dejó), con su última visita. */
+/** Un cliente por teléfono (el email y nombre más reciente que dejó), con su última visita. */
 async function getRecipients(
   professionalId: string,
   audience: CampaignAudience
@@ -17,16 +17,16 @@ async function getRecipients(
   const bookings = await prisma.booking.findMany({
     where: { professionalId },
     orderBy: { startTime: "desc" },
-    select: { clientPhone: true, clientEmail: true, startTime: true },
+    select: { clientPhone: true, clientEmail: true, clientName: true, startTime: true },
   });
 
-  const byPhone = new Map<string, { email: string; lastVisit: Date }>();
+  const byPhone = new Map<string, { email: string; name: string; lastVisit: Date }>();
   for (const b of bookings) {
     if (!b.clientEmail) continue;
     // `bookings` ya viene ordenado desc, así que el primer encuentro por
     // teléfono es siempre la visita más reciente.
     if (!byPhone.has(b.clientPhone)) {
-      byPhone.set(b.clientPhone, { email: b.clientEmail, lastVisit: b.startTime });
+      byPhone.set(b.clientPhone, { email: b.clientEmail, name: b.clientName, lastVisit: b.startTime });
     }
   }
 
@@ -47,7 +47,7 @@ async function getRecipients(
 
   return candidates
     .filter(([phone]) => !unsubscribedSet.has(phone))
-    .map(([phone, v]) => ({ phone, email: v.email }));
+    .map(([phone, v]) => ({ phone, email: v.email, name: v.name }));
 }
 
 /** Para mostrar "esto le va a llegar a N personas" antes de enviar. */
@@ -100,6 +100,7 @@ export async function createAndSendCampaign(
     recipients: recipients.map((r) => ({
       email: r.email,
       unsubscribeToken: tokenByPhone.get(r.phone)!,
+      name: r.name,
     })),
   });
 
@@ -115,6 +116,25 @@ export async function createAndSendCampaign(
 
   revalidatePath("/dashboard/campanas");
   return { sent };
+}
+
+/** Manda la campaña en curso solo al propio correo del profesional, para revisar antes de enviarla de verdad. */
+export async function sendTestCampaign(formData: FormData): Promise<{ error?: string; sent?: boolean }> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  const subject = String(formData.get("subject") || "").trim();
+  const body = String(formData.get("body") || "").trim();
+  if (!subject || !body) return { error: "Completa el asunto y el mensaje." };
+
+  const sent = await sendTestCampaignEmail({
+    toEmail: professional.email,
+    subject,
+    body,
+    bookingUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/reservar/${professional.slug}`,
+  });
+
+  return sent ? { sent: true } : { error: "No se pudo enviar la prueba. Intenta de nuevo." };
 }
 
 /** Desuscribe a un cliente vía su link de un clic — sin login. */

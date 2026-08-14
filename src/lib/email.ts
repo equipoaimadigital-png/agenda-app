@@ -251,12 +251,20 @@ export async function sendReminderEmail(info: ReminderEmailInfo): Promise<boolea
   return !result.error;
 }
 
-type CampaignRecipient = { email: string; unsubscribeToken: string };
+type CampaignRecipient = { email: string; unsubscribeToken: string; name: string | null };
+
+/** Variable de personalización que el negocio puede escribir en el mensaje. */
+const CLIENT_NAME_VAR = "{{Nombre Cliente}}";
+
+function personalize(body: string, name: string | null): string {
+  return body.replaceAll(CLIENT_NAME_VAR, name?.trim() || "cliente");
+}
 
 /**
  * Manda una campaña a cada destinatario por separado (nunca en un solo "to"
  * con varios correos — eso expondría la lista de clientes entre ellos). Cada
- * envío lleva su propio link de desuscripción de un clic.
+ * envío lleva su propio link de desuscripción de un clic. Si el mensaje
+ * incluye {{Nombre Cliente}}, se reemplaza por el nombre real de cada uno.
  */
 export async function sendCampaignEmails(info: {
   businessName: string;
@@ -274,7 +282,7 @@ export async function sendCampaignEmails(info: {
       from: FROM,
       to: r.email,
       subject: info.subject,
-      html: wrapEmail(`${escapeAndBreak(info.body)}
+      html: wrapEmail(`${escapeAndBreak(personalize(info.body, r.name))}
 <p style="margin-top:20px;">
   <a href="${info.bookingUrl}" style="display:inline-block;background:#2f4a3e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Reservar ahora</a>
 </p>
@@ -295,4 +303,30 @@ export async function sendCampaignEmails(info: {
     }
   }
   return { sent };
+}
+
+/** Envío de prueba de una campaña — solo al propio profesional, sin tocar destinatarios reales. */
+export async function sendTestCampaignEmail(info: {
+  toEmail: string;
+  subject: string;
+  body: string;
+  bookingUrl: string;
+}): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+
+  const result = await client.emails.send({
+    from: FROM,
+    to: info.toEmail,
+    subject: `[Prueba] ${info.subject}`,
+    html: wrapEmail(`${escapeAndBreak(personalize(info.body, "María"))}
+<p style="margin-top:20px;">
+  <a href="${info.bookingUrl}" style="display:inline-block;background:#2f4a3e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Reservar ahora</a>
+</p>
+<p style="margin-top:24px;font-size:11px;color:#a0a09a;">
+  Este es un envío de prueba — no llegó a tus clientes.
+</p>`),
+  });
+
+  return !result.error;
 }

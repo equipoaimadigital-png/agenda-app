@@ -18,7 +18,7 @@ export default async function CampanasPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6 max-w-xl">
+    <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold font-display">Campañas de email</h1>
         <p className="text-sm text-stone mt-1">
@@ -28,7 +28,7 @@ export default async function CampanasPage() {
 
       <CampaignForm businessName={professional.businessName} />
 
-      <section className="flex flex-col gap-2">
+      <section className="flex flex-col gap-2 max-w-xl">
         <h2 className="font-semibold">Historial</h2>
         {campaigns.length === 0 ? (
           <p className="text-sm text-muted">Todavía no has enviado ninguna campaña.</p>
