@@ -4,7 +4,7 @@ import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
 export default function OlvideClavePage() {
   return (
-    <AuthSplitLayout tagline="Te ayudamos a volver a entrar en un par de pasos.">
+    <AuthSplitLayout tagline="Te ayudamos a volver a entrar en un par de pasos." trust={false}>
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-2xl font-semibold font-display">Recupera tu contraseña</h1>

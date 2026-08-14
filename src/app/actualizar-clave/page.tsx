@@ -10,7 +10,7 @@ export default async function ActualizarClavePage() {
   } = await supabase.auth.getUser();
 
   return (
-    <AuthSplitLayout tagline="Últimos pasos para volver a tu panel.">
+    <AuthSplitLayout tagline="Últimos pasos para volver a tu panel." trust={false}>
       <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-semibold font-display">Crea tu nueva contraseña</h1>
 

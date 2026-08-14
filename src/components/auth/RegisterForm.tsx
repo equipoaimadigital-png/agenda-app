@@ -23,7 +23,7 @@ export function RegisterForm() {
           type="text"
           required
           placeholder="Ej: Peluquería Ana"
-          className="border border-border rounded-lg px-3 py-2.5"
+          className="border border-border rounded-xl px-3.5 py-3 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
         />
       </div>
 
@@ -37,7 +37,7 @@ export function RegisterForm() {
           type="email"
           required
           placeholder="tucorreo@ejemplo.com"
-          className="border border-border rounded-lg px-3 py-2.5"
+          className="border border-border rounded-xl px-3.5 py-3 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
         />
       </div>
 
@@ -52,7 +52,7 @@ export function RegisterForm() {
           required
           minLength={6}
           placeholder="Mínimo 6 caracteres"
-          className="border border-border rounded-lg px-3 py-2.5"
+          className="border border-border rounded-xl px-3.5 py-3 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
         />
       </div>
 
@@ -61,9 +61,9 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium disabled:opacity-50"
+        className="bg-brand text-brand-foreground rounded-xl px-4 py-3.5 font-semibold shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0"
       >
-        {isPending ? "Creando cuenta..." : "Crear cuenta"}
+        {isPending ? "Creando cuenta…" : "Crear cuenta"}
       </button>
     </form>
   );
