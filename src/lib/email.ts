@@ -3,6 +3,7 @@ import { formatDateLong, wallClockOf } from "@/lib/dates";
 import { personalizeCampaignBody } from "@/lib/campaign-copy";
 
 const FROM = "Tu Hora Lista <notificaciones@tuhoralista.com>";
+const SUPPORT_EMAIL = "equipo.aimadigital@gmail.com";
 
 function getClient(): Resend | null {
   if (!process.env.RESEND_API_KEY) return null;
@@ -320,6 +321,37 @@ export async function sendTestCampaignEmail(info: {
 <p style="margin-top:24px;font-size:11px;color:#a0a09a;">
   Este es un envío de prueba — no llegó a tus clientes.
 </p>`),
+  });
+
+  return !result.error;
+}
+
+/**
+ * Manda un mensaje de soporte al equipo de la plataforma. El remitente ("reply-to")
+ * queda como el correo del propio negocio, para poder contestarle directo con Responder.
+ */
+export async function sendSupportEmail(info: {
+  businessName: string;
+  slug: string;
+  professionalEmail: string;
+  professionalPhone: string | null;
+  category: string;
+  message: string;
+}): Promise<boolean> {
+  const client = getClient();
+  if (!client) return false;
+
+  const result = await client.emails.send({
+    from: FROM,
+    to: SUPPORT_EMAIL,
+    replyTo: info.professionalEmail,
+    subject: `[Soporte] ${info.category} — ${info.businessName}`,
+    html: wrapEmail(`<p><strong>Negocio:</strong> ${info.businessName} (/reservar/${info.slug})</p>
+<p><strong>Correo de contacto:</strong> ${info.professionalEmail}</p>
+${info.professionalPhone ? `<p><strong>Teléfono:</strong> ${info.professionalPhone}</p>` : ""}
+<p><strong>Categoría:</strong> ${info.category}</p>
+<hr style="border:none;border-top:1px solid #e5e1d8;margin:16px 0;" />
+${escapeAndBreak(info.message)}`),
   });
 
   return !result.error;

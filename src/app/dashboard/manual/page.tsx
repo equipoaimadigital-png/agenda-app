@@ -338,7 +338,11 @@ export default async function ManualPage() {
         <Link href={`/reservar/${professional.slug}`} target="_blank" className="underline">
           Revisa tu página pública
         </Link>{" "}
-        o contáctanos directamente.
+        o{" "}
+        <Link href="/dashboard/soporte" className="underline">
+          contáctanos directamente
+        </Link>
+        .
       </p>
     </div>
   );

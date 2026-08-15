@@ -13,6 +13,7 @@ const ITEMS = [
   { href: "/dashboard/configuracion", label: "Configuración", icon: "⚙️" },
   { href: "/dashboard/suscripcion", label: "Suscripción", icon: "💳" },
   { href: "/dashboard/manual", label: "Manual de uso", icon: "📖" },
+  { href: "/dashboard/soporte", label: "Soporte", icon: "🛟" },
 ] as const;
 
 export function DashboardNav() {
