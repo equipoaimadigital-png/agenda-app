@@ -1,6 +1,7 @@
 import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import { CampaignForm } from "@/components/dashboard/CampaignForm";
+import { DeleteCampaignButton } from "@/components/dashboard/DeleteCampaignButton";
 import { formatDateLong, toDateStr } from "@/lib/dates";
 
 const AUDIENCE_LABEL: Record<string, string> = {
@@ -52,9 +53,12 @@ export default async function CampanasPage() {
                     {AUDIENCE_LABEL[c.audience] ?? c.audience}
                   </p>
                 </div>
-                <span className="text-sm font-medium shrink-0">
-                  {c.recipientCount} enviado{c.recipientCount === 1 ? "" : "s"}
-                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-sm font-medium">
+                    {c.recipientCount} enviado{c.recipientCount === 1 ? "" : "s"}
+                  </span>
+                  <DeleteCampaignButton campaignId={c.id} />
+                </div>
               </div>
             );
           })

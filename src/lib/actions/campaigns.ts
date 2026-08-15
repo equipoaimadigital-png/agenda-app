@@ -168,6 +168,18 @@ export async function sendTestCampaign(formData: FormData): Promise<{ error?: st
   return sent ? { sent: true } : { error: "No se pudo enviar la prueba. Intenta de nuevo." };
 }
 
+/** Borra una campaña del historial (no reenvía ni afecta a los destinatarios ya contactados). */
+export async function deleteCampaign(campaignId: string): Promise<void> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  await prisma.emailCampaign.deleteMany({
+    where: { id: campaignId, professionalId: professional.id },
+  });
+
+  revalidatePath("/dashboard/campanas");
+}
+
 /** Desuscribe a un cliente vía su link de un clic — sin login. */
 export async function unsubscribeByToken(
   token: string
