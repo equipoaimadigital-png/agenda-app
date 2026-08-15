@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { formatDateLong, wallClockOf } from "@/lib/dates";
 import { personalizeCampaignBody } from "@/lib/campaign-copy";
 
-const FROM = "Tu Hora Lista <onboarding@resend.dev>";
+const FROM = "Tu Hora Lista <notificaciones@tuhoralista.com>";
 
 function getClient(): Resend | null {
   if (!process.env.RESEND_API_KEY) return null;
