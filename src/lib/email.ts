@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { formatDateLong, wallClockOf } from "@/lib/dates";
 import { personalizeCampaignBody } from "@/lib/campaign-copy";
 
-const FROM = "Tú Agenda <onboarding@resend.dev>";
+const FROM = "Tu Hora Lista <onboarding@resend.dev>";
 
 function getClient(): Resend | null {
   if (!process.env.RESEND_API_KEY) return null;
@@ -20,13 +20,13 @@ function whenText(startTime: Date): string {
 
 /**
  * Encabezado de marca para todo email transaccional. El remitente ("From")
- * ya dice "Tú Agenda", pero muchos clientes de correo ocultan ese nombre
+ * ya dice "Tu Hora Lista", pero muchos clientes de correo ocultan ese nombre
  * detrás del email técnico (onboarding@resend.dev) — este encabezado deja
  * la marca visible dentro del cuerpo, con una línea que explica qué es.
  */
 function wrapEmail(bodyHtml: string): string {
   return `<div style="font-family:Georgia,'Times New Roman',serif;max-width:480px;margin:0 auto;">
-  <div style="font-size:20px;font-weight:600;color:#1f2e26;letter-spacing:0.01em;">Tú Agenda</div>
+  <div style="font-size:20px;font-weight:600;color:#1f2e26;letter-spacing:0.01em;">Tu Hora Lista</div>
   <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#7a7a70;margin-top:2px;margin-bottom:18px;">
     Reservas online para profesionales independientes.
   </div>

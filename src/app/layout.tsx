@@ -37,11 +37,11 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: {
-    default: "Tú Agenda — Reservas online para profesionales",
-    template: "%s | Tú Agenda",
+    default: "Tu Hora Lista — Reservas online para profesionales",
+    template: "%s | Tu Hora Lista",
   },
   description:
-    "Tú Agenda: reservas online para profesionales independientes. Tus clientes reservan solos desde un link.",
+    "Tu Hora Lista: reservas online para profesionales independientes. Tus clientes reservan solos desde un link.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

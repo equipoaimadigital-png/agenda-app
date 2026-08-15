@@ -30,7 +30,7 @@ export function AuthSplitLayout({
 
         <div className="relative flex items-center gap-3 md:block">
           <Seal size={36} />
-          <p className="font-display font-semibold text-2xl md:mt-5 tracking-tight">Tú Agenda</p>
+          <p className="font-display font-semibold text-2xl md:mt-5 tracking-tight">Tu Hora Lista</p>
         </div>
 
         <div className="relative">

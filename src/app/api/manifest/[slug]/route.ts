@@ -16,7 +16,7 @@ export async function GET(
     select: { businessName: true, brandColor: true, description: true },
   });
 
-  const name = professional?.businessName ?? "Tú Agenda";
+  const name = professional?.businessName ?? "Tu Hora Lista";
 
   const manifest = {
     name,

@@ -12,7 +12,7 @@ export default function TerminosPage() {
     <main className="bg-paper text-ink min-h-screen">
       <div className="max-w-2xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
         <Link href="/" className="text-sm text-stone hover:text-ink underline">
-          ← Volver a Tú Agenda
+          ← Volver a Tu Hora Lista
         </Link>
 
         <h1 className="font-display font-semibold text-3xl sm:text-4xl mt-6 mb-2">
@@ -22,9 +22,9 @@ export default function TerminosPage() {
 
         <div className="flex flex-col gap-8 text-[15px] leading-relaxed">
           <section>
-            <h2 className="font-display font-semibold text-xl mb-2">1. Qué es Tú Agenda</h2>
+            <h2 className="font-display font-semibold text-xl mb-2">1. Qué es Tu Hora Lista</h2>
             <p>
-              Tú Agenda es un servicio de agendamiento online operado por AIMA Digital
+              Tu Hora Lista es un servicio de agendamiento online operado por AIMA Digital
               (&quot;nosotros&quot;, &quot;la plataforma&quot;), que permite a profesionales y negocios
               de servicios (&quot;el negocio&quot;, &quot;tú&quot;) crear una página pública de reservas,
               gestionar su disponibilidad y comunicarse con sus propios clientes finales.
@@ -57,7 +57,7 @@ export default function TerminosPage() {
 
           <section>
             <h2 className="font-display font-semibold text-xl mb-2">4. Uso permitido</h2>
-            <p>Al usar Tú Agenda, te comprometes a no:</p>
+            <p>Al usar Tu Hora Lista, te comprometes a no:</p>
             <ul className="list-disc pl-5 mt-2 flex flex-col gap-1">
               <li>Usar la plataforma para actividades ilegales o fraudulentas.</li>
               <li>
@@ -102,7 +102,7 @@ export default function TerminosPage() {
           <section>
             <h2 className="font-display font-semibold text-xl mb-2">7. Limitación de responsabilidad</h2>
             <p>
-              Tú Agenda se entrega &quot;tal cual&quot;. En la medida permitida por la ley, no
+              Tu Hora Lista se entrega &quot;tal cual&quot;. En la medida permitida por la ley, no
               somos responsables por pérdidas indirectas, lucro cesante, o daños derivados del
               uso o la imposibilidad de uso de la plataforma, incluyendo citas no confirmadas
               por fallas de un proveedor externo de correo o pagos.

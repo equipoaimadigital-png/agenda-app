@@ -222,7 +222,7 @@ export default async function ManualPage() {
           <div>
             <p className="text-xs uppercase tracking-wide text-white/60 mb-1">Manual de uso</p>
             <h1 className="font-display font-semibold text-3xl sm:text-4xl leading-tight">
-              Todo lo que puedes hacer en Tú Agenda
+              Todo lo que puedes hacer en Tu Hora Lista
             </h1>
             <p className="text-white/70 mt-3 max-w-lg text-sm sm:text-base">
               Guía rápida por secciones, pensada para volver cuando la necesites — no hace

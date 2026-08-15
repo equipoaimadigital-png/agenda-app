@@ -32,7 +32,7 @@ export async function createSubscriptionInitPoint(params: {
   try {
     const result = await preApproval.create({
       body: {
-        reason: `Tú Agenda — Plan mensual (${params.businessName})`,
+        reason: `Tu Hora Lista — Plan mensual (${params.businessName})`,
         external_reference: params.professionalId,
         payer_email: params.payerEmail,
         back_url: `${siteUrl()}/dashboard/suscripcion?resultado=1`,

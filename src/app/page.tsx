@@ -82,7 +82,7 @@ export default function Home() {
           >
             T
           </div>
-          <span className="font-display font-semibold">Tú Agenda</span>
+          <span className="font-display font-semibold">Tu Hora Lista</span>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/login" className="text-sm font-medium text-stone hover:text-ink">
@@ -267,7 +267,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="max-w-5xl mx-auto px-5 sm:px-8 py-8 flex flex-wrap items-center justify-between gap-3 text-sm text-stone">
-        <p>© {new Date().getFullYear()} Tú Agenda</p>
+        <p>© {new Date().getFullYear()} Tu Hora Lista</p>
         <div className="flex gap-5">
           <Link href="/terminos" className="hover:text-ink">Términos de Servicio</Link>
           <Link href="/login" className="hover:text-ink">Iniciar sesión</Link>

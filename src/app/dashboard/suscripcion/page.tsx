@@ -22,7 +22,7 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
       <div>
         <h1 className="text-2xl font-semibold font-display">Suscripción</h1>
         <p className="text-sm text-muted mt-1">
-          {formatPrice(SUBSCRIPTION_PRICE_CLP)}/mes para seguir usando tu panel de Tú Agenda.
+          {formatPrice(SUBSCRIPTION_PRICE_CLP)}/mes para seguir usando tu panel de Tu Hora Lista.
         </p>
       </div>
 
