@@ -13,6 +13,13 @@ export default function RegistroPage() {
           </p>
         </div>
         <RegisterForm />
+        <p className="text-xs text-stone">
+          Al crear tu cuenta aceptas los{" "}
+          <Link href="/terminos" className="underline" target="_blank">
+            Términos de Servicio
+          </Link>
+          .
+        </p>
         <p className="text-sm text-stone">
           ¿Ya tienes cuenta?{" "}
           <Link href="/login" className="underline text-brand">

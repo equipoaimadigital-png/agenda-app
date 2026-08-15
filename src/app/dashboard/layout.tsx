@@ -3,6 +3,7 @@ import { signOut } from "@/lib/actions/auth";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { TrialWarningBanner } from "@/components/dashboard/TrialWarningBanner";
+import Link from "next/link";
 
 export default async function DashboardLayout({
   children,
@@ -59,11 +60,16 @@ export default async function DashboardLayout({
 
         <DashboardNav />
 
-        <form action={signOut} className="mt-auto pt-4 border-t border-white/10">
-          <button type="submit" className="text-sm text-white/60 hover:text-white pt-4">
-            Cerrar sesión
-          </button>
-        </form>
+        <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-2">
+          <Link href="/terminos" target="_blank" className="text-xs text-white/40 hover:text-white/70">
+            Términos de Servicio
+          </Link>
+          <form action={signOut}>
+            <button type="submit" className="text-sm text-white/60 hover:text-white">
+              Cerrar sesión
+            </button>
+          </form>
+        </div>
       </aside>
 
       <main className="flex-1 p-4 md:p-8 max-w-4xl">{children}</main>

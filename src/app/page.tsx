@@ -269,6 +269,7 @@ export default function Home() {
       <footer className="max-w-5xl mx-auto px-5 sm:px-8 py-8 flex flex-wrap items-center justify-between gap-3 text-sm text-stone">
         <p>© {new Date().getFullYear()} Tú Agenda</p>
         <div className="flex gap-5">
+          <Link href="/terminos" className="hover:text-ink">Términos de Servicio</Link>
           <Link href="/login" className="hover:text-ink">Iniciar sesión</Link>
           <Link href="/registro" className="hover:text-ink">Crear cuenta</Link>
         </div>
