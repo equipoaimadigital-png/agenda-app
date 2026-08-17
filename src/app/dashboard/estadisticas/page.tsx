@@ -101,6 +101,7 @@ export default async function EstadisticasPage() {
                   <div
                     className={`w-full rounded ${count > 0 ? "bg-brand" : "bg-border"}`}
                     style={{ height: `${heightPct}%` }}
+                    title={`${WEEKDAY_LABELS[i]}: ${count} reserva${count === 1 ? "" : "s"}`}
                   />
                   <span className="text-xs text-muted">{WEEKDAY_LABELS[i]}</span>
                 </div>
@@ -140,8 +141,16 @@ export default async function EstadisticasPage() {
         ) : (
           <>
             <div className="h-2 rounded-full overflow-hidden bg-border flex">
-              <div className="bg-brand h-full" style={{ width: `${onlinePct}%` }} />
-              <div className="bg-brass h-full" style={{ width: `${manualPct}%` }} />
+              <div
+                className="bg-brand h-full"
+                style={{ width: `${onlinePct}%` }}
+                title={`Online: ${onlinePct}% (${online})`}
+              />
+              <div
+                className="bg-stone h-full"
+                style={{ width: `${manualPct}%` }}
+                title={`Manual: ${manualPct}% (${manual})`}
+              />
             </div>
             <div className="flex justify-between text-sm mt-2">
               <span>

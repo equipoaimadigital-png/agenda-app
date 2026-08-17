@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentProfessional, getPrimaryStaffId } from "@/lib/auth-helpers";
 import { sendCancellationEmails } from "@/lib/email";
 import { wallClockDate } from "@/lib/dates";
+import { contrastRatio } from "@/lib/color-contrast";
 
 const HEADING_FONTS: HeadingFont[] = ["FRAUNCES", "PLAYFAIR", "POPPINS", "WORK_SANS"];
 const HEADING_SIZES: HeadingSize[] = ["SMALL", "MEDIUM", "LARGE"];
@@ -210,6 +211,12 @@ export async function updateBusinessSettings(
   if (!businessName) return { error: "El nombre del negocio no puede estar vacío." };
   if (!/^#[0-9a-fA-F]{6}$/.test(brandColor)) {
     return { error: "El color de marca no es válido." };
+  }
+  if (contrastRatio(brandColor, "#ffffff") < 4.5) {
+    return {
+      error:
+        "Ese color es muy claro — el texto blanco de tus botones no se leería bien. Elige un tono más oscuro/saturado.",
+    };
   }
 
   await prisma.professional.update({

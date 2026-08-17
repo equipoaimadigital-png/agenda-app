@@ -37,6 +37,16 @@
   --background: var(--paper);
   --foreground: var(--ink);
   --muted: var(--stone);
+
+  /* Escala de radios: 2 valores, no 3. Todo lo nuevo usa esto;
+     rounded-lg/xl/2xl heredado se migra gradualmente, no de golpe. */
+  --radius-control: 10px;
+  --radius-card: 16px;
+
+  /* Motion: una sola curva para que la app se sienta un solo sistema. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 220ms;
 }
 
 @theme inline {
@@ -114,11 +124,12 @@ input,
 select,
 textarea {
   transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    color 150ms ease,
-    opacity 150ms ease,
-    box-shadow 150ms ease;
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
 }
 
 input:focus-visible,
@@ -142,7 +153,7 @@ a:focus-visible {
 }
 
 .seal-stamp-in {
-  animation: seal-stamp 220ms cubic-bezier(0.2, 0, 0, 1);
+  animation: seal-stamp var(--duration-base) var(--ease-standard);
 }
 
 @media (prefers-reduced-motion: reduce) {
