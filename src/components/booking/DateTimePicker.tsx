@@ -174,7 +174,7 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
             </div>
           ) : slots.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {slots.map((slot) => {
+              {slots.map((slot, i) => {
                 const isPicked = picked?.dateStr === selectedDate && picked?.time === slot;
                 return (
                   <button
@@ -182,10 +182,13 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
                     type="button"
                     onClick={() => onPick(selectedDate, slot)}
                     className={`border rounded-lg px-3.5 py-2 text-sm font-semibold transition-all ${
+                      i < 6 ? "slot-in" : ""
+                    } ${
                       isPicked
                         ? "bg-brand text-brand-foreground border-brand shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)]"
                         : "border-border bg-surface hover:border-brand shadow-[0_2px_0_rgba(0,0,0,0.05),0_3px_8px_rgba(0,0,0,0.04)]"
                     }`}
+                    style={i < 6 ? { animationDelay: `${i * 20}ms` } : undefined}
                   >
                     {slot}
                   </button>
