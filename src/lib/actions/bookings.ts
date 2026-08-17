@@ -126,6 +126,17 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
     return { error: "Negocio o servicio no encontrado." };
   }
 
+  // Protección anti-spam: si este negocio recibió muchas reservas en pocos
+  // minutos (bot inundando el formulario público), se frena temporalmente
+  // para no vaciar la cuota de emails ni llenar la agenda de basura.
+  const recentWindow = new Date(Date.now() - 5 * 60 * 1000);
+  const recentCount = await prisma.booking.count({
+    where: { professionalId: ctx.professional.id, createdAt: { gte: recentWindow } },
+  });
+  if (recentCount >= 15) {
+    return { error: "Estamos recibiendo muchas solicitudes en este momento. Intenta de nuevo en unos minutos." };
+  }
+
   // Candidatos a intentar: el staff puntual elegido, o todos si es "cualquiera"
   const candidates =
     staffSelection === ANY_STAFF
