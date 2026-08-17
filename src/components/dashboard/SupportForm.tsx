@@ -17,8 +17,8 @@ export function SupportForm() {
         <p className="mt-1">
           Te vamos a responder directo a tu correo. Si es algo urgente, también puedes
           escribirnos a{" "}
-          <a href="mailto:equipo.aimadigital@gmail.com" className="underline">
-            equipo.aimadigital@gmail.com
+          <a href="mailto:soporte@tuhoralista.com" className="underline">
+            soporte@tuhoralista.com
           </a>
           .
         </p>

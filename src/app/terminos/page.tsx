@@ -130,8 +130,8 @@ export default function TerminosPage() {
             <h2 className="font-display font-semibold text-xl mb-2">10. Contacto</h2>
             <p>
               ¿Dudas sobre estos términos? Escríbenos a{" "}
-              <a href="mailto:equipo.aimadigital@gmail.com" className="underline text-brand">
-                equipo.aimadigital@gmail.com
+              <a href="mailto:soporte@tuhoralista.com" className="underline text-brand">
+                soporte@tuhoralista.com
               </a>
               .
             </p>

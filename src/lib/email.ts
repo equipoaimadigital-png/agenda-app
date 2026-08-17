@@ -3,7 +3,7 @@ import { formatDateLong, wallClockOf } from "@/lib/dates";
 import { personalizeCampaignBody } from "@/lib/campaign-copy";
 
 const FROM = "Tu Hora Lista <notificaciones@tuhoralista.com>";
-const SUPPORT_EMAIL = "equipo.aimadigital@gmail.com";
+const SUPPORT_EMAIL = "soporte@tuhoralista.com";
 
 function getClient(): Resend | null {
   if (!process.env.RESEND_API_KEY) return null;

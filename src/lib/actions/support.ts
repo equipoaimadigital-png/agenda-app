@@ -31,5 +31,5 @@ export async function sendSupportRequest(
 
   return sent
     ? { sent: true }
-    : { error: "No se pudo enviar tu mensaje. Intenta de nuevo o escríbenos directo a equipo.aimadigital@gmail.com." };
+    : { error: "No se pudo enviar tu mensaje. Intenta de nuevo o escríbenos directo a soporte@tuhoralista.com." };
 }
