@@ -249,7 +249,7 @@ export function WeekView({
                   type="button"
                   disabled={pending}
                   onClick={handleCancel}
-                  className="border border-border rounded-lg px-3 py-1.5 text-sm text-danger hover:border-danger disabled:opacity-50"
+                  className="border border-border rounded-lg px-3 py-1.5 text-sm text-danger hover:border-danger active:scale-[0.97] disabled:opacity-50"
                 >
                   Cancelar cita
                 </button>
@@ -257,7 +257,7 @@ export function WeekView({
                   type="button"
                   disabled={pending}
                   onClick={() => handleStatus("COMPLETED")}
-                  className="border border-border rounded-lg px-3 py-1.5 text-sm hover:border-success disabled:opacity-50"
+                  className="border border-border rounded-lg px-3 py-1.5 text-sm hover:border-success active:scale-[0.97] disabled:opacity-50"
                 >
                   ✓ Atendida
                 </button>
@@ -265,7 +265,7 @@ export function WeekView({
                   type="button"
                   disabled={pending}
                   onClick={() => handleStatus("NO_SHOW")}
-                  className="border border-border rounded-lg px-3 py-1.5 text-sm hover:border-warning disabled:opacity-50"
+                  className="border border-border rounded-lg px-3 py-1.5 text-sm hover:border-warning active:scale-[0.97] disabled:opacity-50"
                 >
                   No asistió
                 </button>
@@ -374,14 +374,14 @@ export function WeekView({
               <button
                 type="submit"
                 disabled={pending}
-                className="bg-brand text-brand-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+                className="bg-brand text-brand-foreground rounded-lg px-4 py-2 text-sm font-medium shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)] active:translate-y-[1px] disabled:opacity-50 disabled:shadow-none"
               >
                 {pending ? "Guardando…" : "Guardar reserva"}
               </button>
               <button
                 type="button"
                 onClick={() => setQuickAdd(null)}
-                className="border border-border rounded-lg px-4 py-2 text-sm"
+                className="border border-border rounded-lg px-4 py-2 text-sm active:scale-[0.97]"
               >
                 Cancelar
               </button>

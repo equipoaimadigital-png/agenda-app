@@ -188,7 +188,7 @@ export function ConfiguracionForm({
       <button
         type="submit"
         disabled={isPending}
-        className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium disabled:opacity-50"
+        className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px] disabled:opacity-50 disabled:shadow-none"
       >
         {isPending ? "Guardando…" : "Guardar cambios"}
       </button>

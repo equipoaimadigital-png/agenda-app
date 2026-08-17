@@ -31,7 +31,7 @@ export default async function ConfiguracionPage() {
         </div>
         <Link
           href="/dashboard/suscripcion"
-          className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand"
+          className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand active:scale-[0.97]"
         >
           Ver detalle
         </Link>

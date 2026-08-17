@@ -256,7 +256,7 @@ export function CampaignForm({ businessName }: { businessName: string }) {
               type="button"
               onClick={runTestSend}
               disabled={isTestPending || !subject || !body}
-              className="bg-surface border border-border hover:bg-paper text-ink font-medium py-2 px-4 rounded-xl disabled:opacity-50"
+              className="bg-surface border border-border hover:bg-paper text-ink font-medium py-2 px-4 rounded-xl active:scale-[0.97] disabled:opacity-50"
             >
               {isTestPending ? "Enviando prueba…" : "Test de envío"}
             </button>

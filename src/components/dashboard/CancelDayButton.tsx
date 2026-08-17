@@ -46,14 +46,14 @@ export function CancelDayButton({ dateStr, confirmedCount }: { dateStr: string; 
                   router.refresh();
                 })
               }
-              className="bg-danger text-white rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+              className="bg-danger text-white rounded-lg px-3 py-1.5 text-sm font-medium shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)] active:translate-y-[1px] disabled:opacity-50 disabled:shadow-none"
             >
               {isPending ? "Cancelando…" : "Confirmar"}
             </button>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="border border-border bg-surface rounded-lg px-3 py-1.5 text-sm"
+              className="border border-border bg-surface rounded-lg px-3 py-1.5 text-sm active:scale-[0.97]"
             >
               Volver
             </button>

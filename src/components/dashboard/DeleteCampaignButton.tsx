@@ -19,7 +19,7 @@ export function DeleteCampaignButton({ campaignId }: { campaignId: string }) {
       onClick={handleClick}
       disabled={isPending}
       aria-label="Eliminar del historial"
-      className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted hover:bg-danger-soft hover:text-danger disabled:opacity-50"
+      className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted hover:bg-danger-soft hover:text-danger active:scale-[0.9] disabled:opacity-50"
     >
       ×
     </button>

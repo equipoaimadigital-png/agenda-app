@@ -105,7 +105,7 @@ export async function OnboardingChecklist({
                 href={task.href}
                 target={task.external ? "_blank" : undefined}
                 rel={task.external ? "noopener noreferrer" : undefined}
-                className="shrink-0 text-xs font-medium border border-border rounded-lg px-3 py-1.5 hover:border-brand"
+                className="shrink-0 text-xs font-medium border border-border rounded-lg px-3 py-1.5 hover:border-brand active:scale-[0.97]"
               >
                 Iniciar
               </Link>

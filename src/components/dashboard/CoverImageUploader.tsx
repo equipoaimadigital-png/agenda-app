@@ -66,7 +66,7 @@ export function CoverImageUploader({ currentUrl }: { currentUrl: string | null }
         <button
           type="submit"
           disabled={isPending || !fileName}
-          className="ml-auto bg-brand text-brand-foreground rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+          className="ml-auto bg-brand text-brand-foreground rounded-lg px-3 py-1.5 text-sm font-medium shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)] active:translate-y-[1px] disabled:opacity-50 disabled:shadow-none"
         >
           {isPending ? "Subiendo…" : "Guardar foto"}
         </button>
