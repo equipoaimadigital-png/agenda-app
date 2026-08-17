@@ -119,7 +119,7 @@ export default async function ClientesPage() {
                   </select>
                   <button
                     type="submit"
-                    className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand"
+                    className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand active:scale-[0.97]"
                   >
                     Guardar
                   </button>

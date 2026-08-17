@@ -72,7 +72,7 @@ export default async function ServiciosPage() {
         <ServicePriceFields />
         <button
           type="submit"
-          className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium"
+          className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
         >
           Agregar servicio
         </button>
@@ -114,7 +114,7 @@ export default async function ServiciosPage() {
                 <form action={toggleServiceActive.bind(null, service.id)}>
                   <button
                     type="submit"
-                    className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand"
+                    className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand active:scale-[0.97]"
                   >
                     {service.active ? "Pausar" : "Activar"}
                   </button>
@@ -122,7 +122,7 @@ export default async function ServiciosPage() {
                 <form action={deleteService.bind(null, service.id)}>
                   <button
                     type="submit"
-                    className="text-sm border border-border rounded-lg px-3 py-1.5 text-danger hover:border-danger"
+                    className="text-sm border border-border rounded-lg px-3 py-1.5 text-danger hover:border-danger active:scale-[0.97]"
                   >
                     Eliminar
                   </button>
@@ -151,7 +151,7 @@ export default async function ServiciosPage() {
                     <button
                       type="submit"
                       aria-label="Eliminar pregunta"
-                      className="text-danger font-medium hover:opacity-70 shrink-0"
+                      className="text-danger font-medium hover:opacity-70 active:scale-[0.9] shrink-0"
                     >
                       ×
                     </button>
@@ -191,7 +191,7 @@ export default async function ServiciosPage() {
                   </div>
                   <button
                     type="submit"
-                    className="self-start border border-border bg-surface rounded-lg px-3 py-1.5 text-sm font-medium hover:border-brand"
+                    className="self-start border border-border bg-surface rounded-lg px-3 py-1.5 text-sm font-medium hover:border-brand active:scale-[0.97]"
                   >
                     Agregar pregunta
                   </button>

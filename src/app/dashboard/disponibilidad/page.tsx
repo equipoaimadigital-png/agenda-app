@@ -81,7 +81,7 @@ export default async function DisponibilidadPage() {
           </div>
           <button
             type="submit"
-            className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium"
+            className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
           >
             Agregar bloque
           </button>
@@ -110,7 +110,7 @@ export default async function DisponibilidadPage() {
                       <button
                         type="submit"
                         aria-label="Eliminar bloque"
-                        className="text-danger font-medium hover:opacity-70"
+                        className="text-danger font-medium hover:opacity-70 active:scale-[0.9]"
                       >
                         ×
                       </button>
@@ -160,7 +160,7 @@ export default async function DisponibilidadPage() {
           </div>
           <button
             type="submit"
-            className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium"
+            className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
           >
             Bloquear día
           </button>
@@ -182,7 +182,7 @@ export default async function DisponibilidadPage() {
               <form action={deleteDateException.bind(null, exc.id)}>
                 <button
                   type="submit"
-                  className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand"
+                  className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand active:scale-[0.97]"
                 >
                   Quitar
                 </button>
