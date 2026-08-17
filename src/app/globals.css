@@ -38,10 +38,17 @@
   --foreground: var(--ink);
   --muted: var(--stone);
 
-  /* Escala de radios: 2 valores, no 3. Todo lo nuevo usa esto;
-     rounded-lg/xl/2xl heredado se migra gradualmente, no de golpe. */
-  --radius-control: 10px;
-  --radius-card: 16px;
+  /* Escala de radios — auditada archivo por archivo (2026-08): en la práctica
+     ya es una escala de 3 niveles consistente por categoría, no caótica como
+     se asumió antes de revisar caso por caso. Se documenta aquí para que se
+     mantenga así a propósito, no por accidente:
+     - control  (rounded-lg,  8px): inputs, botones, chips, badges
+     - card     (rounded-xl, 12px): tarjetas estándar del dashboard
+     - elevated (rounded-2xl,16px): superficies destacadas (reserva pública,
+       editor de campaña, banner de aviso, hero de ayuda) */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-elevated: 16px;
 
   /* Motion: una sola curva para que la app se sienta un solo sistema. */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);

@@ -65,7 +65,7 @@ export default async function DashboardLayout({
             Términos de Servicio
           </Link>
           <form action={signOut}>
-            <button type="submit" className="text-sm text-white/60 hover:text-white">
+            <button type="submit" className="text-sm text-white/60 hover:text-white active:scale-[0.97]">
               Cerrar sesión
             </button>
           </form>

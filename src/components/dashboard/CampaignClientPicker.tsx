@@ -54,7 +54,7 @@ export function CampaignClientPicker({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 border border-border rounded-xl px-3.5 py-2.5 bg-surface text-sm text-left hover:border-brand/50"
+        className="w-full flex items-center justify-between gap-2 border border-border rounded-xl px-3.5 py-2.5 bg-surface text-sm text-left hover:border-brand/50 active:scale-[0.99]"
       >
         <span className={selected.length ? "font-medium" : "text-muted"}>
           {selected.length === 0
@@ -80,7 +80,7 @@ export function CampaignClientPicker({
                   type="button"
                   onClick={() => toggle(phone)}
                   aria-label={`Quitar ${c?.email ?? phone}`}
-                  className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-brand/20"
+                  className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-brand/20 active:scale-[0.9]"
                 >
                   ×
                 </button>

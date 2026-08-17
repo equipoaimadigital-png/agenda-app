@@ -63,7 +63,7 @@ export function SupportForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="self-start bg-brand text-brand-foreground rounded-xl px-4 py-2.5 font-semibold shadow-[0_2px_0_rgba(0,0,0,0.14),0_4px_10px_rgba(0,0,0,0.1)] disabled:opacity-50 disabled:shadow-none"
+        className="self-start bg-brand text-brand-foreground rounded-xl px-4 py-2.5 font-semibold shadow-[0_2px_0_rgba(0,0,0,0.14),0_4px_10px_rgba(0,0,0,0.1)] active:shadow-[0_1px_0_rgba(0,0,0,0.14)] active:translate-y-[1px] disabled:opacity-50 disabled:shadow-none"
       >
         {isPending ? "Enviando…" : "Enviar a soporte"}
       </button>

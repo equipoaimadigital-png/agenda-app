@@ -44,14 +44,14 @@ export function ManageBookingActions({
           <button
             type="button"
             onClick={() => setMode("reschedule")}
-            className="border border-border bg-surface rounded-lg px-4 py-2.5 text-sm font-medium hover:border-brand"
+            className="border border-border bg-surface rounded-lg px-4 py-2.5 text-sm font-medium hover:border-brand active:scale-[0.97]"
           >
             Reprogramar
           </button>
           <button
             type="button"
             onClick={() => setMode("confirm-cancel")}
-            className="border border-border bg-surface rounded-lg px-4 py-2.5 text-sm font-medium text-danger hover:border-danger"
+            className="border border-border bg-surface rounded-lg px-4 py-2.5 text-sm font-medium text-danger hover:border-danger active:scale-[0.97]"
           >
             Cancelar cita
           </button>
@@ -72,14 +72,14 @@ export function ManageBookingActions({
                   else router.refresh();
                 })
               }
-              className="bg-danger text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+              className="bg-danger text-white rounded-lg px-4 py-2 text-sm font-medium shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)] active:translate-y-[1px] disabled:opacity-50 disabled:shadow-none"
             >
               {isPending ? "Cancelando…" : "Sí, cancelar"}
             </button>
             <button
               type="button"
               onClick={() => setMode("none")}
-              className="border border-border bg-surface rounded-lg px-4 py-2 text-sm"
+              className="border border-border bg-surface rounded-lg px-4 py-2 text-sm active:scale-[0.97]"
             >
               Volver
             </button>
@@ -113,7 +113,7 @@ export function ManageBookingActions({
                   }
                 });
               }}
-              className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50"
+              className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 text-sm font-medium shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)] active:translate-y-[1px] disabled:opacity-50 disabled:shadow-none"
             >
               {isPending ? "Reprogramando…" : "Confirmar nuevo horario"}
             </button>
@@ -123,7 +123,7 @@ export function ManageBookingActions({
                 setMode("none");
                 setPicked(null);
               }}
-              className="border border-border bg-surface rounded-lg px-4 py-2.5 text-sm"
+              className="border border-border bg-surface rounded-lg px-4 py-2.5 text-sm active:scale-[0.97]"
             >
               Volver
             </button>

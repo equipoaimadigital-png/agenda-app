@@ -44,14 +44,14 @@ export function TrialWarningBanner({
           <div className="flex items-center gap-3 mt-3">
             <Link
               href="/dashboard/suscripcion"
-              className="text-sm font-semibold bg-brand text-brand-foreground rounded-lg px-3.5 py-2 shadow-[0_2px_0_rgba(0,0,0,0.14),0_4px_10px_rgba(0,0,0,0.1)]"
+              className="text-sm font-semibold bg-brand text-brand-foreground rounded-lg px-3.5 py-2 shadow-[0_2px_0_rgba(0,0,0,0.14),0_4px_10px_rgba(0,0,0,0.1)] active:shadow-[0_1px_0_rgba(0,0,0,0.14)] active:translate-y-[1px]"
             >
               Suscribirme ahora
             </Link>
             <button
               type="button"
               onClick={dismiss}
-              className="text-sm font-medium text-stone hover:text-ink"
+              className="text-sm font-medium text-stone hover:text-ink active:scale-[0.97]"
             >
               Recordar en 12 h
             </button>
