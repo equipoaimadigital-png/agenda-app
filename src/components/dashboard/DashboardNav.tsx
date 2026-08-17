@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/dashboard/clientes", label: "Clientes", icon: "👥" },
   { href: "/dashboard/campanas", label: "Campañas", icon: "📣" },
   { href: "/dashboard/servicios", label: "Servicios", icon: "📋" },
+  { href: "/dashboard/staff", label: "Profesionales", icon: "👤" },
   { href: "/dashboard/disponibilidad", label: "Disponibilidad", icon: "🕘" },
   { href: "/dashboard/estadisticas", label: "Estadísticas", icon: "📊" },
   { href: "/dashboard/configuracion", label: "Configuración", icon: "⚙️" },
