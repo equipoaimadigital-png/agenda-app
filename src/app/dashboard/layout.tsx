@@ -61,9 +61,14 @@ export default async function DashboardLayout({
         <DashboardNav />
 
         <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-2">
-          <Link href="/terminos" target="_blank" className="text-xs text-white/40 hover:text-white/70">
-            Términos de Servicio
-          </Link>
+          <div className="flex gap-3">
+            <Link href="/terminos" target="_blank" className="text-xs text-white/40 hover:text-white/70">
+              Términos de Servicio
+            </Link>
+            <Link href="/privacidad" target="_blank" className="text-xs text-white/40 hover:text-white/70">
+              Privacidad
+            </Link>
+          </div>
           <form action={signOut}>
             <button type="submit" className="text-sm text-white/60 hover:text-white active:scale-[0.97]">
               Cerrar sesión

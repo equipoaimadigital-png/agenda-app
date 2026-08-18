@@ -17,6 +17,10 @@ export default function RegistroPage() {
           Al crear tu cuenta aceptas los{" "}
           <Link href="/terminos" className="underline" target="_blank">
             Términos de Servicio
+          </Link>{" "}
+          y la{" "}
+          <Link href="/privacidad" className="underline" target="_blank">
+            Política de Privacidad
           </Link>
           .
         </p>

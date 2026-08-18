@@ -270,6 +270,7 @@ export default function Home() {
         <p>© {new Date().getFullYear()} Tu Hora Lista</p>
         <div className="flex gap-5">
           <Link href="/terminos" className="hover:text-ink">Términos de Servicio</Link>
+          <Link href="/privacidad" className="hover:text-ink">Privacidad</Link>
           <Link href="/login" className="hover:text-ink">Iniciar sesión</Link>
           <Link href="/registro" className="hover:text-ink">Crear cuenta</Link>
         </div>
