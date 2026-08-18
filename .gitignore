@@ -37,6 +37,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# respaldos manuales (scripts/backup.mjs) — tienen datos personales reales,
+# nunca al repositorio
+/backups
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
