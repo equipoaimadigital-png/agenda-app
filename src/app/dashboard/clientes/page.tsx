@@ -28,10 +28,12 @@ export default async function ClientesPage() {
   const clients = await prisma.client.findMany({
     where: { professionalId: professional.id },
     include: {
-      // Solo cuentan como "visita" reservas confirmadas/completadas que ya
-      // pasaron — una cancelada o un "no show" no es una visita real.
+      // Todas las reservas: se separan en "visitas reales" (ya pasadas,
+      // confirmadas/completadas) vs. próximas más abajo. Un cliente con solo
+      // una cita futura sigue siendo un cliente — no debe desaparecer de la
+      // lista solo porque todavía no ha visitado.
       bookings: {
-        where: { status: { in: ["CONFIRMED", "COMPLETED"] }, startTime: { lte: now } },
+        where: { status: { in: ["CONFIRMED", "COMPLETED"] } },
         select: { startTime: true },
         orderBy: { startTime: "desc" },
       },
@@ -40,26 +42,36 @@ export default async function ClientesPage() {
   });
 
   // Umbral de "frecuente"/"en riesgo" propio de este negocio, calculado sobre
-  // TODOS los intervalos entre visitas de TODOS sus clientes — ver segments.ts.
-  const allIntervals = clients.flatMap((c) => intervalsBetweenVisits(c.bookings.map((b) => b.startTime)));
+  // TODOS los intervalos entre visitas reales de TODOS sus clientes.
+  const allIntervals = clients.flatMap((c) =>
+    intervalsBetweenVisits(c.bookings.map((b) => b.startTime).filter((d) => d <= now))
+  );
   const thresholds = computeBusinessThresholds(allIntervals);
 
   const rows = clients
-    .filter((c) => c.bookings.length > 0)
     .map((c) => {
-      const visitDates = c.bookings.map((b) => b.startTime);
+      const pastVisits = c.bookings.map((b) => b.startTime).filter((d) => d <= now);
+      const nextBooking = c.bookings
+        .map((b) => b.startTime)
+        .filter((d) => d > now)
+        .sort((a, b) => a.getTime() - b.getTime())[0] ?? null;
       return {
         id: c.id,
         name: c.name ?? c.phone,
         phone: c.phone,
         email: c.email,
         birthday: c.birthday,
-        visits: visitDates.length,
-        lastVisit: visitDates[0],
-        segment: computeClientSegment(visitDates, now, thresholds),
+        visits: pastVisits.length,
+        lastVisit: pastVisits[0] ?? null,
+        nextBooking,
+        segment: computeClientSegment(pastVisits, now, thresholds),
       };
     })
-    .sort((a, b) => b.lastVisit.getTime() - a.lastVisit.getTime());
+    .sort((a, b) => {
+      const aDate = a.lastVisit ?? a.nextBooking ?? new Date(0);
+      const bDate = b.lastVisit ?? b.nextBooking ?? new Date(0);
+      return bDate.getTime() - aDate.getTime();
+    });
 
   const birthdayToday = rows.filter((r) => r.birthday === todayMMDD);
   const atRisk = rows.filter((r) => r.segment === "EN_RIESGO");
@@ -126,10 +138,25 @@ export default async function ClientesPage() {
                   {row.email && <> · {row.email}</>}
                 </p>
                 <p className="text-xs text-muted mt-0.5">
-                  {row.visits} visita{row.visits === 1 ? "" : "s"} · última el{" "}
-                  <span className="capitalize">
-                    {formatDateLong(toDateStr(row.lastVisit.getFullYear(), row.lastVisit.getMonth() + 1, row.lastVisit.getDate()))}
-                  </span>
+                  {row.visits} visita{row.visits === 1 ? "" : "s"}
+                  {row.lastVisit && (
+                    <>
+                      {" "}
+                      · última el{" "}
+                      <span className="capitalize">
+                        {formatDateLong(toDateStr(row.lastVisit.getFullYear(), row.lastVisit.getMonth() + 1, row.lastVisit.getDate()))}
+                      </span>
+                    </>
+                  )}
+                  {!row.lastVisit && row.nextBooking && (
+                    <>
+                      {" "}
+                      · próxima cita el{" "}
+                      <span className="capitalize">
+                        {formatDateLong(toDateStr(row.nextBooking.getFullYear(), row.nextBooking.getMonth() + 1, row.nextBooking.getDate()))}
+                      </span>
+                    </>
+                  )}
                   {row.birthday && <> · 🎂 {formatBirthday(row.birthday)}</>}
                 </p>
               </div>
