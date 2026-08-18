@@ -18,6 +18,7 @@ import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { wallClockDate } from "@/lib/dates";
 import { sendBookingEmails } from "@/lib/email";
 import { buildWhatsappLink } from "@/lib/whatsapp";
+import { resolveClientId } from "@/lib/actions/clients";
 
 export type StaffOptionView = { id: string; name: string; color: string };
 
@@ -149,6 +150,8 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
   const startTime = wallClockDate(dateStr, time);
   const endTime = new Date(startTime.getTime() + ctx.service.durationMin * 60000);
 
+  const clientId = await resolveClientId(ctx.professional.id, clientPhone, clientName, clientEmail);
+
   // Prueba cada candidato hasta encontrar uno libre. Cada intento queda
   // protegido por su propio bloqueo de transacción (withStaffLock), así que
   // dos clientes reservando a la vez sobre el mismo profesional nunca pueden
@@ -170,6 +173,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
           clientName,
           clientPhone,
           clientEmail,
+          clientId,
           customAnswers,
           startTime,
           endTime,
@@ -263,6 +267,8 @@ export async function createManualBooking(formData: FormData): Promise<{ error?:
   const startTime = wallClockDate(dateStr, time);
   const endTime = new Date(startTime.getTime() + service.durationMin * 60000);
 
+  const clientId = await resolveClientId(professional.id, clientPhone, clientName, clientEmail);
+
   const booking = await withStaffLock(staffId, async (tx) => {
     if (await hasOverlappingBooking(tx, staffId, startTime, endTime)) return null;
     return tx.booking.create({
@@ -273,6 +279,7 @@ export async function createManualBooking(formData: FormData): Promise<{ error?:
         clientName,
         clientPhone,
         clientEmail,
+        clientId,
         startTime,
         endTime,
         source: "MANUAL",

@@ -1,7 +1,14 @@
+import Link from "next/link";
 import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
-import { saveClientBirthday } from "@/lib/actions/clients";
 import { formatDateLong, toDateStr } from "@/lib/dates";
+import {
+  computeBusinessThresholds,
+  computeClientSegment,
+  intervalsBetweenVisits,
+  SEGMENT_BADGE_CLASSES,
+  SEGMENT_LABEL,
+} from "@/lib/segments";
 
 const MONTHS_SHORT = [
   "ene", "feb", "mar", "abr", "may", "jun",
@@ -15,41 +22,47 @@ function formatBirthday(mmdd: string): string {
 
 export default async function ClientesPage() {
   const professional = await requireDashboardAccess();
+  const now = new Date();
+  const todayMMDD = toDateStr(now.getFullYear(), now.getMonth() + 1, now.getDate()).slice(5);
 
-  const [bookings, clients] = await Promise.all([
-    prisma.booking.findMany({
-      where: { professionalId: professional.id },
-      orderBy: { startTime: "desc" },
-      select: { clientName: true, clientPhone: true, clientEmail: true, startTime: true },
-    }),
-    prisma.client.findMany({ where: { professionalId: professional.id } }),
-  ]);
+  const clients = await prisma.client.findMany({
+    where: { professionalId: professional.id },
+    include: {
+      // Solo cuentan como "visita" reservas confirmadas/completadas que ya
+      // pasaron — una cancelada o un "no show" no es una visita real.
+      bookings: {
+        where: { status: { in: ["CONFIRMED", "COMPLETED"] }, startTime: { lte: now } },
+        select: { startTime: true },
+        orderBy: { startTime: "desc" },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
 
-  const birthdayByPhone = new Map(clients.map((c) => [c.phone, c.birthday]));
+  // Umbral de "frecuente"/"en riesgo" propio de este negocio, calculado sobre
+  // TODOS los intervalos entre visitas de TODOS sus clientes — ver segments.ts.
+  const allIntervals = clients.flatMap((c) => intervalsBetweenVisits(c.bookings.map((b) => b.startTime)));
+  const thresholds = computeBusinessThresholds(allIntervals);
 
-  type Row = {
-    phone: string;
-    name: string;
-    email: string | null;
-    visits: number;
-    lastVisit: Date;
-  };
-  const byPhone = new Map<string, Row>();
-  for (const b of bookings) {
-    const existing = byPhone.get(b.clientPhone);
-    if (existing) {
-      existing.visits += 1;
-    } else {
-      byPhone.set(b.clientPhone, {
-        phone: b.clientPhone,
-        name: b.clientName,
-        email: b.clientEmail,
-        visits: 1,
-        lastVisit: b.startTime,
-      });
-    }
-  }
-  const rows = [...byPhone.values()];
+  const rows = clients
+    .filter((c) => c.bookings.length > 0)
+    .map((c) => {
+      const visitDates = c.bookings.map((b) => b.startTime);
+      return {
+        id: c.id,
+        name: c.name ?? c.phone,
+        phone: c.phone,
+        email: c.email,
+        birthday: c.birthday,
+        visits: visitDates.length,
+        lastVisit: visitDates[0],
+        segment: computeClientSegment(visitDates, now, thresholds),
+      };
+    })
+    .sort((a, b) => b.lastVisit.getTime() - a.lastVisit.getTime());
+
+  const birthdayToday = rows.filter((r) => r.birthday === todayMMDD);
+  const atRisk = rows.filter((r) => r.segment === "EN_RIESGO");
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,73 +73,69 @@ export default async function ClientesPage() {
         </p>
       </div>
 
+      {birthdayToday.length > 0 && (
+        <section className="bg-warning-soft border border-border rounded-xl p-4">
+          <p className="text-xs text-stone uppercase tracking-wide mb-1">🎂 Cumpleaños de hoy</p>
+          <p className="font-medium">
+            {birthdayToday.map((c, i) => (
+              <span key={c.id}>
+                {i > 0 && ", "}
+                <Link href={`/dashboard/clientes/${c.id}`} className="underline">{c.name}</Link>
+              </span>
+            ))}
+          </p>
+        </section>
+      )}
+
+      {atRisk.length > 0 && (
+        <section className="bg-danger-soft border border-border rounded-xl p-4">
+          <p className="text-xs text-stone uppercase tracking-wide mb-1">⚠️ En riesgo de fuga</p>
+          <p className="text-sm mb-1">
+            Eran clientes frecuentes y no vuelven hace rato — vale la pena contactarlos antes de perderlos.
+          </p>
+          <p className="font-medium">
+            {atRisk.map((c, i) => (
+              <span key={c.id}>
+                {i > 0 && ", "}
+                <Link href={`/dashboard/clientes/${c.id}`} className="underline">{c.name}</Link>
+              </span>
+            ))}
+          </p>
+        </section>
+      )}
+
       {rows.length === 0 ? (
         <p className="text-sm text-muted">Todavía no tienes clientes.</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {rows.map((row) => {
-            const birthday = birthdayByPhone.get(row.phone) ?? null;
-            const dateStr = toDateStr(
-              row.lastVisit.getFullYear(),
-              row.lastVisit.getMonth() + 1,
-              row.lastVisit.getDate()
-            );
-            return (
-              <div
-                key={row.phone}
-                className="bg-surface border border-border rounded-xl p-4 flex flex-wrap items-center justify-between gap-3"
-              >
-                <div className="min-w-0">
+          {rows.map((row) => (
+            <Link
+              key={row.id}
+              href={`/dashboard/clientes/${row.id}`}
+              className="bg-surface border border-border rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 hover:border-brand active:scale-[0.99]"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-medium truncate">{row.name}</p>
-                  <p className="text-sm text-stone">
-                    <a href={`tel:${row.phone}`} className="underline decoration-border hover:decoration-brand">
-                      {row.phone}
-                    </a>
-                    {row.email && <> · {row.email}</>}
-                  </p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {row.visits} visita{row.visits === 1 ? "" : "s"} · última el{" "}
-                    <span className="capitalize">{formatDateLong(dateStr)}</span>
-                    {birthday && <> · 🎂 {formatBirthday(birthday)}</>}
-                  </p>
+                  <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${SEGMENT_BADGE_CLASSES[row.segment]}`}>
+                    {SEGMENT_LABEL[row.segment]}
+                  </span>
                 </div>
-
-                <form action={saveClientBirthday} className="flex items-center gap-2 shrink-0">
-                  <input type="hidden" name="phone" value={row.phone} />
-                  <label htmlFor={`bday-day-${row.phone}`} className="text-xs text-muted">
-                    Cumpleaños
-                  </label>
-                  <select
-                    id={`bday-day-${row.phone}`}
-                    name="day"
-                    defaultValue={birthday ? Number(birthday.split("-")[1]) : ""}
-                    className="border border-border rounded-lg px-2 py-1.5 text-sm bg-surface"
-                  >
-                    <option value="">Día</option>
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                  <select
-                    name="month"
-                    defaultValue={birthday ? Number(birthday.split("-")[0]) : ""}
-                    className="border border-border rounded-lg px-2 py-1.5 text-sm bg-surface"
-                  >
-                    <option value="">Mes</option>
-                    {MONTHS_SHORT.map((m, i) => (
-                      <option key={m} value={i + 1}>{m}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="submit"
-                    className="text-sm border border-border rounded-lg px-3 py-1.5 hover:border-brand active:scale-[0.97]"
-                  >
-                    Guardar
-                  </button>
-                </form>
+                <p className="text-sm text-stone">
+                  {row.phone}
+                  {row.email && <> · {row.email}</>}
+                </p>
+                <p className="text-xs text-muted mt-0.5">
+                  {row.visits} visita{row.visits === 1 ? "" : "s"} · última el{" "}
+                  <span className="capitalize">
+                    {formatDateLong(toDateStr(row.lastVisit.getFullYear(), row.lastVisit.getMonth() + 1, row.lastVisit.getDate()))}
+                  </span>
+                  {row.birthday && <> · 🎂 {formatBirthday(row.birthday)}</>}
+                </p>
               </div>
-            );
-          })}
+              <span className="text-sm text-stone shrink-0">Ver ficha →</span>
+            </Link>
+          ))}
         </div>
       )}
     </div>

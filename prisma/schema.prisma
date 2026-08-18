@@ -80,7 +80,11 @@ model Client {
   id             String       @id @default(uuid())
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  // Nombre y teléfono se rellenan solos desde la primera reserva y quedan
+  // editables a mano (CRM) para corregir errores de carga sin perder historial.
+  name           String?
   phone          String
+  email          String?
   // "MM-DD", sin año, para no pedir más datos personales de los necesarios
   birthday       String?
   // Se desuscribió de campañas de email marketing (nunca se le vuelve a
@@ -90,6 +94,8 @@ model Client {
   unsubscribeToken  String   @unique @default(uuid())
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  bookings       Booking[]
 
   @@unique([professionalId, phone])
 }
@@ -231,9 +237,15 @@ model Booking {
   staff          Staff         @relation(fields: [staffId], references: [id])
   serviceId      String
   service        Service       @relation(fields: [serviceId], references: [id])
+  // Snapshot del momento de la reserva — nunca cambia con la cita ya creada,
+  // aunque el cliente corrija su nombre/teléfono/email después en el CRM.
   clientName     String
   clientPhone    String
   clientEmail    String?
+  // Vínculo real con la ficha de cliente (CRM) — a diferencia de clientPhone,
+  // es estable aunque el profesional corrija el teléfono más adelante.
+  clientId       String?
+  client         Client?       @relation(fields: [clientId], references: [id])
   startTime      DateTime
   endTime        DateTime
   status         BookingStatus @default(CONFIRMED)
@@ -253,6 +265,7 @@ model Booking {
 
   @@index([staffId, startTime])
   @@index([professionalId, startTime])
+  @@index([clientId])
 }
 
 // A quién se le mandó la campaña: todos los clientes, solo los que no
