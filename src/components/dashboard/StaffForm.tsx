@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 type Service = { id: string; name: string };
 type FormState = { error?: string; success?: boolean };
@@ -22,17 +22,29 @@ export function StaffForm({
   submitLabel: string;
   onDone?: () => void;
 }) {
+  // Cuando no hay onDone (formulario de "agregar", no de editar), el form se
+  // limpia solo tras guardar — sin esto se sentía como que no había pasado
+  // nada, aunque sí se había guardado.
+  const [resetKey, setResetKey] = useState(0);
   const [state, formAction, isPending] = useActionState<FormState, FormData>(
     async (prev, formData) => {
       const result = await action(prev, formData);
-      if (result.success) onDone?.();
+      if (result.success) {
+        if (onDone) onDone();
+        else setResetKey((k) => k + 1);
+      }
       return result;
     },
     {}
   );
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
+    <form key={resetKey} action={formAction} className="flex flex-col gap-3">
+      {state.success && !onDone && (
+        <p className="text-sm text-success bg-success-soft rounded-lg px-3 py-2">
+          ¡Profesional agregado! Ya aparece en la lista de abajo.
+        </p>
+      )}
       <div className="flex gap-3">
         <div className="flex flex-col gap-1 flex-1">
           <label htmlFor="staff-name" className="text-sm font-medium">Nombre *</label>
