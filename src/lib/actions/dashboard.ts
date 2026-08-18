@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { HeadingFont, HeadingSize } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { getCurrentProfessional, getPrimaryStaffId } from "@/lib/auth-helpers";
+import { getCurrentProfessional, getPrimaryStaffId, verifyStaffOwnership } from "@/lib/auth-helpers";
 import { sendCancellationEmails } from "@/lib/email";
 import { wallClockDate } from "@/lib/dates";
 import { contrastRatio } from "@/lib/color-contrast";
@@ -162,8 +162,8 @@ export async function cancelDayEmergency(
 
 export async function addDateException(formData: FormData): Promise<void> {
   const professional = await requireProfessional();
-  const staffId = await getPrimaryStaffId(professional.id);
-  if (!staffId) return;
+  const staffId = String(formData.get("staffId") || "");
+  if (!staffId || !(await verifyStaffOwnership(staffId, professional.id))) return;
 
   const date = String(formData.get("date") || "");
   const reason = String(formData.get("reason") || "").trim() || null;
@@ -177,10 +177,9 @@ export async function addDateException(formData: FormData): Promise<void> {
   revalidatePath("/dashboard/disponibilidad");
 }
 
-export async function deleteDateException(id: string): Promise<void> {
+export async function deleteDateException(staffId: string, id: string): Promise<void> {
   const professional = await requireProfessional();
-  const staffId = await getPrimaryStaffId(professional.id);
-  if (!staffId) return;
+  if (!(await verifyStaffOwnership(staffId, professional.id))) return;
 
   await prisma.dateException.deleteMany({
     where: { id, staffId },

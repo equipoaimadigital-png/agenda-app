@@ -3,14 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getCurrentProfessional, getPrimaryStaffId } from "@/lib/auth-helpers";
+import { getCurrentProfessional, verifyStaffOwnership } from "@/lib/auth-helpers";
 import { timeToMinutes } from "@/lib/dates";
 
 export async function createAvailability(formData: FormData) {
   const professional = await getCurrentProfessional();
   if (!professional) redirect("/login");
-  const staffId = await getPrimaryStaffId(professional.id);
-  if (!staffId) return;
+  const staffId = String(formData.get("staffId") || "");
+  if (!staffId || !(await verifyStaffOwnership(staffId, professional.id))) return;
 
   // Permite crear el mismo bloque para varios días a la vez (checkboxes "weekday")
   const weekdays = formData
@@ -42,11 +42,10 @@ export async function createAvailability(formData: FormData) {
   revalidatePath("/dashboard/disponibilidad");
 }
 
-export async function deleteAvailability(availabilityId: string) {
+export async function deleteAvailability(staffId: string, availabilityId: string) {
   const professional = await getCurrentProfessional();
   if (!professional) redirect("/login");
-  const staffId = await getPrimaryStaffId(professional.id);
-  if (!staffId) return;
+  if (!(await verifyStaffOwnership(staffId, professional.id))) return;
 
   await prisma.availability.deleteMany({
     where: { id: availabilityId, staffId },

@@ -41,3 +41,15 @@ export async function getPrimaryStaffId(professionalId: string): Promise<string 
   });
   return staff?.id ?? null;
 }
+
+/** Confirma que este staffId pertenece a este negocio antes de operar sobre él. */
+export async function verifyStaffOwnership(
+  staffId: string,
+  professionalId: string
+): Promise<boolean> {
+  const staff = await prisma.staff.findFirst({
+    where: { id: staffId, professionalId },
+    select: { id: true },
+  });
+  return !!staff;
+}

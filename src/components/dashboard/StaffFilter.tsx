@@ -2,11 +2,18 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-export function StaffFilter({ staff }: { staff: { id: string; name: string }[] }) {
+export function StaffFilter({
+  staff,
+  allowAll = true,
+}: {
+  staff: { id: string; name: string }[];
+  /** false cuando la pantalla siempre opera sobre UN profesional (ej. Disponibilidad) */
+  allowAll?: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const current = searchParams.get("staffId") ?? "";
+  const current = searchParams.get("staffId") ?? (allowAll ? "" : staff[0]?.id ?? "");
 
   if (staff.length <= 1) return null;
 
@@ -22,7 +29,7 @@ export function StaffFilter({ staff }: { staff: { id: string; name: string }[] }
       }}
       className="border border-border rounded-lg px-3 py-2 text-sm bg-surface"
     >
-      <option value="">Todos los profesionales</option>
+      {allowAll && <option value="">Todos los profesionales</option>}
       {staff.map((s) => (
         <option key={s.id} value={s.id}>
           {s.name}
