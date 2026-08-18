@@ -14,20 +14,21 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date();
-  const tomorrowStart = new Date(now);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  tomorrowStart.setHours(0, 0, 0, 0);
-  const tomorrowEnd = new Date(tomorrowStart);
-  tomorrowEnd.setHours(23, 59, 59, 999);
+  // Busca citas que empiezan entre 12 y 24 horas desde ahora
+  // Eso significa: si el cron corre a las 9am, busca citas de 9pm hoy a 9pm mañana
+  // El recordatorio llega ~12 horas antes de la cita
+  const reminderWindowStart = new Date(now);
+  reminderWindowStart.setHours(now.getHours() + 12);
+  const reminderWindowEnd = new Date(now);
+  reminderWindowEnd.setHours(now.getHours() + 24);
 
   // El teléfono siempre existe (es obligatorio al reservar); el correo es
-  // opcional. Antes, un cliente sin correo nunca recibía recordatorio — ahora
-  // el SMS cubre ese hueco. Se manda por cada canal disponible, no uno u otro.
+  // opcional. Se manda recordatorio 12-24 horas antes de la cita.
   const bookings = await prisma.booking.findMany({
     where: {
       status: "CONFIRMED",
       reminderSentAt: null,
-      startTime: { gte: tomorrowStart, lte: tomorrowEnd },
+      startTime: { gte: reminderWindowStart, lte: reminderWindowEnd },
     },
     include: { service: true, professional: true },
   });
