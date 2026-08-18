@@ -57,8 +57,12 @@ export function AuthSplitLayout({
       </div>
 
       {/* Panel del formulario */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-12">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-sm">{children}</div>
+        <p className="text-xs text-muted text-center mt-8">
+          © {new Date().getFullYear()} Tu Hora Lista, una plataforma de AIMA Digital. Todos los
+          derechos reservados.
+        </p>
       </div>
     </main>
   );

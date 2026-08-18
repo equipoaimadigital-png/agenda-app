@@ -273,6 +273,10 @@ export default async function ReservarPage({ params }: PageProps) {
         <p className="text-xs text-stone font-medium text-center mt-10">
           Cancelaciones y cambios hasta {professional.cancellationHours} h antes de la cita.
         </p>
+        <p className="text-xs text-muted text-center mt-4">
+          © {new Date().getFullYear()} Tu Hora Lista, una plataforma de AIMA Digital. Todos los
+          derechos reservados.
+        </p>
       </div>
     </main>
   );
