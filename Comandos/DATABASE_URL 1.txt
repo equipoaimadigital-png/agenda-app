@@ -1,0 +1,12 @@
+DATABASE_URL="postgresql://postgres.gzyqznajsdphxsclknun:Danielagonzalo@8019@aws-0-ca-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.gzyqznajsdphxsclknun:Danielagonzalo@8019@aws-0-ca-central-1.pooler.supabase.com:5432/postgres"
+NEXT_PUBLIC_SUPABASE_URL="https://gzyqznajsdphxsclknun.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_ajLeJZapTEzeb0TXfUKmbg_h_YqH-ry"
+NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+
+
+# Connect to Postgres via the shared transaction-mode pooler (IPv4-only)
+DATABASE_URL="postgresql://postgres.gzyqznajsdphxsclknun:[Bacosamuraramona8019]@aws-0-ca-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Connect to Postgres via the shared session-mode pooler (used for migrations)
+DIRECT_URL="postgresql://postgres.gzyqznajsdphxsclknun:[Bacosamuraramona8019]@aws-0-ca-central-1.pooler.supabase.com:5432/postgres"
