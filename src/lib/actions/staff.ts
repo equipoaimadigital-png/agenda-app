@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
+import { MAX_ACTIVE_STAFF } from "@/lib/staff-constants";
 
 type FormState = { error?: string; success?: boolean };
 
@@ -21,6 +22,15 @@ export async function createStaff(_prev: FormState, formData: FormData): Promise
 
   if (!name) return { error: "Escribe un nombre." };
   if (!/^#[0-9a-fA-F]{6}$/.test(color)) return { error: "El color no es válido." };
+
+  const activeCount = await prisma.staff.count({
+    where: { professionalId: professional.id, active: true },
+  });
+  if (activeCount >= MAX_ACTIVE_STAFF) {
+    return {
+      error: `Tu plan incluye hasta ${MAX_ACTIVE_STAFF} profesionales activos. Escríbenos a soporte@tuhoralista.com si necesitas más.`,
+    };
+  }
 
   await prisma.staff.create({
     data: {
@@ -79,13 +89,17 @@ export async function toggleStaffActive(staffId: string): Promise<{ error?: stri
   });
   if (!staff) return { error: "No encontramos a este profesional." };
 
-  if (staff.active) {
-    const activeCount = await prisma.staff.count({
-      where: { professionalId: professional.id, active: true },
-    });
-    if (activeCount <= 1) {
-      return { error: "No puedes pausar a tu único profesional activo — tu agenda quedaría sin nadie disponible." };
-    }
+  const activeCount = await prisma.staff.count({
+    where: { professionalId: professional.id, active: true },
+  });
+
+  if (staff.active && activeCount <= 1) {
+    return { error: "No puedes pausar a tu único profesional activo — tu agenda quedaría sin nadie disponible." };
+  }
+  if (!staff.active && activeCount >= MAX_ACTIVE_STAFF) {
+    return {
+      error: `Tu plan incluye hasta ${MAX_ACTIVE_STAFF} profesionales activos. Pausa a otro antes de activar a este.`,
+    };
   }
 
   await prisma.staff.update({ where: { id: staffId }, data: { active: !staff.active } });
