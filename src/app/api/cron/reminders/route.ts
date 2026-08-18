@@ -14,13 +14,11 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date();
-  // Busca citas que empiezan entre 12 y 24 horas desde ahora
-  // Eso significa: si el cron corre a las 9am, busca citas de 9pm hoy a 9pm mañana
-  // El recordatorio llega ~12 horas antes de la cita
-  const reminderWindowStart = new Date(now);
-  reminderWindowStart.setHours(now.getHours() + 12);
-  const reminderWindowEnd = new Date(now);
-  reminderWindowEnd.setHours(now.getHours() + 24);
+  // Busca citas que empiezan entre 12 y 24 horas desde ahora.
+  // Si el cron corre a las 5am, busca citas entre 5pm hoy y 5am mañana.
+  // El recordatorio llega ~12 horas antes de la cita.
+  const reminderWindowStart = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+  const reminderWindowEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   // El teléfono siempre existe (es obligatorio al reservar); el correo es
   // opcional. Se manda recordatorio 12-24 horas antes de la cita.
