@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -18,4 +19,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// withSentryConfig sube source maps al buildear (deja los stack traces
+// legibles en Sentry en vez de código minificado) — solo se activa si existe
+// SENTRY_AUTH_TOKEN; sin él, hace build normal y Sentry sigue capturando
+// errores igual, solo sin el detalle extra del source map.
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  widenClientFileUpload: false,
+});
