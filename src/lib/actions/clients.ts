@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
+import { isValidEmail } from "@/lib/validation";
 
 /**
  * Encuentra o crea la ficha de cliente para esta reserva y devuelve su id,
@@ -66,6 +67,7 @@ export async function updateClient(
 
   if (!name) return { error: "El nombre no puede estar vacío." };
   if (!phone) return { error: "El teléfono no puede estar vacío." };
+  if (email && !isValidEmail(email)) return { error: "El email ingresado no es válido." };
 
   if (phone !== client.phone) {
     const collision = await prisma.client.findUnique({

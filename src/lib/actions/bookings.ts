@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -18,7 +19,10 @@ import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { wallClockDate } from "@/lib/dates";
 import { sendBookingEmails } from "@/lib/email";
 import { buildWhatsappLink } from "@/lib/whatsapp";
+import { toE164 } from "@/lib/sms";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resolveClientId } from "@/lib/actions/clients";
+import { isValidEmail } from "@/lib/validation";
 
 export type StaffOptionView = { id: string; name: string; color: string };
 
@@ -98,6 +102,15 @@ export type CreateBookingResult = {
 };
 
 export async function createPublicBooking(formData: FormData): Promise<CreateBookingResult> {
+  // Rate limiting: máx 30 reservas por IP en 60 segundos
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0].trim() ||
+             headersList.get("cf-connecting-ip") ||
+             "unknown";
+  if (!checkRateLimit(ip, 30, 60000)) {
+    return { error: "Demasiadas solicitudes. Intenta de nuevo en unos minutos." };
+  }
+
   const slug = String(formData.get("slug") || "");
   const serviceId = String(formData.get("serviceId") || "");
   const staffSelection = String(formData.get("staffId") || ANY_STAFF) as StaffSelection;
@@ -106,6 +119,20 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
   const clientName = String(formData.get("clientName") || "").trim();
   const clientPhone = String(formData.get("clientPhone") || "").trim();
   const clientEmail = String(formData.get("clientEmail") || "").trim() || null;
+
+  // Validación de longitud contra DoS: string muy largo en input
+  if (clientName.length > 100) {
+    return { error: "Nombre muy largo (máx 100 caracteres)." };
+  }
+  if (clientPhone.length > 20) {
+    return { error: "Teléfono inválido (máx 20 caracteres)." };
+  }
+  if (clientEmail && clientEmail.length > 255) {
+    return { error: "Email muy largo (máx 255 caracteres)." };
+  }
+  if (slug.length > 50) {
+    return { error: "Slug inválido." };
+  }
 
   let customAnswers: { label: string; value: string }[] | undefined;
   const customAnswersRaw = String(formData.get("customAnswers") || "");
@@ -120,6 +147,16 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
 
   if (!slug || !serviceId || !dateStr || !time || !clientName || !clientPhone) {
     return { error: "Completa todos los campos obligatorios." };
+  }
+  if (clientEmail && !isValidEmail(clientEmail)) {
+    return { error: "El email ingresado no es válido." };
+  }
+
+  // Validación de teléfono: debe normalizarse a E.164 sin errores
+  const normalizedPhone = toE164(clientPhone);
+  const phoneDigitsOnly = normalizedPhone.replace(/\D/g, "");
+  if (phoneDigitsOnly.length < 9 || phoneDigitsOnly.length > 15) {
+    return { error: "Teléfono debe tener entre 9 y 15 dígitos." };
   }
 
   const ctx = await loadBookingContext(slug, serviceId);
@@ -252,6 +289,9 @@ export async function createManualBooking(formData: FormData): Promise<{ error?:
 
   if (!serviceId || !staffId || !dateStr || !time || !clientName || !clientPhone) {
     return { error: "Completa todos los campos obligatorios." };
+  }
+  if (clientEmail && !isValidEmail(clientEmail)) {
+    return { error: "El email ingresado no es válido." };
   }
 
   const service = await prisma.service.findFirst({
