@@ -12,6 +12,7 @@ import {
 } from "@/lib/actions/bookings";
 import { ANY_STAFF, type StaffSelection } from "@/lib/booking-logic";
 import { DateTimePicker } from "@/components/booking/DateTimePicker";
+import { ConfirmationModal } from "@/components/booking/ConfirmationModal";
 import { formatDateLong } from "@/lib/dates";
 import { formatServicePrice, type ServicePriceType } from "@/lib/price";
 
@@ -36,6 +37,7 @@ export function BookingWidget({
   const [picked, setPicked] = useState<{ dateStr: string; time: string } | null>(null);
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
   const [fields, setFields] = useState({ name: "", phone: "", email: "" });
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const [staffOptions, setStaffOptions] = useState<StaffOptionView[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
@@ -123,13 +125,21 @@ export function BookingWidget({
     async (_prev, formData) => {
       const result = await createPublicBooking(formData);
       if (result.success && result.manageToken) {
-        const wa = result.whatsappLink ? `&wa=${encodeURIComponent(result.whatsappLink)}` : "";
-        router.push(`/reserva/${result.manageToken}?nueva=1${wa}`);
+        // Muestra el modal de confirmación ANTES de redirigir
+        setShowConfirmation(true);
       }
       return result;
     },
     {}
   );
+
+  const handleConfirmationClose = () => {
+    setShowConfirmation(false);
+    if (state.success && state.manageToken) {
+      const wa = state.whatsappLink ? `&wa=${encodeURIComponent(state.whatsappLink)}` : "";
+      router.push(`/reserva/${state.manageToken}?nueva=1${wa}`);
+    }
+  };
 
   const nameError = touched.name && fields.name.trim().length < 2 ? "Escribe tu nombre." : null;
   const phoneError =
@@ -409,6 +419,16 @@ export function BookingWidget({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de confirmación después de la reserva */}
+      {showConfirmation && picked && service && (
+        <ConfirmationModal
+          serviceName={service.name}
+          dateStr={picked.dateStr}
+          time={picked.time}
+          onClose={handleConfirmationClose}
+        />
       )}
     </div>
   );
