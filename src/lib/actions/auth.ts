@@ -74,7 +74,12 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return { error: "Correo o contraseña incorrectos." };
+    // Distingue credenciales inválidas vs problemas de conexión
+    if (error.message.includes("invalid") || error.status === 400) {
+      return { error: "Correo o contraseña incorrectos." };
+    }
+    // Errores de conexión, timeout, etc.
+    return { error: "Problema de conexión. Intenta de nuevo en unos segundos." };
   }
 
   redirect("/dashboard");
