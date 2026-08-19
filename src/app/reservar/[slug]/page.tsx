@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { BookingWidget } from "@/components/booking/BookingWidget";
+import { OfflineDetector } from "@/components/booking/OfflineDetector";
 import { nowInTimeZone, weekdayOf } from "@/lib/dates";
 import { buildWhatsappLink } from "@/lib/whatsapp";
 import { headingFontClassName, headingSizeClasses } from "@/lib/heading-style";
@@ -112,10 +113,12 @@ export default async function ReservarPage({ params }: PageProps) {
   };
 
   return (
-    <main
-      className="min-h-screen bg-paper"
-      style={{ "--brand": professional.brandColor } as React.CSSProperties}
-    >
+    <>
+      <OfflineDetector />
+      <main
+        className="min-h-screen bg-paper"
+        style={{ "--brand": professional.brandColor } as React.CSSProperties}
+      >
       <script
         type="application/ld+json"
         // El negocio controla businessName/description/servicios — sin este escape,
@@ -278,6 +281,7 @@ export default async function ReservarPage({ params }: PageProps) {
           derechos reservados.
         </p>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
