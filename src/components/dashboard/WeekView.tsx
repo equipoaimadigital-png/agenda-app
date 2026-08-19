@@ -210,7 +210,8 @@ export function WeekView({
                     style={{ top: `${top}%`, height: `${height}%` }}
                     title={`${minutesToTime(b.startMinutes)} · ${b.clientName} · ${b.serviceName}`}
                   >
-                    <span className="font-medium">{minutesToTime(b.startMinutes)}</span> {b.clientName}
+                    <span className="font-medium">{minutesToTime(b.startMinutes)}</span>{" "}
+                    <span className="truncate">{b.clientName}</span>
                   </button>
                 );
               })}
