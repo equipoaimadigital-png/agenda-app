@@ -12,3 +12,14 @@ export function isValidEmail(email: string): boolean {
   if (/[\r\n]/.test(email)) return false;
   return EMAIL_REGEX.test(email);
 }
+
+export function sanitizeCustomAnswer(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .slice(0, 500); // limita a 500 chars
+}

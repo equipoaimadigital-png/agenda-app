@@ -24,6 +24,7 @@ export function ManageBookingActions({
 }: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<"none" | "reschedule" | "confirm-cancel">("none");
+  const [showCancelSuccess, setShowCancelSuccess] = useState(false);
   const [picked, setPicked] = useState<{ dateStr: string; time: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -68,8 +69,13 @@ export function ManageBookingActions({
               onClick={() =>
                 startTransition(async () => {
                   const result = await cancelBookingByToken(token);
-                  if (result.error) setError(result.error);
-                  else router.refresh();
+                  if (result.error) {
+                    setError(result.error);
+                  } else {
+                    setShowCancelSuccess(true);
+                    setMode("none");
+                    setTimeout(() => router.refresh(), 2000);
+                  }
                 })
               }
               className="bg-danger text-white rounded-lg px-4 py-2 text-sm font-medium shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)] active:translate-y-[1px] disabled:opacity-50 disabled:shadow-none"
@@ -133,6 +139,16 @@ export function ManageBookingActions({
 
       {error && (
         <p className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">{error}</p>
+      )}
+
+      {showCancelSuccess && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-xl p-6 max-w-sm w-full flex flex-col gap-3 items-center text-center shadow-lg">
+            <p className="text-2xl">✅</p>
+            <p className="font-medium">Cita cancelada</p>
+            <p className="text-sm text-muted">Tu reserva ha sido cancelada exitosamente.</p>
+          </div>
+        </div>
       )}
     </div>
   );

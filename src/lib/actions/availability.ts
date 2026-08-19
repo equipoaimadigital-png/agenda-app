@@ -30,6 +30,19 @@ export async function createAvailability(formData: FormData) {
     return;
   }
 
+  // Rechaza si todos los weekdays seleccionados ya pasaron esta semana
+  const today = new Date();
+  const todayWeekday = today.getDay(); // 0=dom, 1=lun, etc
+  const allPast = weekdays.every((wd) => {
+    // Si ya es domingo (0) y elige lun-dom, todos pasan después
+    if (todayWeekday === 0) return false;
+    // Si hoy es día X y elige día Y < X, es pasado esta semana
+    return wd < todayWeekday;
+  });
+  if (allPast) {
+    return; // Silenciosamente rechaza para no exposar validación al usuario
+  }
+
   await prisma.availability.createMany({
     data: weekdays.map((weekday) => ({
       staffId,

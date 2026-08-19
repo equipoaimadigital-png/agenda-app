@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { sanitizeCustomAnswer } from "@/lib/validation";
 import {
   cancelBookingByProfessional,
   markBookingStatus,
@@ -101,7 +102,7 @@ export function BookingRow({
                 (a, i) =>
                   a.value && (
                     <span key={i} className="text-xs text-brand bg-brand-soft rounded px-2 py-1">
-                      {a.label}: {a.value}
+                      {a.label}: {sanitizeCustomAnswer(a.value)}
                     </span>
                   )
               )}

@@ -65,13 +65,13 @@ export default async function EstadisticasPage() {
   const remindersSent = withEmail.filter((b) => !!b.reminderSentAt).length;
 
   return (
-    <div className="flex flex-col gap-6 max-w-xl">
+    <div className="flex flex-col gap-6 w-full max-w-4xl">
       <div>
         <h1 className="text-2xl font-semibold font-display">Estadísticas</h1>
         <p className="text-sm text-muted mt-1">Últimas 4 semanas.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <StatCard label="Citas por semana" value={String(perWeek)} hint={`${total} en total`} />
         <StatCard
           label="Ingresos estimados"
@@ -86,12 +86,12 @@ export default async function EstadisticasPage() {
         <StatCard label="Pendientes" value={String(confirmed)} hint="Citas confirmadas a futuro o sin marcar" />
       </div>
 
-      <section className="bg-surface border border-border rounded-xl p-4">
+      <section className="bg-surface border border-border rounded-xl p-4 overflow-x-auto">
         <h2 className="font-semibold mb-3">Ocupación por día de la semana</h2>
         {total === 0 ? (
           <p className="text-sm text-muted">Todavía no hay suficientes datos.</p>
         ) : (
-          <div className="flex items-end gap-2 h-28">
+          <div className="flex items-end gap-2 h-28 min-w-min">
             {WEEKDAY_ORDER.map((weekday, i) => {
               const count = countByWeekday[weekday];
               const heightPct = Math.max((count / maxWeekdayCount) * 100, count > 0 ? 8 : 2);
