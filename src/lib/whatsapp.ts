@@ -26,6 +26,33 @@ type ReminderWhatsAppInfo = {
 };
 
 /**
+ * Envía WhatsApp de CONFIRMACIÓN cuando se crea la reserva.
+ * No usa plantilla — es un mensaje freeform directo.
+ * Nunca lanza excepciones — siempre devuelve boolean.
+ */
+export async function sendConfirmationWhatsApp(info: ReminderWhatsAppInfo): Promise<boolean> {
+  const client = getClient();
+  const from = fromNumber();
+
+  if (!client || !from) return false;
+
+  const { dateStr, time } = wallClockOf(info.startTime);
+  const message = `✅ *Reserva confirmada*\n\n${info.clientName}, tu cita está confirmada:\n\n📅 ${formatDateLong(dateStr)}\n⏰ ${time}\n💼 ${info.serviceName}\n🏢 ${info.businessName}\n\nSi necesitas cancelar o reprogramar, puedes hacerlo desde tu enlace de gestión de cita.`;
+
+  try {
+    await client.messages.create({
+      to: `whatsapp:+56${info.clientPhone.replace(/^(\+56)?/, "")}`,
+      from: `whatsapp:${from}`,
+      body: message,
+    });
+    return true;
+  } catch (err) {
+    console.error("Error enviando WhatsApp de confirmación:", err);
+    return false;
+  }
+}
+
+/**
  * Envía recordatorio por WhatsApp usando la plantilla aprobada por Meta.
  * Devuelve false si:
  * - Twilio no está configurado
@@ -43,6 +70,8 @@ export async function sendReminderWhatsApp(info: ReminderWhatsAppInfo): Promise<
   if (!client || !from || !templateSid) return false;
 
   const { dateStr, time } = wallClockOf(info.startTime);
+  const daysUntil = Math.floor((info.startTime.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const dayText = daysUntil === 0 ? "hoy" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
 
   try {
     await client.messages.create({
@@ -53,7 +82,7 @@ export async function sendReminderWhatsApp(info: ReminderWhatsAppInfo): Promise<
         info.clientName,
         info.serviceName,
         info.businessName,
-        `${formatDateLong(dateStr)} a las ${time}`,
+        `${dayText}, ${formatDateLong(dateStr)} a las ${time}`,
       ]),
     });
     return true;

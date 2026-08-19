@@ -14,7 +14,9 @@ function fromNumber(): string | null {
 
 function whenText(startTime: Date): string {
   const { dateStr, time } = wallClockOf(startTime);
-  return `${formatDateLong(dateStr)} a las ${time}`;
+  const daysUntil = Math.floor((startTime.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const dayText = daysUntil === 0 ? "hoy" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
+  return `${dayText}, ${formatDateLong(dateStr)} a las ${time}`;
 }
 
 /**
@@ -38,6 +40,26 @@ type ReminderSmsInfo = {
 };
 
 /** false si Twilio no está configurado todavía, o si el envío falla — nunca lanza. */
+export async function sendConfirmationSms(info: ReminderSmsInfo): Promise<boolean> {
+  const client = getClient();
+  const from = fromNumber();
+  if (!client || !from) return false;
+
+  const when = whenText(info.startTime);
+
+  try {
+    await client.messages.create({
+      to: toE164(info.clientPhone),
+      from,
+      body: `✓ Cita confirmada con ${info.businessName}. ${info.serviceName} ${when}. Puedes cancelar o reprogramar en tu enlace. — Tu Hora Lista`,
+    });
+    return true;
+  } catch (err) {
+    console.error("Error enviando SMS de confirmación:", err);
+    return false;
+  }
+}
+
 export async function sendReminderSms(info: ReminderSmsInfo): Promise<boolean> {
   const client = getClient();
   const from = fromNumber();
@@ -49,7 +71,7 @@ export async function sendReminderSms(info: ReminderSmsInfo): Promise<boolean> {
     await client.messages.create({
       to: toE164(info.clientPhone),
       from,
-      body: `Hola ${info.clientName}, te recordamos tu cita de ${info.serviceName} con ${info.businessName} el ${when}. — Tu Hora Lista`,
+      body: `Recordatorio: tu cita de ${info.serviceName} con ${info.businessName} es ${when}. — Tu Hora Lista`,
     });
     return true;
   } catch (err) {

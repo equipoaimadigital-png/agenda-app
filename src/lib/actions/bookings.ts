@@ -18,8 +18,8 @@ import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { wallClockDate } from "@/lib/dates";
 import { sendBookingEmails } from "@/lib/email";
-import { buildWhatsappLink } from "@/lib/whatsapp";
-import { toE164 } from "@/lib/sms";
+import { buildWhatsappLink, sendConfirmationWhatsApp } from "@/lib/whatsapp";
+import { toE164, sendConfirmationSms } from "@/lib/sms";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resolveClientId } from "@/lib/actions/clients";
 import { isValidEmail } from "@/lib/validation";
@@ -220,16 +220,33 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
 
     if (!booking) continue;
 
-    await sendBookingEmails({
-      businessName: ctx.professional.businessName,
-      serviceName: ctx.service.name,
-      clientName,
-      clientEmail,
-      clientPhone,
-      startTime,
-      professionalEmail: ctx.professional.email,
-      manageToken: booking.manageToken,
-    });
+    // Envía confirmación por email, WhatsApp y SMS en paralelo
+    await Promise.all([
+      sendBookingEmails({
+        businessName: ctx.professional.businessName,
+        serviceName: ctx.service.name,
+        clientName,
+        clientEmail,
+        clientPhone,
+        startTime,
+        professionalEmail: ctx.professional.email,
+        manageToken: booking.manageToken,
+      }),
+      sendConfirmationWhatsApp({
+        businessName: ctx.professional.businessName,
+        serviceName: ctx.service.name,
+        clientName,
+        clientPhone,
+        startTime,
+      }),
+      sendConfirmationSms({
+        businessName: ctx.professional.businessName,
+        serviceName: ctx.service.name,
+        clientName,
+        clientPhone,
+        startTime,
+      }),
+    ]);
 
     const whatsappMessage = `Hola ${clientName}, tu cita para ${ctx.service.name} con ${ctx.professional.businessName} quedó confirmada. Detalle: ${process.env.NEXT_PUBLIC_SITE_URL}/reserva/${booking.manageToken}`;
 
@@ -331,16 +348,33 @@ export async function createManualBooking(formData: FormData): Promise<{ error?:
     return { error: "Ese horario ya está ocupado por otra cita de este profesional." };
   }
 
-  await sendBookingEmails({
-    businessName: professional.businessName,
-    serviceName: service.name,
-    clientName,
-    clientEmail,
-    clientPhone,
-    startTime,
-    professionalEmail: professional.email,
-    manageToken: booking.manageToken,
-  });
+  // Envía confirmación por email, WhatsApp y SMS en paralelo
+  await Promise.all([
+    sendBookingEmails({
+      businessName: professional.businessName,
+      serviceName: service.name,
+      clientName,
+      clientEmail,
+      clientPhone,
+      startTime,
+      professionalEmail: professional.email,
+      manageToken: booking.manageToken,
+    }),
+    sendConfirmationWhatsApp({
+      businessName: professional.businessName,
+      serviceName: service.name,
+      clientName,
+      clientPhone,
+      startTime,
+    }),
+    sendConfirmationSms({
+      businessName: professional.businessName,
+      serviceName: service.name,
+      clientName,
+      clientPhone,
+      startTime,
+    }),
+  ]);
 
   revalidatePath("/dashboard");
   return {};
