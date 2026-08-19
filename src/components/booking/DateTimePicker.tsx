@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getAvailableSlots, getMonthAvailability } from "@/lib/actions/bookings";
 import type { DaySuggestion, StaffSelection } from "@/lib/booking-logic";
 import { formatDateLong, parseDateStr, toDateStr } from "@/lib/dates";
@@ -34,24 +34,40 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
   const [slots, setSlots] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<DaySuggestion[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  // Caché local de meses cargados (key: "YYYY-MM")
+  const [monthCache, setMonthCache] = useState<Map<string, string[]>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
-    setLoadingMonth(true);
     // Cambiar de profesional invalida el día/hora ya elegidos
     setSelectedDate(null);
     setSlots([]);
     setSuggestions([]);
-    getMonthAvailability(slug, serviceId, staffSelection, viewYear, viewMonth).then((dates) => {
-      if (!cancelled) {
-        setAvailableDates(new Set(dates));
-        setLoadingMonth(false);
-      }
-    });
+
+    const cacheKey = `${viewYear}-${String(viewMonth).padStart(2, "0")}`;
+    const cached = monthCache.get(cacheKey);
+
+    if (cached) {
+      // Usa caché local
+      setAvailableDates(new Set(cached));
+      setLoadingMonth(false);
+    } else {
+      // Carga desde servidor
+      setLoadingMonth(true);
+      getMonthAvailability(slug, serviceId, staffSelection, viewYear, viewMonth).then((dates) => {
+        if (!cancelled) {
+          // Almacena en caché
+          setMonthCache((prev) => new Map(prev).set(cacheKey, dates));
+          setAvailableDates(new Set(dates));
+          setLoadingMonth(false);
+        }
+      });
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [slug, serviceId, staffSelection, viewYear, viewMonth]);
+  }, [slug, serviceId, staffSelection, viewYear, viewMonth, monthCache]);
 
   const selectDate = useCallback(
     (dateStr: string) => {
