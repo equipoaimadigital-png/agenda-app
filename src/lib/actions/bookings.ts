@@ -238,6 +238,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
         clientName,
         clientPhone,
         startTime,
+        manageToken: booking.manageToken,
       }),
       sendConfirmationSms({
         businessName: ctx.professional.businessName,
@@ -245,6 +246,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
         clientName,
         clientPhone,
         startTime,
+        manageToken: booking.manageToken,
       }),
     ]);
 
@@ -366,6 +368,7 @@ export async function createManualBooking(formData: FormData): Promise<{ error?:
       clientName,
       clientPhone,
       startTime,
+      manageToken: booking.manageToken,
     }),
     sendConfirmationSms({
       businessName: professional.businessName,
@@ -373,6 +376,7 @@ export async function createManualBooking(formData: FormData): Promise<{ error?:
       clientName,
       clientPhone,
       startTime,
+      manageToken: booking.manageToken,
     }),
   ]);
 

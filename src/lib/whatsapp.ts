@@ -23,6 +23,7 @@ type ReminderWhatsAppInfo = {
   clientName: string;
   clientPhone: string;
   startTime: Date;
+  manageToken?: string; // opcional para recordatorios
 };
 
 /**
@@ -37,7 +38,10 @@ export async function sendConfirmationWhatsApp(info: ReminderWhatsAppInfo): Prom
   if (!client || !from) return false;
 
   const { dateStr, time } = wallClockOf(info.startTime);
-  const message = `✅ *Reserva confirmada*\n\n${info.clientName}, tu cita está confirmada:\n\n📅 ${formatDateLong(dateStr)}\n⏰ ${time}\n💼 ${info.serviceName}\n🏢 ${info.businessName}\n\nSi necesitas cancelar o reprogramar, puedes hacerlo desde tu enlace de gestión de cita.`;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tuhoralista.app";
+  const manageLink = info.manageToken ? `${siteUrl}/reserva/${info.manageToken}` : "";
+  const linkText = manageLink ? `\n\n🔗 *Gestiona tu cita:*\n${manageLink}` : "\n\nSi necesitas cancelar o reprogramar, puedes hacerlo desde tu enlace de gestión de cita.";
+  const message = `✅ *Reserva confirmada*\n\n${info.clientName}, tu cita está confirmada:\n\n📅 ${formatDateLong(dateStr)}\n⏰ ${time}\n💼 ${info.serviceName}\n🏢 ${info.businessName}${linkText}`;
 
   try {
     await client.messages.create({

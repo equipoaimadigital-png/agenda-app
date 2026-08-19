@@ -37,6 +37,7 @@ type ReminderSmsInfo = {
   clientName: string;
   clientPhone: string;
   startTime: Date;
+  manageToken?: string; // opcional para recordatorios
 };
 
 /** false si Twilio no está configurado todavía, o si el envío falla — nunca lanza. */
@@ -46,12 +47,15 @@ export async function sendConfirmationSms(info: ReminderSmsInfo): Promise<boolea
   if (!client || !from) return false;
 
   const when = whenText(info.startTime);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tuhoralista.app";
+  const manageLink = info.manageToken ? `${siteUrl}/reserva/${info.manageToken}` : "";
+  const linkText = manageLink ? ` Gestiona tu cita: ${manageLink}` : " Puedes cancelar o reprogramar en tu enlace.";
 
   try {
     await client.messages.create({
       to: toE164(info.clientPhone),
       from,
-      body: `✓ Cita confirmada con ${info.businessName}. ${info.serviceName} ${when}. Puedes cancelar o reprogramar en tu enlace. — Tu Hora Lista`,
+      body: `✓ Cita confirmada con ${info.businessName}. ${info.serviceName} ${when}.${linkText} — Tu Hora Lista`,
     });
     return true;
   } catch (err) {
