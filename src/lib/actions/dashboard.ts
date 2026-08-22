@@ -6,7 +6,7 @@ import { HeadingFont, HeadingSize } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional, getPrimaryStaffId, verifyStaffOwnership } from "@/lib/auth-helpers";
 import { sendCancellationEmails } from "@/lib/email";
-import { wallClockDate } from "@/lib/dates";
+import { nowInTimeZone, wallClockDate } from "@/lib/dates";
 import { contrastRatio } from "@/lib/color-contrast";
 
 const HEADING_FONTS: HeadingFont[] = ["FRAUNCES", "PLAYFAIR", "POPPINS", "WORK_SANS"];
@@ -168,6 +168,11 @@ export async function addDateException(formData: FormData): Promise<void> {
   const date = String(formData.get("date") || "");
   const reason = String(formData.get("reason") || "").trim() || null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+
+  // No tiene sentido bloquear un día que ya pasó — compara contra "hoy" en
+  // la zona horaria del negocio, no la del servidor (UTC).
+  const { dateStr: todayStr } = nowInTimeZone(professional.timezone);
+  if (date < todayStr) return;
 
   await prisma.dateException.upsert({
     where: { staffId_date: { staffId, date } },
