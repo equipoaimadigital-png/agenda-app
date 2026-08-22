@@ -22,7 +22,7 @@ import { buildWhatsappLink, sendConfirmationWhatsApp } from "@/lib/whatsapp";
 import { toE164, sendConfirmationSms } from "@/lib/sms";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resolveClientId } from "@/lib/actions/clients";
-import { isValidEmail } from "@/lib/validation";
+import { isValidEmail, sanitizeCustomAnswer } from "@/lib/validation";
 
 export type StaffOptionView = { id: string; name: string; color: string };
 
@@ -103,10 +103,7 @@ export type CreateBookingResult = {
 
 export async function createPublicBooking(formData: FormData): Promise<CreateBookingResult> {
   // Rate limiting: máx 30 reservas por IP en 60 segundos
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0].trim() ||
-             headersList.get("cf-connecting-ip") ||
-             "unknown";
+  const ip = getClientIp(await headers());
   if (!checkRateLimit(ip, 30, 60000)) {
     return { error: "Demasiadas solicitudes. Intenta de nuevo en unos minutos." };
   }
@@ -134,12 +131,27 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
     return { error: "Slug inválido." };
   }
 
+  // Parseo defensivo: aunque el JSON venga de nuestro propio formulario, un
+  // request forjado directo al endpoint podría mandar tipos o tamaños
+  // arbitrarios (array gigante, valores de varios MB). Se valida forma,
+  // tipo y se recorta cada campo antes de aceptarlo.
   let customAnswers: { label: string; value: string }[] | undefined;
   const customAnswersRaw = String(formData.get("customAnswers") || "");
   if (customAnswersRaw) {
     try {
       const parsed = JSON.parse(customAnswersRaw);
-      if (Array.isArray(parsed)) customAnswers = parsed;
+      if (Array.isArray(parsed)) {
+        customAnswers = parsed
+          .filter(
+            (item): item is { label: unknown; value: unknown } =>
+              item && typeof item === "object" && "label" in item && "value" in item
+          )
+          .slice(0, 20) // máx 20 preguntas personalizadas por servicio
+          .map((item) => ({
+            label: String(item.label).slice(0, 200),
+            value: sanitizeCustomAnswer(String(item.value)),
+          }));
+      }
     } catch {
       // ignora JSON inválido — nunca debería pasar desde nuestro propio formulario
     }

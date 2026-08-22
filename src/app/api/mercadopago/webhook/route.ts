@@ -65,10 +65,23 @@ export async function POST(req: Request) {
     const status = preapproval?.status ? STATUS_MAP[preapproval.status] : undefined;
 
     if (professionalId && status) {
-      await prisma.professional.update({
-        where: { id: professionalId },
-        data: { subscriptionStatus: status, mpPreapprovalId: dataId },
-      });
+      try {
+        await prisma.professional.update({
+          where: { id: professionalId },
+          data: { subscriptionStatus: status, mpPreapprovalId: dataId },
+        });
+      } catch (err) {
+        // Fallo de DB: loguear pero responder 200 igual (no reintentar)
+        console.error(
+          `Webhook MP: fallo al actualizar profesional ${professionalId} con preapproval ${dataId}:`,
+          err
+        );
+      }
+    } else if (dataId) {
+      // Preapproval inválido o sin profesionalId
+      console.warn(
+        `Webhook MP: preapproval ${dataId} sin profesionalId o status inválido. status=${preapproval?.status}`
+      );
     }
   }
 

@@ -13,13 +13,15 @@ export function isValidEmail(email: string): boolean {
   return EMAIL_REGEX.test(email);
 }
 
+/**
+ * Recorta y limpia una respuesta de campo personalizado antes de guardarla.
+ * No HTML-encodea: React ya escapa texto interpolado en JSX (ver BookingRow),
+ * así que encodear acá corrompía visualmente el texto (mostraba "&amp;"
+ * literal en vez de "&"). El límite de largo es la única protección que
+ * corresponde en este punto — la protección contra HTML crudo va donde el
+ * dato se inserta en un contexto que sí lo interpreta (emails, ver email.ts).
+ */
 export function sanitizeCustomAnswer(text: string): string {
   if (!text) return "";
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
-    .slice(0, 500); // limita a 500 chars
+  return text.replace(/[\r\n]+/g, " ").trim().slice(0, 500);
 }

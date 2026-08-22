@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const REPEAT_MS = 12 * 60 * 60 * 1000; // 12 horas
 
@@ -13,12 +13,13 @@ export function TrialWarningBanner({
   daysLeft: number;
 }) {
   const storageKey = `trialBannerDismissedAt_${professionalId}`;
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
+  // Lee localStorage al inicializar en vez de arrancar en false y corregir
+  // en un efecto — evita el parpadeo de "aparece y desaparece" en el primer render.
+  const [visible, setVisible] = useState(() => {
+    if (typeof window === "undefined") return false;
     const dismissedAt = Number(localStorage.getItem(storageKey) || 0);
-    setVisible(Date.now() - dismissedAt >= REPEAT_MS);
-  }, [storageKey]);
+    return Date.now() - dismissedAt >= REPEAT_MS;
+  });
 
   if (!visible) return null;
 

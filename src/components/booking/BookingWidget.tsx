@@ -48,6 +48,21 @@ export function BookingWidget({
 
   const service = services.find((s) => s.id === serviceId) ?? null;
 
+  // Reset al cambiar de servicio: se calcula durante el render (patrón
+  // recomendado por React para "ajustar estado cuando cambia una prop/id"),
+  // no dentro de un efecto — evita el re-render extra que provoca un
+  // setState síncrono en el cuerpo de un efecto.
+  const [prevServiceId, setPrevServiceId] = useState<string | null>(service?.id ?? null);
+  if ((service?.id ?? null) !== prevServiceId) {
+    setPrevServiceId(service?.id ?? null);
+    setStaffOptions([]);
+    setStaffSelection(ANY_STAFF);
+    setPicked(null);
+    setServiceFields([]);
+    setCustomValues({});
+    if (service) setLoadingStaff(true);
+  }
+
   function closeModal() {
     setServiceId(null);
     setPicked(null);
@@ -72,16 +87,10 @@ export function BookingWidget({
   const step3Ref = useRef<HTMLElement>(null);
 
   // Al elegir servicio, carga qué profesionales pueden realizarlo
+  // (el reset de estado al cambiar de servicio vive arriba, fuera del efecto)
   useEffect(() => {
-    if (!service) {
-      setStaffOptions([]);
-      setStaffSelection(ANY_STAFF);
-      return;
-    }
+    if (!service) return;
     let cancelled = false;
-    setLoadingStaff(true);
-    setStaffSelection(ANY_STAFF);
-    setPicked(null);
     getStaffForService(slug, service.id).then((options) => {
       if (!cancelled) {
         setStaffOptions(options);
@@ -95,11 +104,7 @@ export function BookingWidget({
 
   // Al elegir servicio, carga sus preguntas personalizadas (si tiene)
   useEffect(() => {
-    if (!service) {
-      setServiceFields([]);
-      setCustomValues({});
-      return;
-    }
+    if (!service) return;
     let cancelled = false;
     getServiceFields(service.id).then((fields) => {
       if (cancelled) return;

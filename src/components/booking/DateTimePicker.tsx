@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getAvailableSlots, getMonthAvailability } from "@/lib/actions/bookings";
 import type { DaySuggestion, StaffSelection } from "@/lib/booking-logic";
 import { formatDateLong, parseDateStr, toDateStr } from "@/lib/dates";
@@ -34,18 +34,33 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
   const [slots, setSlots] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<DaySuggestion[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  // Caché local de meses cargados (key: "YYYY-MM")
+  // Caché local de meses cargados (key: "YYYY-MM"). Se lee vía ref (no como
+  // dependencia del efecto) a propósito: el propio efecto escribe en este
+  // caché al terminar de cargar, así que si "monthCache" fuera dependencia,
+  // guardar el resultado dispararía el efecto de nuevo y borraría la
+  // fecha/hora que el cliente ya hubiera elegido mientras tanto.
   const [monthCache, setMonthCache] = useState<Map<string, string[]>>(new Map());
-
+  const monthCacheRef = useRef(monthCache);
   useEffect(() => {
-    let cancelled = false;
-    // Cambiar de profesional invalida el día/hora ya elegidos
+    monthCacheRef.current = monthCache;
+  }, [monthCache]);
+
+  // Cambiar de servicio/profesional/mes invalida el día/hora ya elegidos —
+  // se calcula durante el render (no en un efecto) para no provocar un
+  // re-render extra con un setState síncrono en el cuerpo del efecto.
+  const resetKey = `${slug}|${serviceId}|${staffSelection}|${viewYear}-${viewMonth}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (resetKey !== prevResetKey) {
+    setPrevResetKey(resetKey);
     setSelectedDate(null);
     setSlots([]);
     setSuggestions([]);
+  }
 
+  useEffect(() => {
+    let cancelled = false;
     const cacheKey = `${viewYear}-${String(viewMonth).padStart(2, "0")}`;
-    const cached = monthCache.get(cacheKey);
+    const cached = monthCacheRef.current.get(cacheKey);
 
     if (cached) {
       // Usa caché local
@@ -67,7 +82,7 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
     return () => {
       cancelled = true;
     };
-  }, [slug, serviceId, staffSelection, viewYear, viewMonth, monthCache]);
+  }, [slug, serviceId, staffSelection, viewYear, viewMonth]);
 
   const selectDate = useCallback(
     (dateStr: string) => {

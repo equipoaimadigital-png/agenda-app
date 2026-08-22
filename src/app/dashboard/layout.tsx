@@ -14,10 +14,16 @@ export default async function DashboardLayout({
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const publicUrl = professional ? `${siteUrl}/reservar/${professional.slug}` : "";
 
+  // Server Component: corre en el servidor en cada request, no hay re-render
+  // de cliente que memoizar ni riesgo de hydration mismatch. La regla de
+  // "purity" está pensada para Client Components optimizados por el React
+  // Compiler; acá es falso positivo.
+  /* eslint-disable react-hooks/purity */
   const daysLeft =
     professional?.subscriptionStatus === "TRIAL" && professional.trialEndsAt
       ? Math.ceil((professional.trialEndsAt.getTime() - Date.now()) / 86_400_000)
       : null;
+  /* eslint-enable react-hooks/purity */
 
   return (
     <div

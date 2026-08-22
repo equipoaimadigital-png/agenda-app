@@ -39,7 +39,7 @@ function wrapEmail(bodyHtml: string): string {
 }
 
 /** Convierte texto plano (con saltos de línea) a HTML seguro, escapando <, >, & */
-function escapeAndBreak(text: string): string {
+export function escapeAndBreak(text: string): string {
   const escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -80,13 +80,16 @@ export async function sendBookingEmails(info: BookingEmailInfo): Promise<void> {
   const manageUrl = `${siteUrl()}/reserva/${info.manageToken}`;
   const tasks: Promise<unknown>[] = [];
 
+  const safeName = escapeAndBreak(info.clientName);
+  const safePhone = escapeAndBreak(info.clientPhone);
+
   if (info.clientEmail) {
     tasks.push(
       client.emails.send({
         from: FROM,
         to: info.clientEmail,
         subject: `Confirmación de tu cita con ${info.businessName}`,
-        html: wrapEmail(`<p>Hola ${info.clientName},</p>
+        html: wrapEmail(`<p>Hola ${safeName},</p>
 <p>Tu cita para <strong>${info.serviceName}</strong> con <strong>${info.businessName}</strong> quedó confirmada para el <strong>${when}</strong>.</p>
 <p>Puedes ver el detalle, cancelar o reprogramar desde este link:<br/>
 <a href="${manageUrl}">${manageUrl}</a></p>
@@ -102,8 +105,8 @@ export async function sendBookingEmails(info: BookingEmailInfo): Promise<void> {
       subject: `Nueva reserva: ${info.clientName} - ${info.serviceName}`,
       html: wrapEmail(`<p>Tienes una nueva reserva.</p>
 <ul>
-  <li>Cliente: ${info.clientName}</li>
-  <li>Teléfono: ${info.clientPhone}</li>
+  <li>Cliente: ${safeName}</li>
+  <li>Teléfono: ${safePhone}</li>
   <li>Servicio: ${info.serviceName}</li>
   <li>Fecha: ${when}</li>
 </ul>`),
@@ -134,15 +137,18 @@ export async function sendCancellationEmails(info: CancellationEmailInfo): Promi
   const rebookUrl = `${siteUrl()}/reservar/${info.slug}`;
   const tasks: Promise<unknown>[] = [];
 
+  const safeName = escapeAndBreak(info.clientName);
+  const safeReason = info.reason ? escapeAndBreak(info.reason) : null;
+
   if (info.cancelledBy === "professional" && info.clientEmail) {
     tasks.push(
       client.emails.send({
         from: FROM,
         to: info.clientEmail,
         subject: `Tu cita con ${info.businessName} fue cancelada`,
-        html: wrapEmail(`<p>Hola ${info.clientName},</p>
+        html: wrapEmail(`<p>Hola ${safeName},</p>
 <p>Lamentamos informarte que tu cita para <strong>${info.serviceName}</strong> del <strong>${when}</strong> fue cancelada por ${info.businessName}.</p>
-${info.reason ? `<p>Motivo: ${info.reason}</p>` : ""}
+${safeReason ? `<p>Motivo: ${safeReason}</p>` : ""}
 <p>Puedes reagendar en el horario que más te acomode aquí:<br/>
 <a href="${rebookUrl}">${rebookUrl}</a></p>`),
       })
@@ -155,7 +161,7 @@ ${info.reason ? `<p>Motivo: ${info.reason}</p>` : ""}
         from: FROM,
         to: info.professionalEmail,
         subject: `Cancelación: ${info.clientName} - ${info.serviceName}`,
-        html: wrapEmail(`<p>${info.clientName} canceló su cita de <strong>${info.serviceName}</strong> del <strong>${when}</strong>.</p>
+        html: wrapEmail(`<p>${safeName} canceló su cita de <strong>${info.serviceName}</strong> del <strong>${when}</strong>.</p>
 <p>El horario quedó disponible de nuevo.</p>`),
       })
     );
@@ -165,7 +171,7 @@ ${info.reason ? `<p>Motivo: ${info.reason}</p>` : ""}
           from: FROM,
           to: info.clientEmail,
           subject: `Cancelaste tu cita con ${info.businessName}`,
-          html: wrapEmail(`<p>Hola ${info.clientName},</p>
+          html: wrapEmail(`<p>Hola ${safeName},</p>
 <p>Tu cita para <strong>${info.serviceName}</strong> del <strong>${when}</strong> quedó cancelada.</p>
 <p>Si quieres reagendar: <a href="${rebookUrl}">${rebookUrl}</a></p>`),
         })
@@ -196,13 +202,15 @@ export async function sendRescheduleEmails(info: RescheduleEmailInfo): Promise<v
   const manageUrl = `${siteUrl()}/reserva/${info.manageToken}`;
   const tasks: Promise<unknown>[] = [];
 
+  const safeName = escapeAndBreak(info.clientName);
+
   if (info.clientEmail) {
     tasks.push(
       client.emails.send({
         from: FROM,
         to: info.clientEmail,
         subject: `Tu cita con ${info.businessName} fue reprogramada`,
-        html: wrapEmail(`<p>Hola ${info.clientName},</p>
+        html: wrapEmail(`<p>Hola ${safeName},</p>
 <p>Tu cita para <strong>${info.serviceName}</strong> cambió del ${oldWhen} al <strong>${newWhen}</strong>.</p>
 <p>Detalle de tu reserva: <a href="${manageUrl}">${manageUrl}</a></p>`),
       })
@@ -214,7 +222,7 @@ export async function sendRescheduleEmails(info: RescheduleEmailInfo): Promise<v
       from: FROM,
       to: info.professionalEmail,
       subject: `Reprogramación: ${info.clientName} - ${info.serviceName}`,
-      html: wrapEmail(`<p>${info.clientName} reprogramó su cita de <strong>${info.serviceName}</strong>.</p>
+      html: wrapEmail(`<p>${safeName} reprogramó su cita de <strong>${info.serviceName}</strong>.</p>
 <ul>
   <li>Antes: ${oldWhen}</li>
   <li>Ahora: <strong>${newWhen}</strong></li>
@@ -245,7 +253,7 @@ export async function sendReminderEmail(info: ReminderEmailInfo): Promise<boolea
     from: FROM,
     to: info.clientEmail,
     subject: `Recordatorio: tu cita mañana con ${info.businessName}`,
-    html: wrapEmail(`<p>Hola ${info.clientName},</p>
+    html: wrapEmail(`<p>Hola ${escapeAndBreak(info.clientName)},</p>
 <p>Te recordamos tu cita para <strong>${info.serviceName}</strong> con <strong>${info.businessName}</strong> el <strong>${when}</strong>.</p>
 <p>Si necesitas cancelar o reprogramar: <a href="${manageUrl}">${manageUrl}</a></p>`),
   });

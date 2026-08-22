@@ -17,7 +17,7 @@ export function checkRateLimit(ip: string, maxRequests: number, windowMs: number
   return false;
 }
 
-export function getClientIp(headersList: any): string {
+export function getClientIp(headersList: Headers): string {
   return headersList.get("x-forwarded-for")?.split(",")[0].trim() ||
          headersList.get("cf-connecting-ip") ||
          "unknown";

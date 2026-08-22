@@ -80,27 +80,32 @@ export function CampaignForm({ businessName }: { businessName: string }) {
   const [body, setBody] = useState(templates[0].body);
   const [audience, setAudience] = useState<Audience>("ALL");
   const [customPhones, setCustomPhones] = useState<string[]>([]);
-  const [count, setCount] = useState<number | null>(null);
-  const [loadingCount, setLoadingCount] = useState(true);
+  // Para audiencia "CUSTOM" el conteo es derivado directo de customPhones —
+  // no hace falta guardarlo en estado ni un efecto, se calcula en cada render.
+  const [remoteCount, setRemoteCount] = useState<number | null>(null);
+
+  // Al cambiar de audiencia, "olvida" el conteo remoto anterior (vuelve a
+  // null = cargando) durante el render, no en un efecto — el efecto de abajo
+  // solo hace el fetch async y setea el resultado en su callback.
+  const [prevAudience, setPrevAudience] = useState(audience);
+  if (audience !== prevAudience) {
+    setPrevAudience(audience);
+    if (audience !== "CUSTOM") setRemoteCount(null);
+  }
 
   useEffect(() => {
-    if (audience === "CUSTOM") {
-      setCount(customPhones.length);
-      setLoadingCount(false);
-      return;
-    }
+    if (audience === "CUSTOM") return; // conteo ya derivado más abajo
     let cancelled = false;
-    setLoadingCount(true);
     getAudienceCount(audience).then((n) => {
-      if (!cancelled) {
-        setCount(n);
-        setLoadingCount(false);
-      }
+      if (!cancelled) setRemoteCount(n);
     });
     return () => {
       cancelled = true;
     };
-  }, [audience, customPhones]);
+  }, [audience]);
+
+  const count = audience === "CUSTOM" ? customPhones.length : remoteCount;
+  const isCountLoading = audience !== "CUSTOM" && remoteCount === null;
 
   const [state, formAction, isPending] = useActionState<
     { error?: string; sent?: number },
@@ -247,7 +252,7 @@ export function CampaignForm({ businessName }: { businessName: string }) {
         <div className="flex justify-between items-center flex-wrap gap-3 mt-1 pt-5 border-t border-border">
           <span className="text-sm font-medium text-stone flex items-center gap-1.5">
             <IconUsers className="w-4 h-4" aria-hidden />
-            {loadingCount
+            {isCountLoading
               ? "Calculando destinatarios…"
               : `Le va a llegar a ${count ?? 0} cliente${count === 1 ? "" : "s"}`}
           </span>

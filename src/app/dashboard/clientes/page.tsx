@@ -124,7 +124,9 @@ export default async function ClientesPage() {
             <Link
               key={row.id}
               href={`/dashboard/clientes/${row.id}`}
-              className="bg-surface border border-border rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 hover:border-brand active:scale-[0.99]"
+              className={`bg-surface border border-border rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 hover:border-brand active:scale-[0.99] ${
+                !row.nextBooking ? "opacity-60 grayscale hover:opacity-80" : ""
+              }`}
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">

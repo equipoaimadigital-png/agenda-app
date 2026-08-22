@@ -2,8 +2,6 @@ import Link from "next/link";
 import {
   IconCalendar,
   IconCard,
-  IconChart,
-  IconClipboard,
   IconClock,
   IconGear,
   IconMegaphone,
