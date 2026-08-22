@@ -23,10 +23,25 @@ export async function resolveClientId(
   });
 
   if (!existing) {
-    const created = await prisma.client.create({
-      data: { professionalId, phone, name, email },
-    });
-    return created.id;
+    try {
+      const created = await prisma.client.create({
+        data: { professionalId, phone, name, email },
+      });
+      return created.id;
+    } catch (err) {
+      // Carrera: dos reservas del mismo teléfono llegaron casi a la vez (dos
+      // pestañas, reintento de red) y ambas vieron "no existe" — la segunda
+      // choca contra la restricción única. En vez de fallar, usa el registro
+      // que la primera ya creó.
+      const isUniqueViolation =
+        err && typeof err === "object" && "code" in err && err.code === "P2002";
+      if (!isUniqueViolation) throw err;
+      const createdByOther = await prisma.client.findUnique({
+        where: { professionalId_phone: { professionalId, phone } },
+      });
+      if (createdByOther) return createdByOther.id;
+      throw err;
+    }
   }
 
   if (!existing.name || (!existing.email && email)) {

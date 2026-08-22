@@ -96,11 +96,12 @@ export async function createAndSendCampaign(
   let customPhones: string[] | undefined;
   if (audience === "CUSTOM") {
     try {
-      customPhones = JSON.parse(String(formData.get("customPhones") || "[]"));
+      const parsed: unknown = JSON.parse(String(formData.get("customPhones") || "[]"));
+      customPhones = Array.isArray(parsed) ? parsed.filter((p): p is string => typeof p === "string") : [];
     } catch {
       customPhones = [];
     }
-    if (!customPhones || customPhones.length === 0) {
+    if (customPhones.length === 0) {
       return { error: "Elige al menos un cliente." };
     }
   }

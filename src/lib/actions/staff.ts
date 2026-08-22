@@ -12,6 +12,22 @@ function parseServiceIds(formData: FormData): string[] {
   return formData.getAll("serviceIds").map(String);
 }
 
+/**
+ * Filtra a solo los serviceIds que de verdad pertenecen a este profesional.
+ * Sin esto, un request armado a mano con el id de un servicio ajeno crearía
+ * una fila fantasma en la tabla intermedia — inofensiva en la práctica
+ * (loadBookingContext siempre re-filtra por professionalId), pero no hay
+ * razón para permitirla.
+ */
+async function ownedServiceIds(professionalId: string, serviceIds: string[]): Promise<string[]> {
+  if (serviceIds.length === 0) return [];
+  const owned = await prisma.service.findMany({
+    where: { id: { in: serviceIds }, professionalId },
+    select: { id: true },
+  });
+  return owned.map((s) => s.id);
+}
+
 export async function createStaff(_prev: FormState, formData: FormData): Promise<FormState> {
   const professional = await getCurrentProfessional();
   if (!professional) redirect("/login");
@@ -32,12 +48,13 @@ export async function createStaff(_prev: FormState, formData: FormData): Promise
     };
   }
 
+  const validServiceIds = await ownedServiceIds(professional.id, serviceIds);
   await prisma.staff.create({
     data: {
       professionalId: professional.id,
       name,
       color,
-      services: { connect: serviceIds.map((id) => ({ id })) },
+      services: { connect: validServiceIds.map((id) => ({ id })) },
     },
   });
 
@@ -66,12 +83,13 @@ export async function updateStaff(
   if (!name) return { error: "Escribe un nombre." };
   if (!/^#[0-9a-fA-F]{6}$/.test(color)) return { error: "El color no es válido." };
 
+  const validServiceIds = await ownedServiceIds(professional.id, serviceIds);
   await prisma.staff.update({
     where: { id: staffId },
     data: {
       name,
       color,
-      services: { set: serviceIds.map((id) => ({ id })) },
+      services: { set: validServiceIds.map((id) => ({ id })) },
     },
   });
 
