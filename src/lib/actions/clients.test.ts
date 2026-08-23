@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const findUniqueMock = vi.fn();
 const createMock = vi.fn();
 const updateMock = vi.fn();
+const findFirstMock = vi.fn();
+const transactionMock = vi.fn();
+const bookingUpdateManyMock = vi.fn();
+const getCurrentProfessionalMock = vi.fn();
 
 vi.mock("@/lib/db", () => ({
   prisma: {
@@ -10,10 +14,17 @@ vi.mock("@/lib/db", () => ({
       findUnique: (...args: unknown[]) => findUniqueMock(...args),
       create: (...args: unknown[]) => createMock(...args),
       update: (...args: unknown[]) => updateMock(...args),
+      findFirst: (...args: unknown[]) => findFirstMock(...args),
     },
+    booking: {
+      updateMany: (...args: unknown[]) => bookingUpdateManyMock(...args),
+    },
+    $transaction: (...args: unknown[]) => transactionMock(...args),
   },
 }));
-vi.mock("@/lib/auth-helpers", () => ({ getCurrentProfessional: vi.fn() }));
+vi.mock("@/lib/auth-helpers", () => ({
+  getCurrentProfessional: (...args: unknown[]) => getCurrentProfessionalMock(...args),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
@@ -77,5 +88,48 @@ describe("resolveClientId", () => {
     await expect(resolveClientId("prof-1", "987446788", "Juan", null)).rejects.toThrow(
       "timeout de conexión"
     );
+  });
+});
+
+describe("anonymizeClient", () => {
+  beforeEach(() => {
+    findFirstMock.mockReset();
+    transactionMock.mockReset().mockResolvedValue(undefined);
+    bookingUpdateManyMock.mockReset();
+    getCurrentProfessionalMock.mockReset().mockResolvedValue({ id: "prof-1" });
+  });
+
+  it("borra nombre/teléfono/email/cumpleaños del cliente y de todas sus reservas", async () => {
+    findFirstMock.mockResolvedValue({ id: "client-1", professionalId: "prof-1" });
+
+    const { anonymizeClient } = await import("./clients");
+    const result = await anonymizeClient("client-1");
+
+    expect(result.error).toBeUndefined();
+    expect(transactionMock).toHaveBeenCalledOnce();
+    // Verifica que las dos operaciones de la transacción usan el mismo placeholder
+    const opsArg = transactionMock.mock.calls[0][0];
+    expect(opsArg).toHaveLength(2);
+  });
+
+  it("no permite anonimizar un cliente de otro profesional", async () => {
+    findFirstMock.mockResolvedValue(null); // findFirst con professionalId no lo encuentra
+
+    const { anonymizeClient } = await import("./clients");
+    const result = await anonymizeClient("client-ajeno");
+
+    expect(result.error).toBe("No encontramos a este cliente.");
+    expect(transactionMock).not.toHaveBeenCalled();
+  });
+
+  it("busca el cliente scopeado al professionalId de la sesión (aislamiento entre negocios)", async () => {
+    findFirstMock.mockResolvedValue({ id: "client-1", professionalId: "prof-1" });
+
+    const { anonymizeClient } = await import("./clients");
+    await anonymizeClient("client-1");
+
+    expect(findFirstMock).toHaveBeenCalledWith({
+      where: { id: "client-1", professionalId: "prof-1" },
+    });
   });
 });

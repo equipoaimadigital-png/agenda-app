@@ -6,6 +6,7 @@ import { getBusinessThresholds } from "@/lib/client-crm";
 import { computeClientSegment, SEGMENT_BADGE_CLASSES, SEGMENT_LABEL } from "@/lib/segments";
 import { formatDateLong, toDateStr } from "@/lib/dates";
 import { ClientEditForm } from "@/components/dashboard/ClientEditForm";
+import { DeleteClientButton } from "@/components/dashboard/DeleteClientButton";
 
 const MONTHS_SHORT = [
   "ene", "feb", "mar", "abr", "may", "jun",
@@ -67,6 +68,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <ClientEditForm
         client={{ id: client.id, name: client.name, phone: client.phone, email: client.email, birthday: client.birthday }}
       />
+
+      <DeleteClientButton clientId={client.id} />
 
       <section className="flex flex-col gap-3">
         <h2 className="font-semibold">Historial de servicios</h2>

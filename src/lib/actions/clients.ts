@@ -101,3 +101,48 @@ export async function updateClient(
   revalidatePath("/dashboard");
   return { success: true };
 }
+
+const REDACTED_NAME = "Cliente eliminado";
+
+/**
+ * Borra los datos personales de un cliente (derecho de eliminación, Ley
+ * 21.719). No se elimina la fila del cliente ni sus reservas — se
+ * anonimizan — porque `Booking.clientName/clientPhone/clientEmail` guardan
+ * una copia independiente de esos datos en cada cita (a propósito, para que
+ * el historial no cambie si el cliente corrige su info después). Borrar
+ * solo la ficha del CRM dejaría sus datos reales esparcidos en cada reserva
+ * pasada. Anonimizar preserva la reserva en sí (fecha, servicio, si asistió)
+ * para que no se rompan las estadísticas del negocio, pero sin nada que
+ * identifique a la persona.
+ *
+ * El teléfono no puede quedar vacío (columna requerida) ni repetirse entre
+ * clientes del mismo negocio (restricción única) — se reemplaza por un
+ * placeholder único derivado del id, no reutilizable por otro cliente.
+ */
+export async function anonymizeClient(clientId: string): Promise<{ error?: string }> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  const client = await prisma.client.findFirst({
+    where: { id: clientId, professionalId: professional.id },
+  });
+  if (!client) return { error: "No encontramos a este cliente." };
+
+  const redactedPhone = `eliminado-${client.id}`;
+
+  await prisma.$transaction([
+    prisma.client.update({
+      where: { id: clientId },
+      data: { name: null, phone: redactedPhone, email: null, birthday: null },
+    }),
+    prisma.booking.updateMany({
+      where: { clientId },
+      data: { clientName: REDACTED_NAME, clientPhone: redactedPhone, clientEmail: null },
+    }),
+  ]);
+
+  revalidatePath("/dashboard/clientes");
+  revalidatePath(`/dashboard/clientes/${clientId}`);
+  revalidatePath("/dashboard");
+  return {};
+}
