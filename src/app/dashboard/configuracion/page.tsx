@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { CoverImageUploader } from "@/components/dashboard/CoverImageUploader";
 import { ConfiguracionForm } from "@/components/dashboard/ConfiguracionForm";
+import { MercadoPagoConnectCard } from "@/components/dashboard/MercadoPagoConnectCard";
 
 const SUBSCRIPTION_LABEL: Record<string, string> = {
   TRIAL: "Prueba gratis",
@@ -10,8 +11,13 @@ const SUBSCRIPTION_LABEL: Record<string, string> = {
   CANCELLED: "Cancelada",
 };
 
-export default async function ConfiguracionPage() {
+export default async function ConfiguracionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mp_connect_error?: string }>;
+}) {
   const professional = await requireDashboardAccess();
+  const { mp_connect_error } = await searchParams;
 
   return (
     <div className="flex flex-col gap-6 max-w-xl">
@@ -36,6 +42,12 @@ export default async function ConfiguracionPage() {
           Ver detalle
         </Link>
       </section>
+
+      <MercadoPagoConnectCard
+        connected={!!professional.mpConnectedUserId}
+        connectedAt={professional.mpConnectedAt}
+        initialError={mp_connect_error === "1"}
+      />
 
       <div className="bg-surface border border-border rounded-xl p-4">
         <CoverImageUploader currentUrl={professional.coverImageUrl} />
