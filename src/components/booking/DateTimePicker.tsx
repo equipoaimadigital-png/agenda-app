@@ -169,6 +169,8 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
                 type="button"
                 disabled={disabled}
                 onClick={() => selectDate(dateStr)}
+                aria-pressed={isSelected}
+                aria-label={`${formatDateLong(dateStr)}${disabled ? ", sin horarios disponibles" : ""}`}
                 className={`h-9 rounded-lg text-sm transition-all ${
                   isSelected
                     ? "bg-brand text-brand-foreground font-semibold shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)]"
@@ -212,6 +214,7 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
                     key={slot}
                     type="button"
                     onClick={() => onPick(selectedDate, slot)}
+                    aria-pressed={isPicked}
                     className={`border rounded-lg px-3.5 py-2 text-sm font-semibold transition-all ${
                       i < 6 ? "slot-in" : ""
                     } ${

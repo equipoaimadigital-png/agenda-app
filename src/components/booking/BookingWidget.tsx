@@ -370,9 +370,15 @@ export function BookingWidget({
                         value={fields.name}
                         onChange={(e) => setFields((f) => ({ ...f, name: e.target.value }))}
                         onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+                        aria-invalid={!!nameError}
+                        aria-describedby={nameError ? "clientName-error" : undefined}
                         className={`border rounded-lg px-3 py-2.5 bg-surface ${nameError ? "border-danger" : "border-border"}`}
                       />
-                      {nameError && <p className="text-xs text-danger">{nameError}</p>}
+                      {nameError && (
+                        <p id="clientName-error" role="alert" className="text-xs text-danger">
+                          {nameError}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-1">
@@ -386,9 +392,15 @@ export function BookingWidget({
                         value={fields.phone}
                         onChange={(e) => setFields((f) => ({ ...f, phone: e.target.value }))}
                         onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                        aria-invalid={!!phoneError}
+                        aria-describedby={phoneError ? "clientPhone-error" : undefined}
                         className={`border rounded-lg px-3 py-2.5 bg-surface ${phoneError ? "border-danger" : "border-border"}`}
                       />
-                      {phoneError && <p className="text-xs text-danger">{phoneError}</p>}
+                      {phoneError && (
+                        <p id="clientPhone-error" role="alert" className="text-xs text-danger">
+                          {phoneError}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-1">
@@ -402,13 +414,21 @@ export function BookingWidget({
                         value={fields.email}
                         onChange={(e) => setFields((f) => ({ ...f, email: e.target.value }))}
                         onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                        aria-invalid={!!emailError}
+                        aria-describedby={emailError ? "clientEmail-error" : undefined}
                         className={`border rounded-lg px-3 py-2.5 bg-surface ${emailError ? "border-danger" : "border-border"}`}
                       />
-                      {emailError && <p className="text-xs text-danger">{emailError}</p>}
+                      {emailError && (
+                        <p id="clientEmail-error" role="alert" className="text-xs text-danger">
+                          {emailError}
+                        </p>
+                      )}
                     </div>
 
                     {state.error && (
-                      <p className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">{state.error}</p>
+                      <p role="alert" className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">
+                        {state.error}
+                      </p>
                     )}
 
                     <button
