@@ -65,6 +65,14 @@ model Professional {
   // ID de la suscripción (Preapproval) en Mercado Pago, una vez autorizada
   mpPreapprovalId    String?
 
+  // Cuenta de Mercado Pago del PROFESIONAL, conectada vía OAuth (Marketplace)
+  // para que los depósitos de sus clientes le lleguen directo a él — nunca
+  // pasan por la cuenta de la plataforma. Ausente = no puede pedir depósito.
+  mpConnectedUserId       String?
+  mpConnectedAccessToken  String?
+  mpConnectedRefreshToken String?
+  mpConnectedAt           DateTime?
+
   staff     Staff[]
   services  Service[]
   bookings  Booking[]
@@ -130,6 +138,10 @@ model Service {
   durationMin    Int
   price          Int?
   priceType      ServicePriceType @default(FIXED)
+  // Monto en CLP que el cliente paga como depósito para confirmar la
+  // reserva. Null = sin depósito (comportamiento actual). Solo tiene efecto
+  // si el profesional ya conectó su cuenta de Mercado Pago.
+  depositAmount  Int?
   active         Boolean          @default(true)
   createdAt      DateTime         @default(now())
 
@@ -214,6 +226,10 @@ model DateException {
 }
 
 enum BookingStatus {
+  // Servicio pide depósito y el cliente todavía no completa el pago — el
+  // horario queda retenido igual que CONFIRMED, pero se libera solo si el
+  // pago no llega dentro del plazo (ver /api/cron/expire-pending-bookings).
+  PENDING_PAYMENT
   CONFIRMED
   CANCELLED
   COMPLETED
@@ -250,6 +266,13 @@ model Booking {
   endTime        DateTime
   status         BookingStatus @default(CONFIRMED)
   source         BookingSource @default(ONLINE)
+  // Depósito pedido por el servicio al momento de esta reserva (snapshot —
+  // no cambia si el profesional edita el precio del servicio después).
+  depositAmount    Int?
+  // ID del pago en Mercado Pago, para que el profesional lo ubique y
+  // reembolse a mano desde su propia cuenta si corresponde.
+  depositPaymentId String?
+  depositPaidAt    DateTime?
   // Token del link único de gestión que recibe el cliente (ver /reserva/[token])
   manageToken    String        @unique @default(uuid())
   // Nota interna del profesional sobre el cliente/cita (no visible para el cliente)

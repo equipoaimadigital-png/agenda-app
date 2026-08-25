@@ -75,7 +75,9 @@ export async function hasOverlappingBooking(
   const overlapping = await tx.booking.findFirst({
     where: {
       staffId,
-      status: "CONFIRMED",
+      // PENDING_PAYMENT también retiene el horario — un cliente pagando un
+      // depósito no debe perder su cupo frente a otro que reserva mientras tanto.
+      status: { in: ["CONFIRMED", "PENDING_PAYMENT"] },
       startTime: { lt: endTime },
       endTime: { gt: startTime },
       ...(excludeBookingId ? { id: { not: excludeBookingId } } : {}),
@@ -142,7 +144,7 @@ async function busyRangesFor(staffId: string, dateStr: string) {
   const dayStart = wallClockDate(dateStr, "00:00");
   const dayEnd = wallClockDate(dateStr, "23:59");
   const existing = await prisma.booking.findMany({
-    where: { staffId, status: "CONFIRMED", startTime: { gte: dayStart, lte: dayEnd } },
+    where: { staffId, status: { in: ["CONFIRMED", "PENDING_PAYMENT"] }, startTime: { gte: dayStart, lte: dayEnd } },
     select: { startTime: true, endTime: true },
   });
   return existing.map((b) => ({
@@ -205,7 +207,7 @@ export async function monthAvailability(
   const bookings = await prisma.booking.findMany({
     where: {
       staffId: { in: staffIds },
-      status: "CONFIRMED",
+      status: { in: ["CONFIRMED", "PENDING_PAYMENT"] },
       startTime: { gte: monthStart, lte: monthEnd },
     },
     select: { staffId: true, startTime: true, endTime: true },
