@@ -128,3 +128,25 @@ export function IconHelp(props: IconProps) {
     props
   );
 }
+
+export function IconWallet(props: IconProps) {
+  return base(
+    <>
+      <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H16a1 1 0 0 1 1 1v1" />
+      <rect x="3.5" y="8" width="17" height="11.5" rx="2.5" />
+      <path d="M20.5 12.5H16.5a2 2 0 0 0 0 4h4" />
+      <circle cx="16.4" cy="14.5" r="0.15" fill="currentColor" stroke="none" />
+    </>,
+    props
+  );
+}
+
+export function IconSearch(props: IconProps) {
+  return base(
+    <>
+      <circle cx="11" cy="11" r="6.2" />
+      <path d="m20 20-4.3-4.3" />
+    </>,
+    props
+  );
+}
