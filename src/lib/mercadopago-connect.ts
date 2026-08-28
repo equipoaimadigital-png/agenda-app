@@ -1,3 +1,5 @@
+import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
+
 const MP_OAUTH_AUTHORIZE_URL = "https://auth.mercadopago.com/authorization";
 const MP_OAUTH_TOKEN_URL = "https://api.mercadopago.com/oauth/token";
 
@@ -69,4 +71,65 @@ export async function exchangeCodeForToken(code: string): Promise<TokenExchangeR
     console.error("Error de red conectando con Mercado Pago:", err);
     return { error: "No se pudo conectar con Mercado Pago." };
   }
+}
+
+/**
+ * Crea el checkout de pago único del depósito, usando el access token DEL
+ * PROFESIONAL (nunca el de la plataforma) — así el dinero cae directo en su
+ * cuenta. `external_reference` es el id de la reserva (interno, no el
+ * manageToken que ve el cliente), para que el webhook sepa cuál confirmar
+ * sin tener que confiar en nada que venga del navegador.
+ */
+export async function createDepositPreference(params: {
+  professionalAccessToken: string;
+  bookingId: string;
+  manageToken: string;
+  amount: number;
+  serviceName: string;
+  businessName: string;
+  payerEmail?: string | null;
+}): Promise<{ initPoint: string } | { error: string }> {
+  const client = new MercadoPagoConfig({ accessToken: params.professionalAccessToken });
+  const preference = new Preference(client);
+  const backUrl = `${siteUrl()}/reserva/${params.manageToken}`;
+
+  try {
+    const result = await preference.create({
+      body: {
+        items: [
+          {
+            id: params.bookingId,
+            title: `Depósito — ${params.serviceName} (${params.businessName})`,
+            quantity: 1,
+            unit_price: params.amount,
+            currency_id: "CLP",
+          },
+        ],
+        external_reference: params.bookingId,
+        payer: params.payerEmail ? { email: params.payerEmail } : undefined,
+        back_urls: { success: backUrl, pending: backUrl, failure: backUrl },
+        auto_return: "approved",
+        notification_url: `${siteUrl()}/api/mercadopago/webhook`,
+      },
+    });
+
+    if (!result.init_point) {
+      return { error: "Mercado Pago no devolvió un link de pago válido." };
+    }
+    return { initPoint: result.init_point };
+  } catch (err) {
+    console.error("Error creando preferencia de depósito en Mercado Pago:", err);
+    return { error: "No se pudo iniciar el cobro del depósito." };
+  }
+}
+
+/**
+ * Reconsulta un pago directo a la API de Mercado Pago (nunca confiar en el
+ * cuerpo del webhook). Usa el access token del profesional dueño de la
+ * reserva — el mismo con el que se creó la preferencia.
+ */
+export async function fetchPayment(accessToken: string, paymentId: string) {
+  const client = new MercadoPagoConfig({ accessToken });
+  const payment = new Payment(client);
+  return payment.get({ id: paymentId });
 }

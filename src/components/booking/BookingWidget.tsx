@@ -129,6 +129,12 @@ export function BookingWidget({
   const [state, formAction, isPending] = useActionState<CreateBookingResult, FormData>(
     async (_prev, formData) => {
       const result = await createPublicBooking(formData);
+      if (result.redirectUrl) {
+        // El servicio pide depósito: al checkout de Mercado Pago directo,
+        // sin mostrar el modal de "confirmada" (todavía no lo está).
+        window.location.href = result.redirectUrl;
+        return result;
+      }
       if (result.success && result.manageToken) {
         // Muestra el modal de confirmación ANTES de redirigir
         setShowConfirmation(true);

@@ -23,6 +23,7 @@ import { toE164, sendConfirmationSms } from "@/lib/sms";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resolveClientId } from "@/lib/actions/clients";
 import { isValidEmail, sanitizeCustomAnswer } from "@/lib/validation";
+import { createDepositPreference } from "@/lib/mercadopago-connect";
 
 export type StaffOptionView = { id: string; name: string; color: string };
 
@@ -99,6 +100,8 @@ export type CreateBookingResult = {
   success?: boolean;
   manageToken?: string;
   whatsappLink?: string;
+  /** Si el servicio pide depósito, hay que mandar al cliente a pagarlo antes de confirmar. */
+  redirectUrl?: string;
 };
 
 export async function createPublicBooking(formData: FormData): Promise<CreateBookingResult> {
@@ -210,6 +213,12 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
     const available = await daySlots(ctx, option.staff.id, dateStr);
     if (!available.includes(time)) continue;
 
+    // Requiere depósito solo si el profesional tiene su cuenta de Mercado
+    // Pago conectada — sin eso no hay a dónde mandar el cobro, así que se
+    // ignora silenciosamente y la reserva se confirma directo (mismo
+    // comportamiento de antes de que existiera esta función).
+    const requiresDeposit = !!ctx.service.depositAmount && !!ctx.professional.mpConnectedAccessToken;
+
     const booking = await withStaffLock(option.staff.id, async (tx) => {
       if (await hasOverlappingBooking(tx, option.staff.id, startTime, endTime)) {
         return null;
@@ -226,11 +235,38 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
           customAnswers,
           startTime,
           endTime,
+          status: requiresDeposit ? "PENDING_PAYMENT" : "CONFIRMED",
+          depositAmount: requiresDeposit ? ctx.service.depositAmount : null,
         },
       });
     });
 
     if (!booking) continue;
+
+    if (requiresDeposit) {
+      // No se manda ninguna notificación de "confirmada" todavía — el
+      // cliente primero tiene que pagar. El webhook de Mercado Pago es
+      // quien dispara los avisos, una vez que el pago realmente se acredita.
+      const preference = await createDepositPreference({
+        professionalAccessToken: ctx.professional.mpConnectedAccessToken!,
+        bookingId: booking.id,
+        manageToken: booking.manageToken,
+        amount: ctx.service.depositAmount!,
+        serviceName: ctx.service.name,
+        businessName: ctx.professional.businessName,
+        payerEmail: clientEmail,
+      });
+
+      if ("error" in preference) {
+        // No se pudo generar el cobro — no dejamos la reserva colgada
+        // reteniendo el horario sin forma de pagarla.
+        await prisma.booking.update({ where: { id: booking.id }, data: { status: "CANCELLED" } });
+        return { error: preference.error };
+      }
+
+      revalidatePath("/dashboard");
+      return { success: true, manageToken: booking.manageToken, redirectUrl: preference.initPoint };
+    }
 
     // Envía confirmación por email, WhatsApp y SMS en paralelo
     await Promise.all([

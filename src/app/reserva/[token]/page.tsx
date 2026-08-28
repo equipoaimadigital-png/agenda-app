@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ManageBookingActions } from "@/components/booking/ManageBookingActions";
+import { PayDepositButton } from "@/components/booking/PayDepositButton";
 import { Seal } from "@/components/ui/Seal";
 import { buildGoogleCalendarUrl, formatDateLong, wallClockOf } from "@/lib/dates";
 
@@ -16,6 +17,7 @@ type PageProps = {
 };
 
 const STATUS_LABEL: Record<string, { text: string; classes: string }> = {
+  PENDING_PAYMENT: { text: "Pendiente de pago", classes: "bg-warning-soft text-warning" },
   CONFIRMED: { text: "Confirmada", classes: "bg-success-soft text-success" },
   CANCELLED: { text: "Cancelada", classes: "bg-danger-soft text-danger" },
   COMPLETED: { text: "Completada", classes: "bg-brand-soft text-brand" },
@@ -144,6 +146,16 @@ export default async function MiReservaPage({ params, searchParams }: PageProps)
             </p>
           )}
         </div>
+
+        {booking.status === "PENDING_PAYMENT" && booking.depositAmount && (
+          <div className="bg-surface border border-border rounded-xl p-5 flex flex-col gap-3 text-center">
+            <p className="text-sm text-stone">
+              Este horario está reservado para ti, pero todavía falta pagar el depósito para
+              confirmarlo. Si cerraste la ventana de pago sin terminar, puedes intentar de nuevo aquí.
+            </p>
+            <PayDepositButton token={token} amount={booking.depositAmount} />
+          </div>
+        )}
 
         {booking.status === "CONFIRMED" && (
           <div className="flex flex-col sm:flex-row gap-3">

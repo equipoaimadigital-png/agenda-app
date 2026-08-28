@@ -10,6 +10,7 @@ import {
 } from "@/lib/booking-logic";
 import { minutesToTime, nowInTimeZone, wallClockDate } from "@/lib/dates";
 import { sendCancellationEmails, sendRescheduleEmails } from "@/lib/email";
+import { createDepositPreference } from "@/lib/mercadopago-connect";
 
 /**
  * ¿La cita todavía se puede modificar según la política del negocio?
@@ -137,4 +138,33 @@ export async function rescheduleBookingByToken(
   revalidatePath(`/reserva/${token}`);
   revalidatePath("/dashboard");
   return {};
+}
+
+/**
+ * Genera un link de pago nuevo para una reserva PENDING_PAYMENT — por si el
+ * cliente cerró el checkout de Mercado Pago sin terminar, o el link
+ * original venció. No cambia ningún dato de la reserva, solo crea una
+ * preferencia de cobro nueva para el mismo depósito.
+ */
+export async function resumeDepositPayment(token: string): Promise<{ url?: string; error?: string }> {
+  const booking = await loadByToken(token);
+  if (!booking || booking.status !== "PENDING_PAYMENT") {
+    return { error: "Esta reserva no tiene un pago pendiente." };
+  }
+  if (!booking.professional.mpConnectedAccessToken || !booking.depositAmount) {
+    return { error: "No se pudo generar el link de pago. Contacta al negocio." };
+  }
+
+  const preference = await createDepositPreference({
+    professionalAccessToken: booking.professional.mpConnectedAccessToken,
+    bookingId: booking.id,
+    manageToken: token,
+    amount: booking.depositAmount,
+    serviceName: booking.service.name,
+    businessName: booking.professional.businessName,
+    payerEmail: booking.clientEmail,
+  });
+
+  if ("error" in preference) return preference;
+  return { url: preference.initPoint };
 }

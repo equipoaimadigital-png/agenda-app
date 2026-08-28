@@ -2,6 +2,10 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { fetchPreapproval } from "@/lib/mercadopago";
+import { fetchPayment } from "@/lib/mercadopago-connect";
+import { sendBookingEmails } from "@/lib/email";
+import { sendConfirmationWhatsApp } from "@/lib/whatsapp";
+import { sendConfirmationSms } from "@/lib/sms";
 
 /**
  * Verifica la firma que manda Mercado Pago según su algoritmo documentado:
@@ -85,5 +89,85 @@ export async function POST(req: Request) {
     }
   }
 
+  if (type === "payment") {
+    await handleDepositPayment(dataId);
+  }
+
   return new Response("ok", { status: 200 });
+}
+
+const FAILED_PAYMENT_STATUSES = new Set(["rejected", "cancelled"]);
+
+/**
+ * Confirma (o libera) una reserva PENDING_PAYMENT cuando llega el aviso de
+ * un pago de depósito. Se consulta con el access token de la PLATAFORMA
+ * (no el del profesional) — Mercado Pago permite a la aplicación dueña del
+ * client_id ver cualquier pago hecho a través de sus cuentas conectadas,
+ * así se evita el problema de "no sé de qué profesional es este pago hasta
+ * consultarlo".
+ */
+async function handleDepositPayment(paymentId: string): Promise<void> {
+  const platformToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  if (!platformToken) return;
+
+  const payment = await fetchPayment(platformToken, paymentId).catch((err) => {
+    console.error(`Webhook MP: error consultando pago ${paymentId}:`, err);
+    return null;
+  });
+
+  const bookingId = payment?.external_reference;
+  if (!bookingId) return;
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { professional: true, service: true },
+  });
+  // Ya no está pendiente (webhook duplicado, o alguien la canceló mientras
+  // tanto) — no hay nada que hacer.
+  if (!booking || booking.status !== "PENDING_PAYMENT") return;
+
+  if (payment?.status === "approved") {
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: "CONFIRMED", depositPaymentId: paymentId, depositPaidAt: new Date() },
+    });
+
+    // Recién ahora se avisa — antes del pago no tenía sentido decir "confirmada"
+    await Promise.all([
+      sendBookingEmails({
+        businessName: booking.professional.businessName,
+        serviceName: booking.service.name,
+        clientName: booking.clientName,
+        clientEmail: booking.clientEmail,
+        clientPhone: booking.clientPhone,
+        startTime: booking.startTime,
+        professionalEmail: booking.professional.email,
+        manageToken: booking.manageToken,
+      }),
+      sendConfirmationWhatsApp({
+        businessName: booking.professional.businessName,
+        serviceName: booking.service.name,
+        clientName: booking.clientName,
+        clientPhone: booking.clientPhone,
+        startTime: booking.startTime,
+        manageToken: booking.manageToken,
+      }),
+      sendConfirmationSms({
+        businessName: booking.professional.businessName,
+        serviceName: booking.service.name,
+        clientName: booking.clientName,
+        clientPhone: booking.clientPhone,
+        startTime: booking.startTime,
+        manageToken: booking.manageToken,
+      }),
+    ]);
+  } else if (payment?.status && FAILED_PAYMENT_STATUSES.has(payment.status)) {
+    // Pago rechazado o cancelado — libera el horario para que otro cliente lo tome.
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: "CANCELLED", cancelReason: "Depósito no pagado" },
+    });
+  }
+  // Cualquier otro estado (pending, in_process) se deja como está — el
+  // cron de reservas vencidas se encarga si nunca se resuelve.
 }

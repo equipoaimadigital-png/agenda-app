@@ -17,6 +17,29 @@ import {
   wallClockOf,
 } from "@/lib/dates";
 
+// Cuánto tiempo se le da a un cliente para completar el pago del depósito
+// antes de que el horario se libere solo. No depende de que corra un cron:
+// las tres consultas de disponibilidad de abajo dejan de contar una
+// reserva PENDING_PAYMENT como "ocupada" pasado este plazo, así que el
+// sistema se autolimpia en cada lectura sin importar cada cuánto corre el
+// cron de limpieza (el plan gratuito de Vercel solo permite crons 1x/día).
+export const PENDING_PAYMENT_TIMEOUT_MIN = 30;
+
+function pendingPaymentCutoff(): Date {
+  return new Date(Date.now() - PENDING_PAYMENT_TIMEOUT_MIN * 60 * 1000);
+}
+
+/** Un booking retiene el horario si está CONFIRMED, o si es un depósito
+ * pendiente que todavía está dentro del plazo para pagarse. */
+function activeBookingStatusFilter(): Prisma.BookingWhereInput {
+  return {
+    OR: [
+      { status: "CONFIRMED" },
+      { status: "PENDING_PAYMENT", createdAt: { gte: pendingPaymentCutoff() } },
+    ],
+  };
+}
+
 /** Valor especial de staffId que significa "cualquiera disponible". */
 export const ANY_STAFF = "any" as const;
 export type StaffSelection = string | typeof ANY_STAFF;
@@ -76,8 +99,9 @@ export async function hasOverlappingBooking(
     where: {
       staffId,
       // PENDING_PAYMENT también retiene el horario — un cliente pagando un
-      // depósito no debe perder su cupo frente a otro que reserva mientras tanto.
-      status: { in: ["CONFIRMED", "PENDING_PAYMENT"] },
+      // depósito no debe perder su cupo frente a otro que reserva mientras
+      // tanto — pero solo mientras está dentro del plazo para pagar.
+      ...activeBookingStatusFilter(),
       startTime: { lt: endTime },
       endTime: { gt: startTime },
       ...(excludeBookingId ? { id: { not: excludeBookingId } } : {}),
@@ -144,7 +168,7 @@ async function busyRangesFor(staffId: string, dateStr: string) {
   const dayStart = wallClockDate(dateStr, "00:00");
   const dayEnd = wallClockDate(dateStr, "23:59");
   const existing = await prisma.booking.findMany({
-    where: { staffId, status: { in: ["CONFIRMED", "PENDING_PAYMENT"] }, startTime: { gte: dayStart, lte: dayEnd } },
+    where: { staffId, ...activeBookingStatusFilter(), startTime: { gte: dayStart, lte: dayEnd } },
     select: { startTime: true, endTime: true },
   });
   return existing.map((b) => ({
@@ -207,7 +231,7 @@ export async function monthAvailability(
   const bookings = await prisma.booking.findMany({
     where: {
       staffId: { in: staffIds },
-      status: { in: ["CONFIRMED", "PENDING_PAYMENT"] },
+      ...activeBookingStatusFilter(),
       startTime: { gte: monthStart, lte: monthEnd },
     },
     select: { staffId: true, startTime: true, endTime: true },
