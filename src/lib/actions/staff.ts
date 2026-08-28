@@ -125,3 +125,43 @@ export async function toggleStaffActive(staffId: string): Promise<{ error?: stri
   revalidatePath("/dashboard");
   return {};
 }
+
+/**
+ * Elimina un profesional. Si tiene citas en su historial se pausa en vez de
+ * borrarse (la FK de Booking.staff no es cascade a propósito — esas reservas
+ * no se deben perder). Nunca deja al negocio sin ningún profesional activo.
+ */
+export async function deleteStaff(staffId: string): Promise<{ error?: string; notice?: string }> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  const staff = await prisma.staff.findFirst({
+    where: { id: staffId, professionalId: professional.id },
+    select: { id: true, active: true, _count: { select: { bookings: true } } },
+  });
+  if (!staff) return { error: "No encontramos a este profesional." };
+
+  const activeCount = await prisma.staff.count({
+    where: { professionalId: professional.id, active: true },
+  });
+  if (staff.active && activeCount <= 1) {
+    return { error: "No puedes eliminar a tu único profesional activo — tu agenda quedaría sin nadie disponible." };
+  }
+
+  if (staff._count.bookings > 0) {
+    await prisma.staff.update({ where: { id: staffId }, data: { active: false } });
+    revalidatePath("/dashboard/staff");
+    revalidatePath("/dashboard");
+    revalidatePath(`/reservar/${professional.slug}`);
+    return {
+      notice:
+        "Este profesional tiene citas en su historial, así que se pausó en vez de eliminarse. Ya no aparece en tu página pública ni recibe reservas nuevas.",
+    };
+  }
+
+  await prisma.staff.delete({ where: { id: staffId } });
+  revalidatePath("/dashboard/staff");
+  revalidatePath("/dashboard");
+  revalidatePath(`/reservar/${professional.slug}`);
+  return {};
+}

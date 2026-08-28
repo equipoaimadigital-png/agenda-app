@@ -188,12 +188,12 @@ export const SECTIONS: Section[] = [
       {
         label: "Dónde se ve",
         body:
-          'En tu página pública de reservas aparece una sección "Quiénes te atienden" con el nombre y la foto de cada profesional activo. Se muestra cuando tienes más de un profesional, o cuando el único que hay subió su foto.',
+          'En tu página pública aparece una sección "Quiénes te atienden" con el nombre y la foto de cada profesional. Solo se muestran los que tienen al menos un servicio asignado — si agregaste a alguien y no aparece (ni en la lista de "Elige profesional" al reservar), es porque todavía no le marcaste ningún servicio.',
       },
       {
-        label: "Pausar un profesional",
+        label: "Pausar o eliminar un profesional",
         body:
-          'Un profesional "Pausado" deja de aparecer en tu página pública y no recibe nuevas reservas, pero conserva su historial. No puedes pausar al único profesional activo.',
+          '"Pausar" lo saca de tu página pública y de las reservas nuevas, pero conserva su historial. "Eliminar" lo borra por completo; si ya tiene citas en su historial, se pausa en vez de borrarse para no perder esas reservas. No puedes eliminar ni pausar al único profesional activo.',
       },
     ],
   },
