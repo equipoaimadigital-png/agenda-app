@@ -10,6 +10,7 @@ import {
   type ServiceFieldView,
   type StaffOptionView,
 } from "@/lib/actions/bookings";
+import type { DepositMode } from "@prisma/client";
 import { ANY_STAFF, type StaffSelection } from "@/lib/booking-logic";
 import { DateTimePicker } from "@/components/booking/DateTimePicker";
 import { ConfirmationModal } from "@/components/booking/ConfirmationModal";
@@ -23,14 +24,21 @@ type Service = {
   durationMin: number;
   price: number | null;
   priceType: ServicePriceType;
+  depositMode: DepositMode;
+  depositAmount: number | null;
 };
+
+const formatCLP = (n: number) => `$${n.toLocaleString("es-CL")}`;
 
 export function BookingWidget({
   slug,
   services,
+  depositReady,
 }: {
   slug: string;
   services: Service[];
+  /** El profesional tiene su cuenta de Mercado Pago conectada (si no, no se ofrece depósito). */
+  depositReady: boolean;
 }) {
   const router = useRouter();
   const [serviceId, setServiceId] = useState<string | null>(null);
@@ -46,7 +54,17 @@ export function BookingWidget({
   const [serviceFields, setServiceFields] = useState<ServiceFieldView[]>([]);
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
 
+  // Servicios con depósito OPTIONAL: el cliente elige si asegura su hora.
+  // Por defecto NO — la reserva sin adelanto sigue siendo el camino base.
+  const [secureHour, setSecureHour] = useState(false);
+
   const service = services.find((s) => s.id === serviceId) ?? null;
+
+  const depositAmount = service?.depositAmount ?? 0;
+  const showDeposit =
+    depositReady && !!service && service.depositMode !== "NONE" && depositAmount > 0;
+  const depositRequired = showDeposit && service?.depositMode === "REQUIRED";
+  const willPayDeposit = showDeposit && (depositRequired || secureHour);
 
   // Reset al cambiar de servicio: se calcula durante el render (patrón
   // recomendado por React para "ajustar estado cuando cambia una prop/id"),
@@ -60,6 +78,7 @@ export function BookingWidget({
     setPicked(null);
     setServiceFields([]);
     setCustomValues({});
+    setSecureHour(false);
     if (service) setLoadingStaff(true);
   }
 
@@ -303,6 +322,7 @@ export function BookingWidget({
                     <input type="hidden" name="staffId" value={staffSelection} />
                     <input type="hidden" name="date" value={picked.dateStr} />
                     <input type="hidden" name="time" value={picked.time} />
+                    <input type="hidden" name="payDeposit" value={willPayDeposit ? "1" : "0"} />
                     {serviceFields.length > 0 && (
                       <input
                         type="hidden"
@@ -431,6 +451,56 @@ export function BookingWidget({
                       )}
                     </div>
 
+                    {showDeposit && depositRequired && (
+                      <div className="bg-brand-soft rounded-lg px-3 py-2.5 text-sm">
+                        <p className="font-medium">
+                          Esta reserva se asegura con un depósito de {formatCLP(depositAmount)}.
+                        </p>
+                        <p className="text-muted mt-0.5">
+                          Al confirmar te llevamos a Mercado Pago para pagarlo. El adelanto va
+                          directo al negocio.
+                        </p>
+                      </div>
+                    )}
+
+                    {showDeposit && !depositRequired && (
+                      <fieldset className="flex flex-col gap-2">
+                        <legend className="text-sm font-medium mb-1">¿Quieres asegurar tu hora?</legend>
+                        <button
+                          type="button"
+                          onClick={() => setSecureHour(true)}
+                          aria-pressed={secureHour}
+                          className={`text-left border rounded-xl p-3 ${
+                            secureHour
+                              ? "border-brand ring-1 ring-brand bg-brand-soft"
+                              : "border-border hover:border-brand/50"
+                          }`}
+                        >
+                          <span className="font-medium block">
+                            Asegurar mi hora con {formatCLP(depositAmount)}
+                          </span>
+                          <span className="text-xs text-muted block mt-0.5">
+                            Pagas ahora por Mercado Pago. El adelanto va directo al negocio.
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSecureHour(false)}
+                          aria-pressed={!secureHour}
+                          className={`text-left border rounded-xl p-3 ${
+                            !secureHour
+                              ? "border-brand ring-1 ring-brand bg-brand-soft"
+                              : "border-border hover:border-brand/50"
+                          }`}
+                        >
+                          <span className="font-medium block">Agendar sin depósito</span>
+                          <span className="text-xs text-muted block mt-0.5">
+                            Tu hora queda reservada igual.
+                          </span>
+                        </button>
+                      </fieldset>
+                    )}
+
                     {state.error && (
                       <p role="alert" className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">
                         {state.error}
@@ -442,7 +512,13 @@ export function BookingWidget({
                       disabled={isPending || !!nameError || !!phoneError || !!emailError}
                       className="bg-brand text-brand-foreground rounded-xl px-4 py-3.5 font-semibold shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0"
                     >
-                      {isPending ? "Confirmando tu reserva…" : "Confirmar reserva"}
+                      {isPending
+                        ? willPayDeposit
+                          ? "Abriendo el pago…"
+                          : "Confirmando tu reserva…"
+                        : willPayDeposit
+                          ? `Ir a pagar depósito (${formatCLP(depositAmount)})`
+                          : "Confirmar reserva"}
                     </button>
                   </form>
                 </section>

@@ -263,6 +263,7 @@ export default async function ReservarPage({ params }: PageProps) {
         ) : (
           <BookingWidget
             slug={professional.slug}
+            depositReady={!!professional.mpConnectedUserId}
             services={professional.services.map((s) => ({
               id: s.id,
               name: s.name,
@@ -270,6 +271,8 @@ export default async function ReservarPage({ params }: PageProps) {
               durationMin: s.durationMin,
               price: s.price,
               priceType: s.priceType,
+              depositMode: s.depositMode,
+              depositAmount: s.depositAmount,
             }))}
           />
         )}

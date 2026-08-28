@@ -138,10 +138,15 @@ model Service {
   durationMin    Int
   price          Int?
   priceType      ServicePriceType @default(FIXED)
-  // Monto en CLP que el cliente paga como depósito para confirmar la
-  // reserva. Null = sin depósito (comportamiento actual). Solo tiene efecto
-  // si el profesional ya conectó su cuenta de Mercado Pago.
+  // Monto en CLP del depósito de este servicio. Solo tiene efecto si además
+  // depositMode != NONE y el profesional conectó su cuenta de Mercado Pago.
   depositAmount  Int?
+  // Cómo se aplica el depósito:
+  //  NONE     = nunca se pide (por defecto).
+  //  OPTIONAL = el cliente decide en la página pública si asegura su hora
+  //             pagando el adelanto o agenda sin él.
+  //  REQUIRED = obligatorio: la reserva no se confirma hasta que se paga.
+  depositMode    DepositMode      @default(NONE)
   active         Boolean          @default(true)
   createdAt      DateTime         @default(now())
 
@@ -155,6 +160,15 @@ model Service {
 // FIXED: precio informativo fijo (ej. corte de pelo). FROM: precio desde X,
 // para servicios cuyo costo final varía (ej. consultoría por horas).
 // QUOTE: sin precio público, se cotiza en la consulta (ej. estudio jurídico).
+// NONE: el servicio nunca pide depósito. OPTIONAL: el cliente elige en la
+// página pública si asegura su hora con el adelanto. REQUIRED: obligatorio
+// para confirmar la reserva.
+enum DepositMode {
+  NONE
+  OPTIONAL
+  REQUIRED
+}
+
 enum ServicePriceType {
   FIXED
   FROM

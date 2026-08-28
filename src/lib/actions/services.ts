@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { FieldType, ServicePriceType } from "@prisma/client";
+import { DepositMode, FieldType, ServicePriceType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 
@@ -19,6 +19,22 @@ function parseDepositAmount(raw: FormDataEntryValue | null, mpConnectedUserId: s
   return Math.round(value);
 }
 
+/**
+ * El modo solo puede quedar en OPTIONAL/REQUIRED si hay cuenta de Mercado
+ * Pago conectada y un monto válido — si falta cualquiera de los dos, se
+ * fuerza a NONE para no dejar servicios "pidiendo depósito" que no se
+ * pueden cobrar.
+ */
+function parseDepositMode(
+  raw: FormDataEntryValue | null,
+  mpConnectedUserId: string | null,
+  amount: number | null
+): DepositMode {
+  if (!mpConnectedUserId || !amount) return DepositMode.NONE;
+  const value = String(raw || "");
+  return value === "OPTIONAL" || value === "REQUIRED" ? (value as DepositMode) : DepositMode.NONE;
+}
+
 export async function createService(formData: FormData) {
   const professional = await getCurrentProfessional();
   if (!professional) redirect("/login");
@@ -33,6 +49,11 @@ export async function createService(formData: FormData) {
   // "A cotizar" no lleva precio público — cualquier valor ingresado se ignora.
   const price = priceType !== "QUOTE" && priceRaw ? Number(priceRaw) : null;
   const depositAmount = parseDepositAmount(formData.get("depositAmount"), professional.mpConnectedUserId);
+  const depositMode = parseDepositMode(
+    formData.get("depositMode"),
+    professional.mpConnectedUserId,
+    depositAmount
+  );
 
   if (!name || !durationMin || durationMin <= 0) {
     return;
@@ -56,6 +77,7 @@ export async function createService(formData: FormData) {
       price,
       priceType,
       depositAmount,
+      depositMode,
       staff: { connect: activeStaff.map((s) => ({ id: s.id })) },
     },
   });
@@ -63,7 +85,7 @@ export async function createService(formData: FormData) {
   revalidatePath("/dashboard/servicios");
 }
 
-/** Cambia (o quita) el depósito de un servicio ya existente. */
+/** Cambia el modo y el monto del depósito de un servicio ya existente. */
 export async function updateServiceDeposit(serviceId: string, formData: FormData): Promise<void> {
   const professional = await getCurrentProfessional();
   if (!professional) redirect("/login");
@@ -74,10 +96,15 @@ export async function updateServiceDeposit(serviceId: string, formData: FormData
   if (!service) return;
 
   const depositAmount = parseDepositAmount(formData.get("depositAmount"), professional.mpConnectedUserId);
+  const depositMode = parseDepositMode(
+    formData.get("depositMode"),
+    professional.mpConnectedUserId,
+    depositAmount
+  );
 
   await prisma.service.update({
     where: { id: serviceId },
-    data: { depositAmount },
+    data: { depositAmount, depositMode },
   });
 
   revalidatePath("/dashboard/servicios");

@@ -74,21 +74,36 @@ export default async function ServiciosPage() {
         </div>
         <ServicePriceFields />
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="depositAmount" className="text-sm font-medium">
-            Depósito para confirmar la reserva{" "}
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-sm font-medium">
+            Depósito para asegurar la reserva{" "}
             <span className="text-muted font-normal">(opcional)</span>
-          </label>
+          </legend>
           {mpConnected ? (
-            <input
-              id="depositAmount"
-              name="depositAmount"
-              type="number"
-              min={0}
-              step={500}
-              placeholder="Ej: 5000 (déjalo vacío para no pedir depósito)"
-              className="border border-border rounded-lg px-3 py-2.5"
-            />
+            <>
+              <select
+                name="depositMode"
+                defaultValue="NONE"
+                aria-label="Modo del depósito"
+                className="border border-border rounded-lg px-3 py-2.5 bg-surface"
+              >
+                <option value="NONE">Sin depósito</option>
+                <option value="OPTIONAL">Opcional — el cliente elige si asegura su hora</option>
+                <option value="REQUIRED">Obligatorio — no se confirma sin pagar</option>
+              </select>
+              <input
+                name="depositAmount"
+                type="number"
+                min={0}
+                step={500}
+                placeholder="Monto del depósito (ej: 5000)"
+                className="border border-border rounded-lg px-3 py-2.5"
+              />
+              <p className="text-xs text-muted">
+                El depósito llega directo a tu cuenta de Mercado Pago. Solo se aplica si eliges
+                un modo y pones un monto.
+              </p>
+            </>
           ) : (
             <p className="text-sm text-muted bg-brand-soft rounded-lg px-3 py-2">
               Conecta tu cuenta de Mercado Pago en{" "}
@@ -98,7 +113,7 @@ export default async function ServiciosPage() {
               para poder pedir depósito en este servicio.
             </p>
           )}
-        </div>
+        </fieldset>
 
         <button
           type="submit"
@@ -139,9 +154,11 @@ export default async function ServiciosPage() {
                 {service.description && (
                   <p className="text-sm text-muted mt-0.5">{service.description}</p>
                 )}
-                {service.depositAmount && (
+                {service.depositMode !== "NONE" && service.depositAmount && (
                   <p className="text-xs text-brand mt-0.5">
-                    💳 Pide depósito de ${service.depositAmount.toLocaleString("es-CL")} al reservar
+                    💳 Depósito{" "}
+                    {service.depositMode === "REQUIRED" ? "obligatorio" : "opcional"} de $
+                    {service.depositAmount.toLocaleString("es-CL")}
                   </p>
                 )}
               </div>
@@ -168,27 +185,39 @@ export default async function ServiciosPage() {
             {mpConnected && (
               <details className="border-t border-border pt-3">
                 <summary className="text-sm font-medium cursor-pointer text-stone hover:text-ink">
-                  Depósito para confirmar la reserva
+                  Depósito para asegurar la reserva
                 </summary>
                 <form
                   action={updateServiceDeposit.bind(null, service.id)}
-                  className="mt-3 flex items-center gap-2"
+                  className="mt-3 flex flex-col gap-2"
                 >
-                  <input
-                    type="number"
-                    name="depositAmount"
-                    min={0}
-                    step={500}
-                    defaultValue={service.depositAmount ?? ""}
-                    placeholder="Sin depósito"
-                    className="border border-border rounded-lg px-3 py-2 text-sm flex-1"
-                  />
-                  <button
-                    type="submit"
-                    className="border border-border bg-surface rounded-lg px-3 py-2 text-sm font-medium hover:border-brand active:scale-[0.97]"
+                  <select
+                    name="depositMode"
+                    defaultValue={service.depositMode}
+                    aria-label="Modo del depósito"
+                    className="border border-border rounded-lg px-3 py-2 text-sm bg-surface"
                   >
-                    Guardar
-                  </button>
+                    <option value="NONE">Sin depósito</option>
+                    <option value="OPTIONAL">Opcional — el cliente elige</option>
+                    <option value="REQUIRED">Obligatorio</option>
+                  </select>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      name="depositAmount"
+                      min={0}
+                      step={500}
+                      defaultValue={service.depositAmount ?? ""}
+                      placeholder="Monto (ej: 5000)"
+                      className="border border-border rounded-lg px-3 py-2 text-sm flex-1"
+                    />
+                    <button
+                      type="submit"
+                      className="border border-border bg-surface rounded-lg px-3 py-2 text-sm font-medium hover:border-brand active:scale-[0.97]"
+                    >
+                      Guardar
+                    </button>
+                  </div>
                 </form>
               </details>
             )}

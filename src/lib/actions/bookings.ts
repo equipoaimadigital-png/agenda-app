@@ -24,6 +24,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resolveClientId } from "@/lib/actions/clients";
 import { isValidEmail, sanitizeCustomAnswer } from "@/lib/validation";
 import { createDepositPreference } from "@/lib/mercadopago-connect";
+import { resolveDepositDecision } from "@/lib/deposits";
 
 export type StaffOptionView = { id: string; name: string; color: string };
 
@@ -119,6 +120,10 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
   const clientName = String(formData.get("clientName") || "").trim();
   const clientPhone = String(formData.get("clientPhone") || "").trim();
   const clientEmail = String(formData.get("clientEmail") || "").trim() || null;
+  // Solo aplica a servicios con depósito OPTIONAL: el cliente marcó
+  // "asegurar mi hora" en la página pública. En REQUIRED se ignora (siempre
+  // se cobra); en NONE no tiene efecto.
+  const wantsDeposit = String(formData.get("payDeposit") || "") === "1";
 
   // Validación de longitud contra DoS: string muy largo en input
   if (clientName.length > 100) {
@@ -213,11 +218,16 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
     const available = await daySlots(ctx, option.staff.id, dateStr);
     if (!available.includes(time)) continue;
 
-    // Requiere depósito solo si el profesional tiene su cuenta de Mercado
-    // Pago conectada — sin eso no hay a dónde mandar el cobro, así que se
-    // ignora silenciosamente y la reserva se confirma directo (mismo
-    // comportamiento de antes de que existiera esta función).
-    const requiresDeposit = !!ctx.service.depositAmount && !!ctx.professional.mpConnectedAccessToken;
+    // Modo del depósito (NONE / OPTIONAL / REQUIRED) + estado real: sin
+    // cuenta de Mercado Pago conectada o sin monto, se ignora y la reserva
+    // se confirma directo. En OPTIONAL solo se cobra si el cliente lo eligió.
+    const deposit = resolveDepositDecision({
+      mode: ctx.service.depositMode,
+      amount: ctx.service.depositAmount,
+      mpConnected: !!ctx.professional.mpConnectedAccessToken,
+      clientOptedIn: wantsDeposit,
+    });
+    const requiresDeposit = deposit.charge;
 
     const booking = await withStaffLock(option.staff.id, async (tx) => {
       if (await hasOverlappingBooking(tx, option.staff.id, startTime, endTime)) {
@@ -236,7 +246,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
           startTime,
           endTime,
           status: requiresDeposit ? "PENDING_PAYMENT" : "CONFIRMED",
-          depositAmount: requiresDeposit ? ctx.service.depositAmount : null,
+          depositAmount: requiresDeposit ? deposit.amount : null,
         },
       });
     });
@@ -251,7 +261,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
         professionalAccessToken: ctx.professional.mpConnectedAccessToken!,
         bookingId: booking.id,
         manageToken: booking.manageToken,
-        amount: ctx.service.depositAmount!,
+        amount: deposit.amount!,
         serviceName: ctx.service.name,
         businessName: ctx.professional.businessName,
         payerEmail: clientEmail,

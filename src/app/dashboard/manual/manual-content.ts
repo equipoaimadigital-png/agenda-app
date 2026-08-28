@@ -113,10 +113,10 @@ export const SECTIONS: Section[] = [
           "Puedes agregar preguntas que el cliente responde al reservar ese servicio (texto libre o opción múltiple), útil para pedir información previa a la cita.",
       },
       {
-        label: "Pedir un depósito para confirmar",
+        label: "Pedir un depósito al reservar",
         badge: "Nuevo",
         body:
-          'Si conectaste tu cuenta de Mercado Pago (Configuración → "Cobro de depósitos"), puedes exigir un adelanto para que la reserva de este servicio quede confirmada. El campo "Depósito" aparece al editar el servicio. Revisa la sección "Cobro de depósitos" de este manual para el detalle.',
+          'Si conectaste tu cuenta de Mercado Pago (Configuración → "Cobro de depósitos"), cada servicio puede pedir un adelanto: opcional (el cliente elige) u obligatorio. Se configura al editar el servicio. Revisa la sección "Cobro de depósitos" de este manual para el detalle.',
       },
     ],
   },
@@ -141,15 +141,15 @@ export const SECTIONS: Section[] = [
         ],
       },
       {
-        label: "Ponerle un depósito a un servicio",
+        label: "Elegir cómo se pide el depósito en cada servicio",
         badge: "Nuevo",
         body:
-          "En Servicios, edita el servicio y escribe el monto del depósito (por ejemplo, 5000). Déjalo vacío si no quieres pedir adelanto en ese servicio. El campo solo se activa cuando tu cuenta de Mercado Pago está conectada.",
+          'En Servicios, cada servicio tiene tres modos de depósito: "Sin depósito" (nunca se pide), "Opcional" (el cliente decide en tu página pública si asegura su hora pagando el adelanto o agenda sin él) y "Obligatorio" (la reserva no se confirma hasta que se paga). Elige el modo y escribe el monto (por ejemplo, 2000 o 4000). Solo se activa cuando tu cuenta de Mercado Pago está conectada.',
       },
       {
-        label: "Qué pasa cuando un cliente reserva",
+        label: "Qué ve el cliente al reservar",
         body:
-          'Si el servicio pide depósito, al terminar de reservar el cliente pasa por Mercado Pago para pagar el adelanto. La cita queda como "Pendiente de pago": todavía no se confirma ni se envían recordatorios.',
+          'Con modo "Opcional", al final de la reserva el cliente elige entre "Asegurar mi hora con $X" o "Agendar sin depósito". Con modo "Obligatorio", tiene que pagar sí o sí para confirmar. En ambos casos, si paga, pasa por Mercado Pago y la cita queda "Pendiente de pago" hasta que el adelanto se acredita.',
       },
       {
         label: "El horario no se bloquea para siempre",
