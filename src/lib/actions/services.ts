@@ -6,6 +6,19 @@ import { FieldType, ServicePriceType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 
+/**
+ * Un depósito solo tiene sentido si el profesional ya conectó su cuenta de
+ * Mercado Pago — sin eso no hay a dónde mandar el cobro. Si no está
+ * conectado, se ignora silenciosamente cualquier monto que hayan puesto
+ * (el campo en la UI también aparece deshabilitado en ese caso).
+ */
+function parseDepositAmount(raw: FormDataEntryValue | null, mpConnectedUserId: string | null): number | null {
+  if (!mpConnectedUserId) return null;
+  const value = Number(String(raw || "").trim());
+  if (!value || value <= 0) return null;
+  return Math.round(value);
+}
+
 export async function createService(formData: FormData) {
   const professional = await getCurrentProfessional();
   if (!professional) redirect("/login");
@@ -19,6 +32,7 @@ export async function createService(formData: FormData) {
   const priceRaw = String(formData.get("price") || "").trim();
   // "A cotizar" no lleva precio público — cualquier valor ingresado se ignora.
   const price = priceType !== "QUOTE" && priceRaw ? Number(priceRaw) : null;
+  const depositAmount = parseDepositAmount(formData.get("depositAmount"), professional.mpConnectedUserId);
 
   if (!name || !durationMin || durationMin <= 0) {
     return;
@@ -41,8 +55,29 @@ export async function createService(formData: FormData) {
       durationMin,
       price,
       priceType,
+      depositAmount,
       staff: { connect: activeStaff.map((s) => ({ id: s.id })) },
     },
+  });
+
+  revalidatePath("/dashboard/servicios");
+}
+
+/** Cambia (o quita) el depósito de un servicio ya existente. */
+export async function updateServiceDeposit(serviceId: string, formData: FormData): Promise<void> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  const service = await prisma.service.findFirst({
+    where: { id: serviceId, professionalId: professional.id },
+  });
+  if (!service) return;
+
+  const depositAmount = parseDepositAmount(formData.get("depositAmount"), professional.mpConnectedUserId);
+
+  await prisma.service.update({
+    where: { id: serviceId },
+    data: { depositAmount },
   });
 
   revalidatePath("/dashboard/servicios");

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import {
@@ -6,12 +7,14 @@ import {
   deleteService,
   deleteServiceField,
   toggleServiceActive,
+  updateServiceDeposit,
 } from "@/lib/actions/services";
 import { formatServicePrice } from "@/lib/price";
 import { ServicePriceFields } from "@/components/dashboard/ServicePriceFields";
 
 export default async function ServiciosPage() {
   const professional = await requireDashboardAccess();
+  const mpConnected = !!professional.mpConnectedUserId;
 
   const services = await prisma.service.findMany({
     where: { professionalId: professional.id },
@@ -70,6 +73,33 @@ export default async function ServiciosPage() {
           />
         </div>
         <ServicePriceFields />
+
+        <div className="flex flex-col gap-1">
+          <label htmlFor="depositAmount" className="text-sm font-medium">
+            Depósito para confirmar la reserva{" "}
+            <span className="text-muted font-normal">(opcional)</span>
+          </label>
+          {mpConnected ? (
+            <input
+              id="depositAmount"
+              name="depositAmount"
+              type="number"
+              min={0}
+              step={500}
+              placeholder="Ej: 5000 (déjalo vacío para no pedir depósito)"
+              className="border border-border rounded-lg px-3 py-2.5"
+            />
+          ) : (
+            <p className="text-sm text-muted bg-brand-soft rounded-lg px-3 py-2">
+              Conecta tu cuenta de Mercado Pago en{" "}
+              <Link href="/dashboard/configuracion" className="underline">
+                Configuración
+              </Link>{" "}
+              para poder pedir depósito en este servicio.
+            </p>
+          )}
+        </div>
+
         <button
           type="submit"
           className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
@@ -109,6 +139,11 @@ export default async function ServiciosPage() {
                 {service.description && (
                   <p className="text-sm text-muted mt-0.5">{service.description}</p>
                 )}
+                {service.depositAmount && (
+                  <p className="text-xs text-brand mt-0.5">
+                    💳 Pide depósito de ${service.depositAmount.toLocaleString("es-CL")} al reservar
+                  </p>
+                )}
               </div>
               <div className="flex gap-2 shrink-0">
                 <form action={toggleServiceActive.bind(null, service.id)}>
@@ -129,6 +164,34 @@ export default async function ServiciosPage() {
                 </form>
               </div>
             </div>
+
+            {mpConnected && (
+              <details className="border-t border-border pt-3">
+                <summary className="text-sm font-medium cursor-pointer text-stone hover:text-ink">
+                  Depósito para confirmar la reserva
+                </summary>
+                <form
+                  action={updateServiceDeposit.bind(null, service.id)}
+                  className="mt-3 flex items-center gap-2"
+                >
+                  <input
+                    type="number"
+                    name="depositAmount"
+                    min={0}
+                    step={500}
+                    defaultValue={service.depositAmount ?? ""}
+                    placeholder="Sin depósito"
+                    className="border border-border rounded-lg px-3 py-2 text-sm flex-1"
+                  />
+                  <button
+                    type="submit"
+                    className="border border-border bg-surface rounded-lg px-3 py-2 text-sm font-medium hover:border-brand active:scale-[0.97]"
+                  >
+                    Guardar
+                  </button>
+                </form>
+              </details>
+            )}
 
             <details className="border-t border-border pt-3">
               <summary className="text-sm font-medium cursor-pointer text-stone hover:text-ink">
