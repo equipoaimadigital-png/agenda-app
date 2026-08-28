@@ -7,6 +7,7 @@ import {
   IconClock,
   IconGear,
   IconMegaphone,
+  IconUserCircle,
   IconUsers,
   IconWallet,
 } from "@/components/dashboard/ManualIcons";
@@ -165,6 +166,34 @@ export const SECTIONS: Section[] = [
         label: "Dejar de cobrar depósitos",
         body:
           'Puedes quitar el monto de depósito en cada servicio, o usar "Desconectar" en la tarjeta de Configuración para cortar la conexión con Mercado Pago por completo. Las citas ya confirmadas no se ven afectadas.',
+      },
+    ],
+  },
+  {
+    title: "Profesionales",
+    icon: IconUserCircle,
+    intro: "Quién atiende en tu negocio, con su foto y sus servicios.",
+    items: [
+      {
+        label: "Agregar un profesional",
+        body:
+          'En Profesionales, completa el nombre, elige un color (para diferenciarlo en la Agenda) y marca qué servicios puede realizar. Aparece de inmediato en la lista de abajo y queda disponible para reservas.',
+      },
+      {
+        label: "Foto para la página pública",
+        badge: "Nuevo",
+        body:
+          'Cada profesional tiene una sección "Foto para la página pública": haz clic en el círculo (o en "Subir foto") para elegir una imagen desde tu computador. Puede ser su foto o cualquier imagen que quiera mostrar. Con "Quitar" vuelve al círculo con sus iniciales. Máx. 5 MB (PNG, JPG, WEBP o GIF).',
+      },
+      {
+        label: "Dónde se ve",
+        body:
+          'En tu página pública de reservas aparece una sección "Quiénes te atienden" con el nombre y la foto de cada profesional activo. Se muestra cuando tienes más de un profesional, o cuando el único que hay subió su foto.',
+      },
+      {
+        label: "Pausar un profesional",
+        body:
+          'Un profesional "Pausado" deja de aparecer en tu página pública y no recibe nuevas reservas, pero conserva su historial. No puedes pausar al único profesional activo.',
       },
     ],
   },

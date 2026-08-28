@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { BookingWidget } from "@/components/booking/BookingWidget";
 import { OfflineDetector } from "@/components/booking/OfflineDetector";
+import { StaffAvatar } from "@/components/dashboard/StaffAvatar";
 import { nowInTimeZone, weekdayOf } from "@/lib/dates";
 import { buildWhatsappLink } from "@/lib/whatsapp";
 import { headingFontClassName, headingSizeClasses } from "@/lib/heading-style";
@@ -13,7 +14,14 @@ type PageProps = { params: Promise<{ slug: string }> };
 async function loadProfessional(slug: string) {
   return prisma.professional.findUnique({
     where: { slug },
-    include: { services: { where: { active: true }, orderBy: { createdAt: "asc" } } },
+    include: {
+      services: { where: { active: true }, orderBy: { createdAt: "asc" } },
+      staff: {
+        where: { active: true },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, name: true, color: true, photoUrl: true },
+      },
+    },
   });
 }
 
@@ -94,6 +102,11 @@ export default async function ReservarPage({ params }: PageProps) {
   const openNow = await isOpenNow(professional.id, professional.timezone);
   const headingFontClass = headingFontClassName(professional.headingFont);
   const headingSizes = headingSizeClasses(professional.headingSize);
+
+  // Sección "quiénes te atienden": se muestra si hay más de un profesional, o
+  // si el único que hay subió una foto (señal de que quiere presentarse).
+  const team = professional.staff;
+  const showTeam = team.length >= 2 || team.some((s) => s.photoUrl);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -254,6 +267,25 @@ export default async function ReservarPage({ params }: PageProps) {
           ))}
         </ul>
       </div>
+
+      {showTeam && (
+        <div className="max-w-lg mx-auto px-5 pt-6">
+          <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
+            {team.length > 1 ? "Quiénes te atienden" : "Te atiende"}
+          </h2>
+          <ul className="flex gap-4 overflow-x-auto pb-1 -mx-1 px-1">
+            {team.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-col items-center gap-2 w-20 shrink-0 text-center"
+              >
+                <StaffAvatar name={s.name} color={s.color} photoUrl={s.photoUrl} size={64} />
+                <span className="text-xs font-medium leading-tight break-words">{s.name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="max-w-lg mx-auto px-5 pt-6 pb-16">
         {professional.services.length === 0 ? (

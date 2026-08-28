@@ -59,6 +59,7 @@ export default async function StaffPage() {
               id: s.id,
               name: s.name,
               color: s.color,
+              photoUrl: s.photoUrl,
               active: s.active,
               serviceIds: s.services.map((sv) => sv.id),
             }}

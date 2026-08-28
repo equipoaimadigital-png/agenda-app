@@ -150,3 +150,14 @@ export function IconSearch(props: IconProps) {
     props
   );
 }
+
+export function IconUserCircle(props: IconProps) {
+  return base(
+    <>
+      <circle cx="12" cy="12" r="8.4" />
+      <circle cx="12" cy="10" r="2.8" />
+      <path d="M6.5 18.5c1.1-2.2 3.1-3.4 5.5-3.4s4.4 1.2 5.5 3.4" />
+    </>,
+    props
+  );
+}

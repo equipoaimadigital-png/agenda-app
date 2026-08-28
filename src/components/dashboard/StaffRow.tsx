@@ -3,12 +3,15 @@
 import { useState, useTransition } from "react";
 import { toggleStaffActive, updateStaff } from "@/lib/actions/staff";
 import { StaffForm } from "@/components/dashboard/StaffForm";
+import { StaffAvatar } from "@/components/dashboard/StaffAvatar";
+import { StaffPhotoUploader } from "@/components/dashboard/StaffPhotoUploader";
 
 type Service = { id: string; name: string };
 type StaffItem = {
   id: string;
   name: string;
   color: string;
+  photoUrl: string | null;
   active: boolean;
   serviceIds: string[];
 };
@@ -30,11 +33,7 @@ export function StaffRow({ staff, services }: { staff: StaffItem; services: Serv
     <li className={`bg-surface border border-border rounded-xl px-4 py-3 flex flex-col gap-3 ${staff.active ? "" : "opacity-60"}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span
-            aria-hidden
-            className="w-3 h-3 rounded-full shrink-0 border border-black/10"
-            style={{ backgroundColor: staff.color }}
-          />
+          <StaffAvatar name={staff.name} color={staff.color} photoUrl={staff.photoUrl} size={36} />
           <p className="font-medium truncate">
             {staff.name}
             {!staff.active && (
@@ -66,6 +65,16 @@ export function StaffRow({ staff, services }: { staff: StaffItem; services: Serv
       {toggleError && (
         <p className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">{toggleError}</p>
       )}
+
+      <div className="border-t border-border pt-3">
+        <p className="text-sm font-medium mb-2">Foto para la página pública</p>
+        <StaffPhotoUploader
+          staffId={staff.id}
+          name={staff.name}
+          color={staff.color}
+          photoUrl={staff.photoUrl}
+        />
+      </div>
 
       {editing && (
         <div className="border-t border-border pt-3">

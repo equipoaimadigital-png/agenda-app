@@ -118,6 +118,11 @@ model Staff {
   name           String
   // Color para diferenciarlo visualmente en la agenda (hex)
   color          String       @default("#2f4a3e")
+  // Foto del profesional (o cualquier imagen que quiera mostrar) — se ve en
+  // la página pública de reservas. Null = se muestra un círculo con sus
+  // iniciales sobre `color`. Guardada en el bucket "business-covers" de
+  // Supabase Storage bajo <professionalId>/staff/<staffId>.<ext>.
+  photoUrl       String?
   active         Boolean      @default(true)
   createdAt      DateTime     @default(now())
 
