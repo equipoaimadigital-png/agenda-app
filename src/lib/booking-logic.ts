@@ -128,6 +128,10 @@ export async function loadBookingContext(
       professionalId: professional.id,
       active: true,
       services: { some: { id: serviceId } },
+      // Un profesional sin ningún bloque de horario nunca puede recibir una
+      // reserva — mostrarlo como opción (y dejar que el calendario aparezca
+      // "disponible" para él) solo confunde. Se excluye del flujo público.
+      availability: { some: {} },
     },
     include: { availability: true, dateExceptions: true },
   });
@@ -138,6 +142,17 @@ export async function loadBookingContext(
   });
 
   return { professional, service, staffOptions };
+}
+
+/**
+ * Chequeo en memoria (sin tocar la base) de si un Staff tiene algún bloque de
+ * disponibilidad ese día. Se usa para cortar antes de la query de reservas —
+ * clave para `nextAvailableDays`, que escanea hasta 30 días: sin esto, un
+ * profesional sin horario configurado dispara 30 queries inútiles.
+ */
+function optionOpenOn(option: StaffOption, dateStr: string): boolean {
+  if (option.exceptions.some((e) => e.date === dateStr)) return false;
+  return option.availability.some((b) => b.weekday === weekdayOf(dateStr));
 }
 
 /** Horarios de inicio disponibles ("HH:MM") para un Staff puntual en una fecha. */
@@ -193,18 +208,23 @@ export async function daySlots(
 
   if (selection !== ANY_STAFF) {
     const option = ctx.staffOptions.find((o) => o.staff.id === selection);
-    if (!option) return [];
+    if (!option || !optionOpenOn(option, dateStr)) return [];
     const busy = await busyRangesFor(selection, dateStr);
     return daySlotsForOption(ctx.professional, ctx.service, option, dateStr, busy);
   }
 
+  const openOptions = ctx.staffOptions.filter((o) => optionOpenOn(o, dateStr));
+  if (openOptions.length === 0) return [];
+
+  const busyByStaff = await Promise.all(
+    openOptions.map((o) => busyRangesFor(o.staff.id, dateStr))
+  );
   const slotSet = new Set<string>();
-  for (const option of ctx.staffOptions) {
-    const busy = await busyRangesFor(option.staff.id, dateStr);
-    for (const slot of daySlotsForOption(ctx.professional, ctx.service, option, dateStr, busy)) {
+  openOptions.forEach((option, i) => {
+    for (const slot of daySlotsForOption(ctx.professional, ctx.service, option, dateStr, busyByStaff[i])) {
       slotSet.add(slot);
     }
-  }
+  });
   return [...slotSet].sort();
 }
 
@@ -274,6 +294,15 @@ export async function nextAvailableDays(
   maxDaysToScan = 30,
   maxSuggestions = 3
 ): Promise<DaySuggestion[]> {
+  // Si el/los profesional(es) en juego no tienen ningún bloque de
+  // disponibilidad configurado, no hay nada que escanear — así el mensaje de
+  // "sin cupos" aparece al instante en vez de tras 30 consultas.
+  const relevant =
+    selection === ANY_STAFF
+      ? ctx.staffOptions
+      : ctx.staffOptions.filter((o) => o.staff.id === selection);
+  if (relevant.every((o) => o.availability.length === 0)) return [];
+
   const suggestions: DaySuggestion[] = [];
   let cursor = fromDateStr;
   for (let i = 0; i < maxDaysToScan && suggestions.length < maxSuggestions; i++) {

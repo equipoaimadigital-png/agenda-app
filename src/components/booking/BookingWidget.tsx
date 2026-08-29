@@ -294,21 +294,28 @@ export function BookingWidget({
               )}
 
               {/* Fecha y hora */}
-              <section>
-                <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
-                  Elige fecha y hora
-                </h2>
-                <DateTimePicker
-                  slug={slug}
-                  serviceId={service.id}
-                  staffSelection={staffSelection}
-                  picked={picked}
-                  onPick={(dateStr, time) => {
-                    setPicked({ dateStr, time });
-                    step3Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                />
-              </section>
+              {!loadingStaff && staffOptions.length === 0 ? (
+                <p className="text-sm bg-warning-soft border border-border rounded-xl px-4 py-3">
+                  Este servicio todavía no tiene un profesional con horario configurado, así que
+                  no se puede reservar en línea por ahora. Escríbele al negocio para coordinar.
+                </p>
+              ) : (
+                <section>
+                  <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
+                    Elige fecha y hora
+                  </h2>
+                  <DateTimePicker
+                    slug={slug}
+                    serviceId={service.id}
+                    staffSelection={staffSelection}
+                    picked={picked}
+                    onPick={(dateStr, time) => {
+                      setPicked({ dateStr, time });
+                      step3Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                  />
+                </section>
+              )}
 
               {/* Datos y confirmación */}
               {picked && (

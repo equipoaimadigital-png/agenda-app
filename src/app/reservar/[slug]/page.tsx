@@ -16,11 +16,15 @@ async function loadProfessional(slug: string) {
     where: { slug },
     include: {
       services: { where: { active: true }, orderBy: { createdAt: "asc" } },
-      // Solo profesionales que además pueden realizar al menos un servicio
-      // activo — mostrar a alguien sin servicios en "Quiénes te atienden"
-      // confunde, porque nunca aparece como opción al reservar.
+      // Solo profesionales realmente reservables: activos, con al menos un
+      // servicio activo y con horario configurado. Mostrar a alguien que
+      // nunca aparece como opción al reservar solo confunde.
       staff: {
-        where: { active: true, services: { some: { active: true } } },
+        where: {
+          active: true,
+          services: { some: { active: true } },
+          availability: { some: {} },
+        },
         orderBy: { createdAt: "asc" },
         select: { id: true, name: true, color: true, photoUrl: true },
       },

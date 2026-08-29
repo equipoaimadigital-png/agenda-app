@@ -59,7 +59,10 @@ export function DateTimePicker({ slug, serviceId, staffSelection, onPick, picked
 
   useEffect(() => {
     let cancelled = false;
-    const cacheKey = `${viewYear}-${String(viewMonth).padStart(2, "0")}`;
+    // La clave incluye el profesional elegido: sin esto, cambiar de
+    // profesional reusaba los días disponibles del anterior (un profesional
+    // sin horario mostraba el calendario del que sí tenía).
+    const cacheKey = `${staffSelection}|${viewYear}-${String(viewMonth).padStart(2, "0")}`;
     const cached = monthCacheRef.current.get(cacheKey);
 
     if (cached) {
