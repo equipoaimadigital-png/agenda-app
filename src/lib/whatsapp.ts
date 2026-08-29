@@ -1,5 +1,6 @@
 import twilio from "twilio";
 import { formatDateLong, wallClockOf } from "@/lib/dates";
+import { whatsappTo } from "@/lib/phone";
 
 export function buildWhatsappLink(phone: string, message: string): string {
   const digitsOnly = phone.replace(/[^0-9]/g, "");
@@ -17,7 +18,7 @@ function fromNumber(): string | null {
   return process.env.TWILIO_PHONE_NUMBER || null;
 }
 
-type ReminderWhatsAppInfo = {
+type WhatsAppInfo = {
   businessName: string;
   serviceName: string;
   clientName: string;
@@ -26,28 +27,58 @@ type ReminderWhatsAppInfo = {
   manageToken?: string; // opcional para recordatorios
 };
 
+/** Cuarta variable de las plantillas: "mañana, viernes 7 de agosto a las 15:00". */
+function whenVariable(startTime: Date): string {
+  const { dateStr, time } = wallClockOf(startTime);
+  const daysUntil = Math.floor((startTime.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const dayText = daysUntil <= 0 ? "hoy" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
+  return `${dayText}, ${formatDateLong(dateStr)} a las ${time}`;
+}
+
+// La Content API de Twilio espera un OBJETO {"1": "...", "2": "..."} — no un
+// array. Ambas plantillas (confirmación y recordatorio) usan las mismas 4
+// variables: nombre, servicio, negocio y cuándo.
+function templateVariables(info: WhatsAppInfo): string {
+  return JSON.stringify({
+    1: info.clientName,
+    2: info.serviceName,
+    3: info.businessName,
+    4: whenVariable(info.startTime),
+  });
+}
+
 /**
- * Envía WhatsApp de CONFIRMACIÓN cuando se crea la reserva.
- * No usa plantilla — es un mensaje freeform directo.
- * Nunca lanza excepciones — siempre devuelve boolean.
+ * WhatsApp de CONFIRMACIÓN al crear la reserva.
+ *
+ * OJO: WhatsApp/Meta NO permiten mensajes freeform iniciados por el negocio
+ * fuera de la ventana de 24 h que abre el cliente al escribir primero (Twilio
+ * error 63016). Un cliente que reserva por primera vez no tiene esa ventana
+ * abierta, así que la confirmación DEBE ir por plantilla aprobada. Sin
+ * plantilla de confirmación configurada se omite el canal (email y SMS ya
+ * confirman) — nunca se intenta un freeform que Twilio va a rechazar.
+ *
+ * Nunca lanza — siempre devuelve boolean.
  */
-export async function sendConfirmationWhatsApp(info: ReminderWhatsAppInfo): Promise<boolean> {
+export async function sendConfirmationWhatsApp(info: WhatsAppInfo): Promise<boolean> {
   const client = getClient();
   const from = fromNumber();
+  const templateSid = process.env.TWILIO_WHATSAPP_CONFIRM_TEMPLATE_SID;
 
-  if (!client || !from) return false;
-
-  const { dateStr, time } = wallClockOf(info.startTime);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tuhoralista.app";
-  const manageLink = info.manageToken ? `${siteUrl}/reserva/${info.manageToken}` : "";
-  const linkText = manageLink ? `\n\n🔗 *Gestiona tu cita:*\n${manageLink}` : "\n\nSi necesitas cancelar o reprogramar, puedes hacerlo desde tu enlace de gestión de cita.";
-  const message = `✅ *Reserva confirmada*\n\n${info.clientName}, tu cita está confirmada:\n\n📅 ${formatDateLong(dateStr)}\n⏰ ${time}\n💼 ${info.serviceName}\n🏢 ${info.businessName}${linkText}`;
+  if (!client || !from || !templateSid) {
+    if (client && from && !templateSid) {
+      console.warn(
+        "WhatsApp de confirmación omitido: falta TWILIO_WHATSAPP_CONFIRM_TEMPLATE_SID (plantilla de confirmación aprobada por Meta)."
+      );
+    }
+    return false;
+  }
 
   try {
     await client.messages.create({
-      to: `whatsapp:+56${info.clientPhone.replace(/^(\+56)?/, "")}`,
+      to: whatsappTo(info.clientPhone),
       from: `whatsapp:${from}`,
-      body: message,
+      contentSid: templateSid,
+      contentVariables: templateVariables(info),
     });
     return true;
   } catch (err) {
@@ -57,37 +88,23 @@ export async function sendConfirmationWhatsApp(info: ReminderWhatsAppInfo): Prom
 }
 
 /**
- * Envía recordatorio por WhatsApp usando la plantilla aprobada por Meta.
- * Devuelve false si:
- * - Twilio no está configurado
- * - El TEMPLATE_SID no está definido (plantilla aún no aprobada por Meta)
- * - El envío falla
- *
- * Nunca lanza excepciones — siempre devuelve boolean.
+ * Recordatorio por WhatsApp usando la plantilla aprobada por Meta.
+ * false si Twilio no está configurado, si falta el TEMPLATE_SID, o si el
+ * envío falla. Nunca lanza.
  */
-export async function sendReminderWhatsApp(info: ReminderWhatsAppInfo): Promise<boolean> {
+export async function sendReminderWhatsApp(info: WhatsAppInfo): Promise<boolean> {
   const client = getClient();
   const from = fromNumber();
   const templateSid = process.env.TWILIO_WHATSAPP_TEMPLATE_SID;
 
-  // Si no está configurado el template, aún no está aprobado por Meta
   if (!client || !from || !templateSid) return false;
-
-  const { dateStr, time } = wallClockOf(info.startTime);
-  const daysUntil = Math.floor((info.startTime.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  const dayText = daysUntil === 0 ? "hoy" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
 
   try {
     await client.messages.create({
-      to: `whatsapp:+56${info.clientPhone.replace(/^(\+56)?/, "")}`,
+      to: whatsappTo(info.clientPhone),
       from: `whatsapp:${from}`,
       contentSid: templateSid,
-      contentVariables: JSON.stringify([
-        info.clientName,
-        info.serviceName,
-        info.businessName,
-        `${dayText}, ${formatDateLong(dateStr)} a las ${time}`,
-      ]),
+      contentVariables: templateVariables(info),
     });
     return true;
   } catch (err) {

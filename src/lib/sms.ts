@@ -1,5 +1,9 @@
 import twilio from "twilio";
 import { formatDateLong, wallClockOf } from "@/lib/dates";
+import { toE164 } from "@/lib/phone";
+
+// Se re-exporta para no romper imports existentes (`@/lib/sms`).
+export { toE164 } from "@/lib/phone";
 
 function getClient(): ReturnType<typeof twilio> | null {
   const sid = process.env.TWILIO_ACCOUNT_SID;
@@ -17,18 +21,6 @@ function whenText(startTime: Date): string {
   const daysUntil = Math.floor((startTime.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   const dayText = daysUntil === 0 ? "hoy" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
   return `${dayText}, ${formatDateLong(dateStr)} a las ${time}`;
-}
-
-/**
- * Los teléfonos en la base vienen en formatos mixtos ("+56978037712",
- * "987446788") porque nunca se validó un formato único al capturarlos.
- * Twilio exige E.164 (+<código país><número>) — si ya viene con "+" se
- * respeta tal cual; si no, se asume móvil chileno (9 dígitos, sin el "56").
- */
-export function toE164(phone: string): string {
-  const digits = phone.replace(/[^\d+]/g, "");
-  if (digits.startsWith("+")) return digits;
-  return `+56${digits}`;
 }
 
 type ReminderSmsInfo = {
