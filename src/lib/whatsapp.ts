@@ -36,13 +36,15 @@ function whenVariable(startTime: Date): string {
 }
 
 // La Content API de Twilio espera un OBJETO {"1": "...", "2": "..."} — no un
-// array. Ambas plantillas (confirmación y recordatorio) usan las mismas 4
-// variables: nombre, servicio, negocio y cuándo.
+// array. El ORDEN debe calzar con las plantillas aprobadas en Twilio
+// (appointment_reminder_v3 y la de confirmación), que definen:
+//   {{1}} nombre del cliente · {{2}} nombre del negocio ·
+//   {{3}} nombre del servicio · {{4}} cuándo.
 function templateVariables(info: WhatsAppInfo): string {
   return JSON.stringify({
     1: info.clientName,
-    2: info.serviceName,
-    3: info.businessName,
+    2: info.businessName,
+    3: info.serviceName,
     4: whenVariable(info.startTime),
   });
 }
