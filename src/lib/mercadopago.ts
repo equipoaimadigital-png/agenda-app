@@ -50,8 +50,15 @@ export async function createSubscriptionInitPoint(params: {
     }
     return { initPoint: result.init_point, preapprovalId: result.id };
   } catch (err) {
-    console.error("Error creando suscripción en Mercado Pago:", err);
-    return { error: "No se pudo iniciar el pago. Intenta de nuevo en unos minutos." };
+    // El SDK de MP mete el detalle útil en `.cause` o `.message` — se loguea
+    // completo para poder diagnosticar (payer_email inválido, moneda, etc.).
+    const detail =
+      err && typeof err === "object"
+        ? // @ts-expect-error — forma variable del error del SDK
+          err.cause ?? err.message ?? err
+        : err;
+    console.error("Error creando suscripción en Mercado Pago:", JSON.stringify(detail));
+    return { error: "No se pudo iniciar el pago. Revisa el correo de Mercado Pago e intenta de nuevo." };
   }
 }
 

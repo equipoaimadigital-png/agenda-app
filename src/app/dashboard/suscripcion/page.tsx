@@ -70,16 +70,36 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
       )}
 
       {professional.subscriptionStatus !== "ACTIVE" && (
-        <form action={startSubscriptionCheckout}>
+        <form action={startSubscriptionCheckout} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="mpEmail" className="text-sm font-medium">
+              Correo de tu cuenta de Mercado Pago
+            </label>
+            <input
+              id="mpEmail"
+              name="mpEmail"
+              type="email"
+              required
+              defaultValue={professional.email}
+              placeholder="tucorreo@ejemplo.com"
+              className="border border-border rounded-lg px-3 py-2.5 max-w-sm"
+            />
+            <p className="text-xs text-muted">
+              Debe ser el correo con el que inicias sesión en Mercado Pago. Si no coincide,
+              Mercado Pago muestra el checkout pero no te deja confirmar.
+            </p>
+          </div>
+
           <button
             type="submit"
-            className="bg-brand text-brand-foreground rounded-lg px-4 py-3 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
+            className="self-start bg-brand text-brand-foreground rounded-lg px-4 py-3 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
           >
             Suscribirme por {formatPrice(SUBSCRIPTION_PRICE_CLP)}/mes
           </button>
-          <p className="text-xs text-muted mt-2">
-            Te llevamos al checkout seguro de Mercado Pago. Nunca vemos ni guardamos los
-            datos de tu tarjeta.
+          <p className="text-xs text-muted">
+            Te llevamos al checkout seguro de Mercado Pago. Nunca vemos ni guardamos los datos
+            de tu tarjeta. Para la suscripción recomendamos <strong>tarjeta de crédito</strong>:
+            varias tarjetas de débito de bancos chilenos no permiten el cobro automático mensual.
           </p>
         </form>
       )}
