@@ -5,6 +5,7 @@ import { createAndSendCampaign, getAudienceCount, sendTestCampaign } from "@/lib
 import { IconUsers } from "@/components/dashboard/ManualIcons";
 import { CampaignClientPicker } from "@/components/dashboard/CampaignClientPicker";
 import { CLIENT_NAME_VAR, personalizeCampaignBody } from "@/lib/campaign-copy";
+import { contrastRatio } from "@/lib/color-contrast";
 
 type Audience = "ALL" | "INACTIVE_30D" | "CUSTOM";
 
@@ -73,13 +74,28 @@ const AUDIENCE_OPTIONS: { value: Audience; label: string }[] = [
   { value: "CUSTOM", label: "Clientes específicos" },
 ];
 
-export function CampaignForm({ businessName }: { businessName: string }) {
+export function CampaignForm({
+  businessName,
+  coverImageUrl,
+  brandColor,
+}: {
+  businessName: string;
+  coverImageUrl: string | null;
+  brandColor: string;
+}) {
   const templates = buildTemplates(businessName);
   const [templateId, setTemplateId] = useState(templates[0].id);
   const [subject, setSubject] = useState(templates[0].subject);
   const [body, setBody] = useState(templates[0].body);
   const [audience, setAudience] = useState<Audience>("ALL");
   const [customPhones, setCustomPhones] = useState<string[]>([]);
+  const [includeCover, setIncludeCover] = useState(true);
+
+  const brandTextColor =
+    /^#[0-9a-fA-F]{6}$/.test(brandColor) && contrastRatio(brandColor, "#ffffff") >= 4.5
+      ? "#ffffff"
+      : "#20261f";
+  const showCover = includeCover && !!coverImageUrl;
   // Para audiencia "CUSTOM" el conteo es derivado directo de customPhones —
   // no hace falta guardarlo en estado ni un efecto, se calcula en cada render.
   const [remoteCount, setRemoteCount] = useState<number | null>(null);
@@ -127,6 +143,7 @@ export function CampaignForm({ businessName }: { businessName: string }) {
     const fd = new FormData();
     fd.set("subject", subject);
     fd.set("body", body);
+    fd.set("includeCover", String(includeCover));
     startTestTransition(async () => {
       const result = await sendTestCampaign(fd);
       setTestState(result);
@@ -189,10 +206,28 @@ export function CampaignForm({ businessName }: { businessName: string }) {
             onChange={(e) => setBody(e.target.value)}
           />
           <p className="text-xs text-muted">
-            Se agrega automáticamente un botón &quot;Reservar ahora&quot; y el link de
-            desuscripción al final. Si no escribes{" "}
-            <code className="font-numeric">{CLIENT_NAME_VAR}</code>, igual saludamos a cada
-            cliente por su nombre al principio — ya tenemos el dato.
+            Se agregan solos: la cabecera con tu marca, un botón &quot;Reservar ahora&quot; y el
+            link para desuscribirse. Escribe{" "}
+            <code className="font-numeric">{CLIENT_NAME_VAR}</code> donde quieras el nombre; si
+            no, saludamos con él al inicio.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+            <input
+              type="checkbox"
+              checked={includeCover}
+              onChange={(e) => setIncludeCover(e.target.checked)}
+              className="accent-(--brand) w-4 h-4"
+            />
+            Incluir mi imagen de portada
+          </label>
+          <input type="hidden" name="includeCover" value={String(includeCover)} />
+          <p className="text-xs text-muted pl-6">
+            Se toma de{" "}
+            <a href="/dashboard/configuracion" className="underline">Configuración</a>.
+            {coverImageUrl ? "" : " Súbela ahí si aún no la tienes."}
           </p>
         </div>
 
@@ -245,7 +280,7 @@ export function CampaignForm({ businessName }: { businessName: string }) {
         )}
         {testState.sent && (
           <p className="text-sm text-success bg-success-soft rounded-lg px-3 py-2">
-            Te mandamos la prueba a tu propio correo.
+            Listo, te enviamos la prueba a tu correo. No llegó a ningún cliente.
           </p>
         )}
 
@@ -263,7 +298,7 @@ export function CampaignForm({ businessName }: { businessName: string }) {
               disabled={isTestPending || !subject || !body}
               className="bg-surface border border-border hover:bg-paper text-ink font-medium py-2 px-4 rounded-xl active:scale-[0.97] disabled:opacity-50"
             >
-              {isTestPending ? "Enviando prueba…" : "Test de envío"}
+              {isTestPending ? "Enviando prueba…" : "Enviarme una prueba"}
             </button>
             <button
               type="submit"
@@ -292,24 +327,41 @@ export function CampaignForm({ businessName }: { businessName: string }) {
                 <p className="text-xs text-muted mt-0.5">Remitente: {businessName}</p>
               </div>
 
-              <div
-                aria-hidden
-                className="bg-border/60 rounded-md h-32 w-full mb-4 flex items-center justify-center text-muted"
-              >
-                <IconUsers className="w-6 h-6 opacity-40" />
+              <div className="rounded-xl overflow-hidden border border-border bg-surface">
+                {showCover ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={coverImageUrl!} alt="" className="block w-full h-24 object-cover" />
+                ) : null}
+                <div
+                  className="px-3 py-2.5"
+                  style={{ background: brandColor, color: brandTextColor }}
+                >
+                  <p
+                    className="font-semibold text-sm leading-tight"
+                    style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                  >
+                    {businessName}
+                  </p>
+                </div>
+                <div className="p-3">
+                  <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
+                    {previewBody}
+                  </p>
+                  <span
+                    className="mx-auto mt-4 block w-full max-w-[190px] rounded-lg py-2.5 text-center text-sm font-semibold"
+                    style={{ background: brandColor, color: brandTextColor }}
+                  >
+                    Reservar ahora
+                  </span>
+                  <span className="mt-3 block text-center text-[10px] text-muted">
+                    Instagram · Facebook · WhatsApp · Cómo llegar
+                  </span>
+                </div>
               </div>
-
-              <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
-                {previewBody}
-              </p>
-
-              <span className="w-full max-w-[200px] mx-auto block text-center bg-brand text-brand-foreground py-3 rounded-lg font-semibold mt-6">
-                Reservar ahora
-              </span>
             </div>
           </div>
           <p className="text-xs text-muted text-center mt-3">
-            Así se ve en el teléfono de tu cliente.
+            Así le llega a tu cliente, con tu marca.
           </p>
         </div>
       </div>

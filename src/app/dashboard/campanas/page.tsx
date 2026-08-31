@@ -28,7 +28,11 @@ export default async function CampanasPage() {
         </p>
       </div>
 
-      <CampaignForm businessName={professional.businessName} />
+      <CampaignForm
+        businessName={professional.businessName}
+        coverImageUrl={professional.coverImageUrl}
+        brandColor={professional.brandColor}
+      />
 
       <section className="flex flex-col gap-2 max-w-xl">
         <h2 className="font-semibold">Historial</h2>

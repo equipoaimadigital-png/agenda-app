@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { formatDateLong, wallClockOf } from "@/lib/dates";
 import { personalizeCampaignBody } from "@/lib/campaign-copy";
+import { contrastRatio } from "@/lib/color-contrast";
 
 const FROM = "Tu Hora Lista <notificaciones@tuhoralista.com>";
 const SUPPORT_EMAIL = "soporte@tuhoralista.com";
@@ -45,6 +46,130 @@ export function escapeAndBreak(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
   return escaped.replace(/\n/g, "<br/>");
+}
+
+/** Escapa para texto Y para valores de atributo (incluye comillas dobles). */
+function esc(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Un color de marca que no venga como #rrggbb se descarta — nunca se
+ *  interpola texto arbitrario del profesional dentro de un `style`. */
+function sanitizeHex(hex: string | null | undefined, fallback = "#2f4a3e"): string {
+  return hex && /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : fallback;
+}
+
+/** URL sólo si es http(s) sin caracteres que rompan un atributo. `httpsOnly`
+ *  para imágenes (los clientes de correo bloquean http / contenido mixto). */
+function safeUrl(url: string | null | undefined, opts?: { httpsOnly?: boolean }): string | null {
+  if (!url) return null;
+  const re = opts?.httpsOnly ? /^https:\/\/[^\s"'<>]+$/i : /^https?:\/\/[^\s"'<>]+$/i;
+  return re.test(url) ? url : null;
+}
+
+/**
+ * Identidad del negocio para el correo de campaña. Todo sale de la fila del
+ * profesional (imagen de portada + color de marca + redes) — no hay que
+ * pedirle nada nuevo ni subir a Canva.
+ */
+export type CampaignBranding = {
+  businessName: string;
+  tagline: string | null;
+  brandColor: string;
+  coverImageUrl: string | null;
+  includeCover: boolean;
+  bookingUrl: string;
+  instagramUrl: string | null;
+  facebookUrl: string | null;
+  whatsappUrl: string | null;
+  mapsUrl: string | null;
+};
+
+/**
+ * Arma el HTML completo de un correo de campaña con la marca del negocio.
+ * Basado en tablas + estilos inline (Gmail / Outlook / Apple Mail). La
+ * cabecera de color y el nombre en texto real garantizan identidad aunque
+ * el cliente de correo bloquee las imágenes. Un GIF animado como portada se
+ * anima solo (Outlook de escritorio muestra el primer cuadro).
+ *
+ * NO reemplaza a `wrapEmail()`, que sigue sirviendo a los correos
+ * transaccionales (confirmación, recordatorio, cancelación…).
+ */
+export function renderCampaignEmail(opts: {
+  branding: CampaignBranding;
+  /** Ya escapado y con <br/> — cuerpo personalizado del mensaje. */
+  bodyHtml: string;
+  /** Ya escapado — línea de pie (desuscripción o aviso de prueba). */
+  footerNoteHtml: string;
+}): string {
+  const b = opts.branding;
+  const brand = sanitizeHex(b.brandColor);
+  const onBrand = contrastRatio(brand, "#ffffff") >= 4.5 ? "#ffffff" : "#20261f";
+  const onBrandMuted =
+    onBrand === "#ffffff" ? "rgba(255,255,255,0.82)" : "rgba(31,38,32,0.70)";
+  const cover = b.includeCover ? safeUrl(b.coverImageUrl, { httpsOnly: true }) : null;
+  const name = esc(b.businessName);
+  const bookingUrl = esc(safeUrl(b.bookingUrl) ?? b.bookingUrl);
+
+  const chips: { url: string; label: string }[] = [];
+  for (const [raw, label] of [
+    [b.instagramUrl, "Instagram"],
+    [b.facebookUrl, "Facebook"],
+    [b.whatsappUrl, "WhatsApp"],
+    [b.mapsUrl, "Cómo llegar"],
+  ] as [string | null, string][]) {
+    const url = safeUrl(raw);
+    if (url) chips.push({ url, label });
+  }
+
+  const bannerImg = cover
+    ? `<tr><td style="padding:0;line-height:0;font-size:0;">
+        <img src="${esc(cover)}" alt="${name}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;" />
+      </td></tr>`
+    : "";
+
+  const chipsHtml = chips.length
+    ? `<tr><td style="padding:4px 24px 22px;text-align:center;">
+        <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#9a9484;margin-bottom:9px;">Síguenos</div>
+        ${chips
+          .map(
+            (c) =>
+              `<a href="${esc(c.url)}" style="display:inline-block;font-size:12px;color:#5a5648;text-decoration:none;border:1px solid #e3ddcd;border-radius:999px;padding:5px 12px;margin:3px;">${c.label}</a>`
+          )
+          .join("")}
+      </td></tr>`
+    : "";
+
+  return `<!doctype html>
+<html lang="es"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
+<body style="margin:0;padding:0;background:#f4f1ea;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1ea;">
+  <tr><td align="center" style="padding:16px 12px;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid #e8e3d6;border-radius:14px;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+      ${bannerImg}
+      <tr><td style="background:${brand};padding:20px 22px;">
+        <div style="font-family:Georgia,'Times New Roman',serif;font-size:21px;font-weight:600;color:${onBrand};line-height:1.15;">${name}</div>
+        ${b.tagline ? `<div style="font-size:12px;color:${onBrandMuted};margin-top:3px;">${esc(b.tagline)}</div>` : ""}
+      </td></tr>
+      <tr><td style="padding:24px 24px 4px;font-size:15px;line-height:1.62;color:#20261f;">
+        ${opts.bodyHtml}
+      </td></tr>
+      <tr><td style="padding:20px 24px 6px;text-align:center;">
+        <a href="${bookingUrl}" style="display:inline-block;background:${brand};color:${onBrand};font-weight:600;font-size:15px;padding:13px 32px;border-radius:10px;text-decoration:none;">Reservar ahora</a>
+      </td></tr>
+      ${chipsHtml}
+      <tr><td style="border-top:1px solid #ece7db;background:#faf8f2;padding:15px 24px;">
+        <div style="font-size:11px;line-height:1.5;color:#9a968a;">${opts.footerNoteHtml}</div>
+        <div style="font-size:10px;color:#bdb9ac;margin-top:7px;">Enviado con Tu Hora Lista</div>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
 }
 
 async function sendAll(tasks: Promise<unknown>[]): Promise<void> {
@@ -270,14 +395,15 @@ type CampaignRecipient = { email: string; unsubscribeToken: string; name: string
  * incluye {{Nombre Cliente}}, se reemplaza por el nombre real de cada uno.
  */
 export async function sendCampaignEmails(info: {
-  businessName: string;
+  branding: CampaignBranding;
   subject: string;
   body: string;
-  bookingUrl: string;
   recipients: CampaignRecipient[];
 }): Promise<{ sent: number }> {
   const client = getClient();
   if (!client) return { sent: 0 };
+
+  const businessName = esc(info.branding.businessName);
 
   const tasks = info.recipients.map((r) => {
     const unsubscribeUrl = `${siteUrl()}/desuscribir/${r.unsubscribeToken}`;
@@ -285,14 +411,11 @@ export async function sendCampaignEmails(info: {
       from: FROM,
       to: r.email,
       subject: info.subject,
-      html: wrapEmail(`${escapeAndBreak(personalizeCampaignBody(info.body, r.name))}
-<p style="margin-top:20px;">
-  <a href="${info.bookingUrl}" style="display:inline-block;background:#2f4a3e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Reservar ahora</a>
-</p>
-<p style="margin-top:24px;font-size:11px;color:#a0a09a;">
-  Recibiste este correo porque eres cliente de ${info.businessName}.
-  <a href="${unsubscribeUrl}" style="color:#a0a09a;">Dejar de recibir estos correos</a>.
-</p>`),
+      html: renderCampaignEmail({
+        branding: info.branding,
+        bodyHtml: escapeAndBreak(personalizeCampaignBody(info.body, r.name)),
+        footerNoteHtml: `Recibiste este correo porque eres cliente de <strong style="color:#7a766a;">${businessName}</strong>. <a href="${esc(unsubscribeUrl)}" style="color:#9a968a;">Dejar de recibir estos correos</a>.`,
+      }),
     });
   });
 
@@ -310,10 +433,10 @@ export async function sendCampaignEmails(info: {
 
 /** Envío de prueba de una campaña — solo al propio profesional, sin tocar destinatarios reales. */
 export async function sendTestCampaignEmail(info: {
+  branding: CampaignBranding;
   toEmail: string;
   subject: string;
   body: string;
-  bookingUrl: string;
 }): Promise<boolean> {
   const client = getClient();
   if (!client) return false;
@@ -322,13 +445,11 @@ export async function sendTestCampaignEmail(info: {
     from: FROM,
     to: info.toEmail,
     subject: `[Prueba] ${info.subject}`,
-    html: wrapEmail(`${escapeAndBreak(personalizeCampaignBody(info.body, "María"))}
-<p style="margin-top:20px;">
-  <a href="${info.bookingUrl}" style="display:inline-block;background:#2f4a3e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Reservar ahora</a>
-</p>
-<p style="margin-top:24px;font-size:11px;color:#a0a09a;">
-  Este es un envío de prueba — no llegó a tus clientes.
-</p>`),
+    html: renderCampaignEmail({
+      branding: info.branding,
+      bodyHtml: escapeAndBreak(personalizeCampaignBody(info.body, "María")),
+      footerNoteHtml: "Este es un envío de prueba — no llegó a ningún cliente.",
+    }),
   });
 
   return !result.error;
