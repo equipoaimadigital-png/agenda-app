@@ -142,7 +142,7 @@ describe("createPublicBooking", () => {
         staffId: "staff-1",
         serviceId: "service-1",
         clientName: "Juan Pérez",
-        clientPhone: "987446788",
+        clientPhone: "+56987446788",
       }),
     });
     expect(sendBookingEmailsMock).toHaveBeenCalledOnce();

@@ -43,8 +43,9 @@ describe("resolveClientId", () => {
     const id = await resolveClientId("prof-1", "987446788", "Juan", "juan@test.com");
 
     expect(id).toBe("client-nuevo");
+    // el teléfono se guarda normalizado a E.164, no en crudo
     expect(createMock).toHaveBeenCalledWith({
-      data: { professionalId: "prof-1", phone: "987446788", name: "Juan", email: "juan@test.com" },
+      data: { professionalId: "prof-1", phone: "+56987446788", name: "Juan", email: "juan@test.com" },
     });
   });
 

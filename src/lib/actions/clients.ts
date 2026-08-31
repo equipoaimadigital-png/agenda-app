@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { isValidEmail } from "@/lib/validation";
+import { toE164 } from "@/lib/phone";
 
 /**
  * Encuentra o crea la ficha de cliente para esta reserva y devuelve su id,
@@ -14,10 +15,14 @@ import { isValidEmail } from "@/lib/validation";
  */
 export async function resolveClientId(
   professionalId: string,
-  phone: string,
+  phoneInput: string,
   name: string,
   email: string | null
 ): Promise<string> {
+  // Segundo cinturón: aunque los callers ya normalizan, acá también — así
+  // ninguna ruta futura crea una ficha con el teléfono en crudo.
+  const phone = toE164(phoneInput);
+
   const existing = await prisma.client.findUnique({
     where: { professionalId_phone: { professionalId, phone } },
   });
@@ -71,7 +76,8 @@ export async function updateClient(
   if (!client) return { error: "No encontramos a este cliente." };
 
   const name = String(formData.get("name") || "").trim();
-  const phone = String(formData.get("phone") || "").trim();
+  const phoneRaw = String(formData.get("phone") || "").trim();
+  const phone = phoneRaw ? toE164(phoneRaw) : "";
   const email = String(formData.get("email") || "").trim() || null;
   const month = Number(formData.get("month") || 0);
   const day = Number(formData.get("day") || 0);

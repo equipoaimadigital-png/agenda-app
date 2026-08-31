@@ -118,7 +118,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
   const dateStr = String(formData.get("date") || "");
   const time = String(formData.get("time") || "");
   const clientName = String(formData.get("clientName") || "").trim();
-  const clientPhone = String(formData.get("clientPhone") || "").trim();
+  const clientPhoneRaw = String(formData.get("clientPhone") || "").trim();
   const clientEmail = String(formData.get("clientEmail") || "").trim() || null;
   // Solo aplica a servicios con depósito OPTIONAL: el cliente marcó
   // "asegurar mi hora" en la página pública. En REQUIRED se ignora (siempre
@@ -129,7 +129,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
   if (clientName.length > 100) {
     return { error: "Nombre muy largo (máx 100 caracteres)." };
   }
-  if (clientPhone.length > 20) {
+  if (clientPhoneRaw.length > 20) {
     return { error: "Teléfono inválido (máx 20 caracteres)." };
   }
   if (clientEmail && clientEmail.length > 255) {
@@ -165,16 +165,18 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
     }
   }
 
-  if (!slug || !serviceId || !dateStr || !time || !clientName || !clientPhone) {
+  if (!slug || !serviceId || !dateStr || !time || !clientName || !clientPhoneRaw) {
     return { error: "Completa todos los campos obligatorios." };
   }
   if (clientEmail && !isValidEmail(clientEmail)) {
     return { error: "El email ingresado no es válido." };
   }
 
-  // Validación de teléfono: debe normalizarse a E.164 sin errores
-  const normalizedPhone = toE164(clientPhone);
-  const phoneDigitsOnly = normalizedPhone.replace(/\D/g, "");
+  // El teléfono se normaliza a E.164 ANTES de guardarlo — así el mismo
+  // cliente ("+56 9 1234 5678" vs "912345678") no queda partido en dos
+  // fichas de CRM ni en dos historiales.
+  const clientPhone = toE164(clientPhoneRaw);
+  const phoneDigitsOnly = clientPhone.replace(/\D/g, "");
   if (phoneDigitsOnly.length < 9 || phoneDigitsOnly.length > 15) {
     return { error: "Teléfono debe tener entre 9 y 15 dígitos." };
   }
@@ -361,15 +363,19 @@ export async function createManualBooking(formData: FormData): Promise<{ error?:
   const dateStr = String(formData.get("date") || "");
   const time = String(formData.get("time") || "");
   const clientName = String(formData.get("clientName") || "").trim();
-  const clientPhone = String(formData.get("clientPhone") || "").trim();
+  const clientPhoneRaw = String(formData.get("clientPhone") || "").trim();
   const clientEmail = String(formData.get("clientEmail") || "").trim() || null;
 
-  if (!serviceId || !staffId || !dateStr || !time || !clientName || !clientPhone) {
+  if (!serviceId || !staffId || !dateStr || !time || !clientName || !clientPhoneRaw) {
     return { error: "Completa todos los campos obligatorios." };
   }
   if (clientEmail && !isValidEmail(clientEmail)) {
     return { error: "El email ingresado no es válido." };
   }
+
+  // Mismo criterio que la reserva pública: se guarda en E.164 para no
+  // duplicar la ficha del cliente por diferencias de formato.
+  const clientPhone = toE164(clientPhoneRaw);
 
   const service = await prisma.service.findFirst({
     where: { id: serviceId, professionalId: professional.id },
