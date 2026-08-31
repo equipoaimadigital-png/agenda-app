@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/slug";
+import { isValidEmail } from "@/lib/validation";
 
 export type AuthResult = { error: string } | never;
 
@@ -122,4 +123,38 @@ export async function updatePassword(
   }
 
   redirect("/dashboard");
+}
+
+/**
+ * Inicia el cambio de correo de acceso. Supabase manda un link de
+ * confirmación al correo NUEVO (y, si está activado "Secure email change",
+ * también al viejo). El correo solo cambia cuando se abre ese link;
+ * `Professional.email` se sincroniza solo en el siguiente ingreso al panel
+ * (ver getCurrentProfessional).
+ */
+export async function requestEmailChange(
+  formData: FormData
+): Promise<{ error?: string; success?: boolean; email?: string }> {
+  const newEmail = String(formData.get("email") || "").trim().toLowerCase();
+  if (!isValidEmail(newEmail)) return { error: "Ingresa un correo válido." };
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Tu sesión expiró. Vuelve a iniciar sesión." };
+  if (user.email?.toLowerCase() === newEmail) {
+    return { error: "Ese ya es tu correo actual." };
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const { error } = await supabase.auth.updateUser(
+    { email: newEmail },
+    { emailRedirectTo: `${siteUrl}/auth/callback?next=/dashboard/configuracion` }
+  );
+  if (error) {
+    return { error: "No se pudo iniciar el cambio de correo. Intenta de nuevo más tarde." };
+  }
+
+  return { success: true, email: newEmail };
 }

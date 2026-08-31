@@ -11,9 +11,21 @@ export async function getCurrentProfessional() {
 
   if (!user) return null;
 
-  return prisma.professional.findUnique({
+  const professional = await prisma.professional.findUnique({
     where: { authUserId: user.id },
   });
+
+  // Si el profesional confirmó un cambio de correo de acceso en Supabase,
+  // sincroniza la columna Professional.email (que usan las notificaciones
+  // al negocio) en el primer ingreso posterior.
+  if (professional && user.email && professional.email !== user.email) {
+    return prisma.professional.update({
+      where: { id: professional.id },
+      data: { email: user.email },
+    });
+  }
+
+  return professional;
 }
 
 /**

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { CoverImageUploader } from "@/components/dashboard/CoverImageUploader";
 import { ConfiguracionForm } from "@/components/dashboard/ConfiguracionForm";
+import { EmailChangeForm } from "@/components/dashboard/EmailChangeForm";
 import { MercadoPagoConnectCard } from "@/components/dashboard/MercadoPagoConnectCard";
 
 const SUBSCRIPTION_LABEL: Record<string, string> = {
@@ -42,6 +43,10 @@ export default async function ConfiguracionPage({
           Ver detalle
         </Link>
       </section>
+
+      <div className="bg-surface border border-border rounded-xl p-4">
+        <EmailChangeForm currentEmail={professional.email} />
+      </div>
 
       <MercadoPagoConnectCard
         connected={!!professional.mpConnectedUserId}
