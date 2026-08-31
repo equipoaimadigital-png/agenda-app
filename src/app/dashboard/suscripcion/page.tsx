@@ -1,21 +1,34 @@
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { hasDashboardAccess, SUBSCRIPTION_PRICE_CLP } from "@/lib/subscription";
-import { startSubscriptionCheckout } from "@/lib/actions/subscription";
+import {
+  startSubscriptionCheckout,
+  startSubscriptionOneTimePayment,
+} from "@/lib/actions/subscription";
 import { formatDateLong } from "@/lib/dates";
 
 function formatPrice(n: number): string {
   return `$${n.toLocaleString("es-CL")}`;
 }
 
-type PageProps = { searchParams: Promise<{ error?: string }> };
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+}
+
+type PageProps = { searchParams: Promise<{ error?: string; pago?: string }> };
 
 export default async function SuscripcionPage({ searchParams }: PageProps) {
   const professional = await getCurrentProfessional();
   if (!professional) return null;
-  const { error } = await searchParams;
+  const { error, pago } = await searchParams;
 
   const active = hasDashboardAccess(professional);
-  const trialActive = professional.subscriptionStatus === "TRIAL" && active;
+  const isRecurringActive = professional.subscriptionStatus === "ACTIVE";
+  const paidUntil = professional.subscriptionPaidUntil;
+  const manualActive = !!paidUntil && new Date() < paidUntil;
+  const trialActive = professional.subscriptionStatus === "TRIAL" && active && !manualActive;
+  const showPaymentOptions = !isRecurringActive;
 
   return (
     <div className="flex flex-col gap-6 max-w-xl">
@@ -26,12 +39,39 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      {professional.subscriptionStatus === "ACTIVE" && (
+      {pago === "1" && (
+        <p className="text-sm text-success bg-success-soft rounded-lg px-3 py-2">
+          Pago recibido. Si no ves tu plan al día en un minuto, recarga la página.
+        </p>
+      )}
+      {pago === "pendiente" && (
+        <p className="text-sm text-warning bg-warning-soft rounded-lg px-3 py-2">
+          Tu pago quedó pendiente de aprobación. En cuanto se acredite, tu plan se activa solo.
+        </p>
+      )}
+      {pago === "error" && (
+        <p className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">
+          El pago no se completó. Puedes intentar de nuevo con otro medio.
+        </p>
+      )}
+
+      {isRecurringActive && (
         <div className="bg-success-soft border border-border rounded-xl p-4">
-          <p className="font-medium text-success">✓ Tu suscripción está activa</p>
+          <p className="font-medium text-success">✓ Tu suscripción automática está activa</p>
           <p className="text-sm text-muted mt-1">
-            El cobro se realiza automáticamente cada mes a través de Mercado Pago. Si
-            quieres cancelarla, puedes hacerlo desde tu cuenta de Mercado Pago.
+            El cobro se realiza solo cada mes a través de Mercado Pago. Si quieres cancelarla,
+            puedes hacerlo desde tu cuenta de Mercado Pago.
+          </p>
+        </div>
+      )}
+
+      {!isRecurringActive && manualActive && (
+        <div className="bg-success-soft border border-border rounded-xl p-4">
+          <p className="font-medium text-success">✓ Tu plan está al día</p>
+          <p className="text-sm text-muted mt-1">
+            Pagado hasta el{" "}
+            <strong className="capitalize">{formatDateLong(toDateStr(paidUntil))}</strong>. Antes de
+            esa fecha, vuelve acá y paga otro mes para no quedarte sin panel.
           </p>
         </div>
       )}
@@ -42,16 +82,14 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
           <p className="text-sm text-muted mt-1">
             Termina el{" "}
             <strong className="capitalize">
-              {professional.trialEndsAt ? formatDateLong(
-                `${professional.trialEndsAt.getFullYear()}-${String(professional.trialEndsAt.getMonth() + 1).padStart(2, "0")}-${String(professional.trialEndsAt.getDate()).padStart(2, "0")}`
-              ) : "—"}
+              {professional.trialEndsAt ? formatDateLong(toDateStr(professional.trialEndsAt)) : "—"}
             </strong>
-            . Puedes suscribirte antes o esperar a que termine.
+            . Puedes activar tu plan antes o esperar a que termine.
           </p>
         </div>
       )}
 
-      {!active && professional.subscriptionStatus !== "ACTIVE" && (
+      {!active && !isRecurringActive && !manualActive && (
         <div className="bg-warning-soft border border-border rounded-xl p-4">
           <p className="font-medium text-warning">
             {professional.subscriptionStatus === "PAST_DUE"
@@ -59,8 +97,8 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
               : "Tu prueba gratis terminó"}
           </p>
           <p className="text-sm text-muted mt-1">
-            Tu panel está bloqueado hasta que actives la suscripción. Tranquilo: tu página
-            pública de reservas sigue funcionando normal para tus clientes.
+            Tu panel está bloqueado hasta que actives el plan. Tranquilo: tu página pública de
+            reservas sigue funcionando normal para tus clientes.
           </p>
         </div>
       )}
@@ -69,39 +107,68 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
         <p className="text-sm text-danger bg-danger-soft rounded-lg px-3 py-2">{error}</p>
       )}
 
-      {professional.subscriptionStatus !== "ACTIVE" && (
-        <form action={startSubscriptionCheckout} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="mpEmail" className="text-sm font-medium">
-              Correo de tu cuenta de Mercado Pago
-            </label>
-            <input
-              id="mpEmail"
-              name="mpEmail"
-              type="email"
-              required
-              defaultValue={professional.email}
-              placeholder="tucorreo@ejemplo.com"
-              className="border border-border rounded-lg px-3 py-2.5 max-w-sm"
-            />
-            <p className="text-xs text-muted">
-              Debe ser el correo con el que inicias sesión en Mercado Pago. Si no coincide,
-              Mercado Pago muestra el checkout pero no te deja confirmar.
+      {showPaymentOptions && (
+        <div className="flex flex-col gap-4">
+          {/* Opción 1 — pago manual, sirve con débito */}
+          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2">
+            <p className="font-medium">Pagar 1 mes</p>
+            <p className="text-sm text-muted">
+              Un pago único de {formatPrice(SUBSCRIPTION_PRICE_CLP)}. Sirve con{" "}
+              <strong>débito, crédito o efectivo</strong>. Renuevas tú cada mes (te avisamos).
             </p>
+            <form action={startSubscriptionOneTimePayment}>
+              <button
+                type="submit"
+                className="self-start bg-brand text-brand-foreground rounded-lg px-4 py-3 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
+              >
+                Pagar {formatPrice(SUBSCRIPTION_PRICE_CLP)} por 1 mes
+              </button>
+            </form>
           </div>
 
-          <button
-            type="submit"
-            className="self-start bg-brand text-brand-foreground rounded-lg px-4 py-3 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
-          >
-            Suscribirme por {formatPrice(SUBSCRIPTION_PRICE_CLP)}/mes
-          </button>
+          {/* Opción 2 — cobro automático, requiere crédito */}
+          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+            <div>
+              <p className="font-medium">Cobro automático cada mes</p>
+              <p className="text-sm text-muted">
+                Se cobra solo, no tienes que acordarte. Necesita{" "}
+                <strong>tarjeta de crédito</strong> — varias tarjetas de débito de bancos chilenos
+                no permiten el cobro recurrente.
+              </p>
+            </div>
+            <form action={startSubscriptionCheckout} className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="mpEmail" className="text-sm font-medium">
+                  Correo de tu cuenta de Mercado Pago
+                </label>
+                <input
+                  id="mpEmail"
+                  name="mpEmail"
+                  type="email"
+                  required
+                  defaultValue={professional.email}
+                  placeholder="tucorreo@ejemplo.com"
+                  className="border border-border rounded-lg px-3 py-2.5 max-w-sm"
+                />
+                <p className="text-xs text-muted">
+                  Debe ser el correo con el que inicias sesión en Mercado Pago, o el checkout no
+                  te deja confirmar.
+                </p>
+              </div>
+              <button
+                type="submit"
+                className="self-start border border-border bg-surface rounded-lg px-4 py-3 font-medium hover:border-brand active:scale-[0.98]"
+              >
+                Activar cobro automático
+              </button>
+            </form>
+          </div>
+
           <p className="text-xs text-muted">
-            Te llevamos al checkout seguro de Mercado Pago. Nunca vemos ni guardamos los datos
-            de tu tarjeta. Para la suscripción recomendamos <strong>tarjeta de crédito</strong>:
-            varias tarjetas de débito de bancos chilenos no permiten el cobro automático mensual.
+            Te llevamos al checkout seguro de Mercado Pago. Nunca vemos ni guardamos los datos de
+            tu tarjeta.
           </p>
-        </form>
+        </div>
       )}
     </div>
   );

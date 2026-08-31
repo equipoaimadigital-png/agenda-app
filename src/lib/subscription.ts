@@ -12,11 +12,22 @@ export const SUBSCRIPTION_PRICE_CLP = 14990;
  * reserva (/reservar/[slug]) y "Mi reserva" (/reserva/[token]) NUNCA se
  * gatean con esto — solo el panel del profesional. */
 export function hasDashboardAccess(
-  professional: Pick<Professional, "subscriptionStatus" | "trialEndsAt">
+  professional: Pick<
+    Professional,
+    "subscriptionStatus" | "trialEndsAt" | "subscriptionPaidUntil"
+  >
 ): boolean {
   if (professional.subscriptionStatus === "ACTIVE") return true;
+  // Camino de pago manual (pago único mensual): vale mientras la fecha
+  // pagada esté en el futuro, sin importar subscriptionStatus.
+  if (professional.subscriptionPaidUntil && new Date() < professional.subscriptionPaidUntil) {
+    return true;
+  }
   if (professional.subscriptionStatus === "TRIAL") {
     return !professional.trialEndsAt || new Date() < professional.trialEndsAt;
   }
   return false;
 }
+
+/** Días de plan que agrega cada pago único manual. */
+export const MANUAL_PAYMENT_DAYS = 31;

@@ -3,6 +3,7 @@ import { SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { fetchPreapproval } from "@/lib/mercadopago";
 import { fetchPayment } from "@/lib/mercadopago-connect";
+import { MANUAL_PAYMENT_DAYS } from "@/lib/subscription";
 import { sendBookingEmails } from "@/lib/email";
 import { sendConfirmationWhatsApp } from "@/lib/whatsapp";
 import { sendConfirmationSms } from "@/lib/sms";
@@ -115,9 +116,16 @@ async function handleDepositPayment(paymentId: string): Promise<void> {
     return null;
   });
 
-  const bookingId = payment?.external_reference;
-  if (!bookingId) return;
+  const ref = payment?.external_reference;
+  if (!ref) return;
 
+  // Pago ÚNICO del plan del profesional (camino manual, sin cobro recurrente).
+  if (ref.startsWith("sub:")) {
+    await handleManualSubscriptionPayment(ref.slice(4), payment?.status);
+    return;
+  }
+
+  const bookingId = ref;
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: { professional: true, service: true },
@@ -170,4 +178,37 @@ async function handleDepositPayment(paymentId: string): Promise<void> {
   }
   // Cualquier otro estado (pending, in_process) se deja como está — el
   // cron de reservas vencidas se encarga si nunca se resuelve.
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Pago único de 1 mes de plan (camino manual). Cada pago aprobado extiende
+ * `subscriptionPaidUntil` ~31 días desde la fecha vigente (o desde hoy si ya
+ * venció). Guarda simple contra webhooks duplicados: si la fecha ya está casi
+ * un mes en el futuro, se asume que este pago ya se aplicó.
+ */
+async function handleManualSubscriptionPayment(
+  professionalId: string,
+  status?: string
+): Promise<void> {
+  if (status !== "approved") return;
+
+  const professional = await prisma.professional.findUnique({
+    where: { id: professionalId },
+    select: { subscriptionPaidUntil: true },
+  });
+  if (!professional) return;
+
+  const currentUntil = professional.subscriptionPaidUntil?.getTime() ?? 0;
+  if (currentUntil > Date.now() + (MANUAL_PAYMENT_DAYS - 2) * DAY_MS) {
+    // Ya cubierto por un pago reciente — probablemente un reintento del webhook.
+    return;
+  }
+
+  const base = Math.max(Date.now(), currentUntil);
+  await prisma.professional.update({
+    where: { id: professionalId },
+    data: { subscriptionPaidUntil: new Date(base + MANUAL_PAYMENT_DAYS * DAY_MS) },
+  });
 }

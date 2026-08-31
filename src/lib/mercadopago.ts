@@ -1,4 +1,4 @@
-import { MercadoPagoConfig, PreApproval } from "mercadopago";
+import { MercadoPagoConfig, PreApproval, Preference } from "mercadopago";
 import { SUBSCRIPTION_PRICE_CLP } from "@/lib/subscription";
 
 function getClient(): MercadoPagoConfig | null {
@@ -59,6 +59,51 @@ export async function createSubscriptionInitPoint(params: {
         : err;
     console.error("Error creando suscripción en Mercado Pago:", JSON.stringify(detail));
     return { error: "No se pudo iniciar el pago. Revisa el correo de Mercado Pago e intenta de nuevo." };
+  }
+}
+
+/**
+ * Pago ÚNICO del plan (no recurrente), para quien no puede usar cobro
+ * automático (débito chileno). Cada pago aprobado extiende
+ * `subscriptionPaidUntil` ~31 días desde el webhook. `external_reference`
+ * lleva el prefijo "sub:" para que el webhook lo distinga de un depósito.
+ */
+export async function createSubscriptionPaymentLink(params: {
+  professionalId: string;
+  businessName: string;
+}): Promise<{ initPoint: string } | { error: string }> {
+  const client = getClient();
+  if (!client) return { error: "Mercado Pago no está configurado todavía." };
+
+  try {
+    const result = await new Preference(client).create({
+      body: {
+        items: [
+          {
+            id: `sub-${params.professionalId}`,
+            title: `Tu Hora Lista — 1 mes de plan (${params.businessName})`,
+            quantity: 1,
+            unit_price: SUBSCRIPTION_PRICE_CLP,
+            currency_id: "CLP",
+          },
+        ],
+        external_reference: `sub:${params.professionalId}`,
+        back_urls: {
+          success: `${siteUrl()}/dashboard/suscripcion?pago=1`,
+          pending: `${siteUrl()}/dashboard/suscripcion?pago=pendiente`,
+          failure: `${siteUrl()}/dashboard/suscripcion?pago=error`,
+        },
+        auto_return: "approved",
+        notification_url: `${siteUrl()}/api/mercadopago/webhook`,
+      },
+    });
+    if (!result.init_point) {
+      return { error: "Mercado Pago no devolvió un link de pago válido." };
+    }
+    return { initPoint: result.init_point };
+  } catch (err) {
+    console.error("Error creando link de pago del plan en Mercado Pago:", JSON.stringify(err));
+    return { error: "No se pudo generar el link de pago. Intenta de nuevo." };
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
-import { createSubscriptionInitPoint } from "@/lib/mercadopago";
+import { createSubscriptionInitPoint, createSubscriptionPaymentLink } from "@/lib/mercadopago";
 import { isValidEmail } from "@/lib/validation";
 
 export async function startSubscriptionCheckout(formData: FormData): Promise<void> {
@@ -25,6 +25,28 @@ export async function startSubscriptionCheckout(formData: FormData): Promise<voi
   const result = await createSubscriptionInitPoint({
     professionalId: professional.id,
     payerEmail: mpEmail,
+    businessName: professional.businessName,
+  });
+
+  if ("error" in result) {
+    redirect(`/dashboard/suscripcion?error=${encodeURIComponent(result.error)}`);
+  }
+
+  redirect(result.initPoint);
+}
+
+/**
+ * Pago ÚNICO de 1 mes de plan. Camino para quien no puede usar cobro
+ * recurrente (débito chileno): funciona con débito, crédito y efectivo.
+ * No hay `payer_email` — MP usa el de quien pague. El acceso se extiende
+ * cuando llega el webhook del pago aprobado.
+ */
+export async function startSubscriptionOneTimePayment(): Promise<void> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  const result = await createSubscriptionPaymentLink({
+    professionalId: professional.id,
     businessName: professional.businessName,
   });
 

@@ -64,6 +64,11 @@ model Professional {
   trialEndsAt        DateTime?
   // ID de la suscripción (Preapproval) en Mercado Pago, una vez autorizada
   mpPreapprovalId    String?
+  // Camino de pago MANUAL: para quien no puede usar cobro recurrente (débito
+  // chileno). Cada pago único de $plan extiende esta fecha ~31 días. El
+  // acceso al panel se concede mientras esté en el futuro, sin depender de
+  // subscriptionStatus.
+  subscriptionPaidUntil DateTime?
 
   // Cuenta de Mercado Pago del PROFESIONAL, conectada vía OAuth (Marketplace)
   // para que los depósitos de sus clientes le lleguen directo a él — nunca
