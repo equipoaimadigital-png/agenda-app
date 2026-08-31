@@ -2,6 +2,8 @@ import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import { CampaignForm } from "@/components/dashboard/CampaignForm";
 import { DeleteCampaignButton } from "@/components/dashboard/DeleteCampaignButton";
+import { PlaybookCard } from "@/components/dashboard/PlaybookCard";
+import { getPlaybooks } from "@/lib/playbooks";
 import { formatDateLong, toDateStr } from "@/lib/dates";
 
 const AUDIENCE_LABEL: Record<string, string> = {
@@ -13,11 +15,14 @@ const AUDIENCE_LABEL: Record<string, string> = {
 export default async function CampanasPage() {
   const professional = await requireDashboardAccess();
 
-  const campaigns = await prisma.emailCampaign.findMany({
-    where: { professionalId: professional.id },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-  });
+  const [campaigns, playbooks] = await Promise.all([
+    prisma.emailCampaign.findMany({
+      where: { professionalId: professional.id },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    getPlaybooks(professional.id),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -27,6 +32,31 @@ export default async function CampanasPage() {
           Manda un correo a tus clientes para reactivarlos, avisar promociones o novedades.
         </p>
       </div>
+
+      {playbooks.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <div>
+            <h2 className="font-semibold">Sugerencias para ti</h2>
+            <p className="text-sm text-muted">
+              Campañas listas según cómo se comportan tus clientes. Edítalas antes de enviar.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            {playbooks.map((pb) => (
+              <PlaybookCard
+                key={pb.id}
+                id={pb.id}
+                title={pb.title}
+                why={pb.why}
+                tip={pb.tip}
+                subject={pb.subject}
+                body={pb.body}
+                targetCount={pb.targets.length}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <CampaignForm
         businessName={professional.businessName}
