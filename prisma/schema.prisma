@@ -100,6 +100,10 @@ model Client {
   unsubscribed      Boolean  @default(false)
   // Token impredecible para el link de desuscripción de un clic, sin login
   unsubscribeToken  String   @unique @default(uuid())
+  // Última vez que este cliente recibió una campaña de email. Lo usa
+  // Reactivación para no volver a incluirlo en una campaña antes de 14 días
+  // (evita quemar la lista con avisos muy seguidos).
+  lastCampaignAt    DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 

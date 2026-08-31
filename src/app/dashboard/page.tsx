@@ -8,6 +8,7 @@ import { NewBookingForm } from "@/components/dashboard/NewBookingForm";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { StaffFilter } from "@/components/dashboard/StaffFilter";
 import { WeekView, type WeekBooking } from "@/components/dashboard/WeekView";
+import { getReactivationCount } from "@/lib/reactivation";
 import { addDays, formatDateLong, nowInTimeZone, timeToMinutes, wallClockOf, weekdayOf } from "@/lib/dates";
 
 type PageProps = { searchParams: Promise<{ staffId?: string; view?: string; week?: string }> };
@@ -154,6 +155,8 @@ export default async function AgendaPage({ searchParams }: PageProps) {
   }
   const sortedDates = [...groups.keys()].sort();
 
+  const reactivationCount = await getReactivationCount(professional.id);
+
   return (
     <div className="flex flex-col gap-6">
       <OnboardingChecklist
@@ -166,6 +169,21 @@ export default async function AgendaPage({ searchParams }: PageProps) {
         facebookUrl={professional.facebookUrl}
         onboardingDismissed={professional.onboardingDismissed}
       />
+
+      {reactivationCount > 0 && (
+        <Link
+          href="/dashboard/reactivacion"
+          className="flex items-center justify-between gap-3 bg-brand-soft border border-brand/30 rounded-xl px-4 py-3 hover:border-brand transition-colors"
+        >
+          <span className="text-sm font-medium text-ink">
+            🔄 {reactivationCount} cliente{reactivationCount === 1 ? "" : "s"} para reactivar —
+            llevan más tiempo del habitual sin venir
+          </span>
+          <span aria-hidden className="text-brand shrink-0">
+            →
+          </span>
+        </Link>
+      )}
 
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
