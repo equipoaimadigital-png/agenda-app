@@ -35,7 +35,10 @@ function parseDepositMode(
   return value === "OPTIONAL" || value === "REQUIRED" ? (value as DepositMode) : DepositMode.NONE;
 }
 
-export async function createService(formData: FormData) {
+export async function createService(
+  _prev: { error?: string; success?: boolean },
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
   const professional = await getCurrentProfessional();
   if (!professional) redirect("/login");
 
@@ -56,7 +59,23 @@ export async function createService(formData: FormData) {
   );
 
   if (!name || !durationMin || durationMin <= 0) {
-    return;
+    return { error: "Escribe un nombre y una duración válida (mínimo 5 min)." };
+  }
+
+  // Evita el duplicado exacto que ya pasó en producción: dos servicios
+  // activos con el mismo nombre aparecen dos veces en la página pública.
+  const duplicate = await prisma.service.findFirst({
+    where: {
+      professionalId: professional.id,
+      active: true,
+      name: { equals: name, mode: "insensitive" },
+    },
+    select: { id: true },
+  });
+  if (duplicate) {
+    return {
+      error: `Ya tienes un servicio activo llamado "${name}". Edita ese o usa otro nombre.`,
+    };
   }
 
   // Un servicio solo es reservable si algún Staff lo tiene asignado. Hasta que
@@ -83,6 +102,7 @@ export async function createService(formData: FormData) {
   });
 
   revalidatePath("/dashboard/servicios");
+  return { success: true };
 }
 
 /** Cambia el modo y el monto del depósito de un servicio ya existente. */

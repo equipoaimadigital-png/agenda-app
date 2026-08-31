@@ -14,6 +14,7 @@ type StaffItem = {
   photoUrl: string | null;
   active: boolean;
   serviceIds: string[];
+  hasAvailability: boolean;
 };
 
 export function StaffRow({ staff, services }: { staff: StaffItem; services: Service[] }) {
@@ -88,6 +89,18 @@ export function StaffRow({ staff, services }: { staff: StaffItem; services: Serv
       )}
       {rowNotice && (
         <p className="text-sm text-warning bg-warning-soft rounded-lg px-3 py-2">{rowNotice}</p>
+      )}
+
+      {staff.active && (!staff.hasAvailability || staff.serviceIds.length === 0) && (
+        <p className="text-sm text-warning bg-warning-soft rounded-lg px-3 py-2">
+          No aparece en tu página de reservas: falta{" "}
+          {!staff.hasAvailability && staff.serviceIds.length === 0
+            ? "asignarle horario (en Disponibilidad) y al menos un servicio"
+            : !staff.hasAvailability
+              ? "asignarle horario en Disponibilidad"
+              : "marcarle al menos un servicio (botón «Editar»)"}
+          .
+        </p>
       )}
 
       <div className="border-t border-border pt-3">

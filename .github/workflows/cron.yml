@@ -1,0 +1,48 @@
+name: Crons de respaldo
+
+# Los crons de Vercel Hobby corren 1 vez al día y con ±1 h de imprecisión.
+# Este workflow pega a los mismos endpoints con más frecuencia, gratis, para
+# que los recordatorios lleguen a tiempo sin depender del plan Hobby.
+#
+# Requiere dos secrets del repo (Settings -> Secrets and variables -> Actions):
+#   APP_URL       = https://tuhoralista.com   (sin barra final)
+#   CRON_SECRET   = el mismo valor que la env var CRON_SECRET en Vercel
+
+on:
+  schedule:
+    - cron: "*/30 * * * *" # recordatorios + expirar reservas pendientes
+    - cron: "20 8 * * *" # + backup diario (08:20 UTC)
+  workflow_dispatch: {} # permite dispararlo a mano desde la pestaña Actions
+
+concurrency:
+  group: crons
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recordatorios
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS -X GET "$APP_URL/api/cron/reminders" \
+            -H "Authorization: Bearer $CRON_SECRET" -w "\nHTTP %{http_code}\n"
+
+      - name: Expirar reservas pendientes de pago
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS -X GET "$APP_URL/api/cron/expire-pending-bookings" \
+            -H "Authorization: Bearer $CRON_SECRET" -w "\nHTTP %{http_code}\n"
+
+      - name: Backup diario
+        if: github.event.schedule == '20 8 * * *' || github.event_name == 'workflow_dispatch'
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS -X GET "$APP_URL/api/cron/backup" \
+            -H "Authorization: Bearer $CRON_SECRET" -w "\nHTTP %{http_code}\n"

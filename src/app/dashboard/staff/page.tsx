@@ -12,7 +12,10 @@ export default async function StaffPage() {
     prisma.staff.findMany({
       where: { professionalId: professional.id },
       orderBy: { createdAt: "asc" },
-      include: { services: { select: { id: true } } },
+      include: {
+        services: { select: { id: true } },
+        _count: { select: { availability: true } },
+      },
     }),
     prisma.service.findMany({
       where: { professionalId: professional.id, active: true },
@@ -62,6 +65,7 @@ export default async function StaffPage() {
               photoUrl: s.photoUrl,
               active: s.active,
               serviceIds: s.services.map((sv) => sv.id),
+              hasAvailability: s._count.availability > 0,
             }}
             services={services}
           />

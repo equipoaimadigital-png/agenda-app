@@ -1,6 +1,5 @@
 import { MercadoPagoConfig, PreApproval } from "mercadopago";
-
-const SUBSCRIPTION_PRICE_CLP = 12000;
+import { SUBSCRIPTION_PRICE_CLP } from "@/lib/subscription";
 
 function getClient(): MercadoPagoConfig | null {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -62,5 +61,3 @@ export async function fetchPreapproval(preapprovalId: string) {
   const preApproval = new PreApproval(client);
   return preApproval.get({ id: preapprovalId });
 }
-
-export { SUBSCRIPTION_PRICE_CLP };
