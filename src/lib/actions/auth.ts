@@ -33,35 +33,34 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
     return { error: "La contraseña debe tener al menos 6 caracteres." };
   }
 
-  const supabase = await createSupabaseServerClient();
+  console.log("[signUp] intento de registro:", email);
 
-  let data;
+  // Todo lo que puede fallar (Supabase, Prisma) queda adentro de este bloque.
+  // redirect() NUNCA va aquí: lanza una excepción especial de Next.js que no
+  // debe ser atrapada — se hace después, según lo que dejemos en `outcome`.
+  let outcome: "needsConfirmation" | "goToDashboard";
   try {
-    const res = await supabase.auth.signUp({ email, password });
-    if (res.error) {
-      console.error("[signUp] Supabase devolvió error:", res.error.status, res.error.message);
-      return { error: res.error.message };
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.auth.signUp({ email, password });
+
+    if (error) {
+      console.error("[signUp] Supabase devolvió error:", error.status, error.message);
+      return { error: error.message };
     }
-    data = res.data;
-  } catch (err) {
-    console.error("[signUp] supabase.auth.signUp lanzó una excepción:", err);
-    return {
-      error: "No pudimos conectar con el servicio de cuentas. Intenta de nuevo en un minuto.",
-    };
-  }
+    if (!data.user) {
+      console.error("[signUp] Supabase no devolvió error pero tampoco user.");
+      return { error: "No se pudo crear la cuenta. Intenta de nuevo." };
+    }
+    console.log("[signUp] usuario de Supabase ok:", data.user.id, "sesión:", !!data.session);
 
-  if (!data.user) {
-    return { error: "No se pudo crear la cuenta. Intenta de nuevo." };
-  }
+    // Si ya existe un perfil para este usuario (p. ej. un intento anterior
+    // creó el usuario de Supabase pero se cortó antes de terminar), no lo
+    // dupliques.
+    const existing = await prisma.professional.findUnique({
+      where: { authUserId: data.user.id },
+    });
 
-  // Si ya existe un perfil para este usuario (p. ej. un intento anterior creó
-  // el usuario de Supabase pero se cortó antes de terminar), no lo dupliques:
-  // manda a iniciar sesión / al panel según corresponda.
-  const existing = await prisma.professional.findUnique({
-    where: { authUserId: data.user.id },
-  });
-  if (!existing) {
-    try {
+    if (!existing) {
       const slug = await uniqueSlug(businessName);
       const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 3600_000);
       await prisma.professional.create({
@@ -78,16 +77,21 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
           },
         },
       });
-    } catch (err) {
-      console.error("[signUp] no se pudo crear el Professional:", err);
-      return {
-        error:
-          "Tu cuenta se creó pero falló la configuración inicial. Escríbenos a soporte@tuhoralista.com y lo dejamos listo.",
-      };
+      console.log("[signUp] Professional creado:", slug);
+    } else {
+      console.log("[signUp] Professional ya existía, se omite crear de nuevo:", existing.slug);
     }
+
+    outcome = data.session ? "goToDashboard" : "needsConfirmation";
+  } catch (err) {
+    console.error("[signUp] excepción no manejada:", err);
+    return {
+      error:
+        "Algo falló creando tu cuenta. Vuelve a intentar en un minuto; si persiste, escríbenos a soporte@tuhoralista.com.",
+    };
   }
 
-  if (!data.session) {
+  if (outcome === "needsConfirmation") {
     // El proyecto de Supabase pide confirmar el email antes de iniciar sesión
     redirect("/login?confirm=1");
   }
