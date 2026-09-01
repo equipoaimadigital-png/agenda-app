@@ -1,6 +1,7 @@
 import twilio from "twilio";
 import { formatDateLong, wallClockOf } from "@/lib/dates";
 import { toE164 } from "@/lib/phone";
+import { canSendPaidMessage, recordPaidMessage } from "@/lib/messaging-quota";
 
 // Se re-exporta para no romper imports existentes (`@/lib/sms`).
 export { toE164 } from "@/lib/phone";
@@ -24,6 +25,7 @@ function whenText(startTime: Date): string {
 }
 
 type ReminderSmsInfo = {
+  professionalId: string;
   businessName: string;
   serviceName: string;
   clientName: string;
@@ -32,11 +34,16 @@ type ReminderSmsInfo = {
   manageToken?: string; // opcional para recordatorios
 };
 
-/** false si Twilio no está configurado todavía, o si el envío falla — nunca lanza. */
+/** false si Twilio no está configurado, si la cuenta llegó al tope mensual
+ *  de mensajes, o si el envío falla — nunca lanza. */
 export async function sendConfirmationSms(info: ReminderSmsInfo): Promise<boolean> {
   const client = getClient();
   const from = fromNumber();
   if (!client || !from) return false;
+  if (!(await canSendPaidMessage(info.professionalId))) {
+    console.warn(`[sms] tope mensual alcanzado, se omite confirmación (${info.professionalId})`);
+    return false;
+  }
 
   const when = whenText(info.startTime);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tuhoralista.com";
@@ -49,6 +56,7 @@ export async function sendConfirmationSms(info: ReminderSmsInfo): Promise<boolea
       from,
       body: `✓ Cita confirmada con ${info.businessName}. ${info.serviceName} ${when}.${linkText} — Tu Hora Lista`,
     });
+    await recordPaidMessage(info.professionalId, "SMS");
     return true;
   } catch (err) {
     console.error("Error enviando SMS de confirmación:", err);
@@ -60,6 +68,10 @@ export async function sendReminderSms(info: ReminderSmsInfo): Promise<boolean> {
   const client = getClient();
   const from = fromNumber();
   if (!client || !from) return false;
+  if (!(await canSendPaidMessage(info.professionalId))) {
+    console.warn(`[sms] tope mensual alcanzado, se omite recordatorio (${info.professionalId})`);
+    return false;
+  }
 
   const when = whenText(info.startTime);
 
@@ -69,6 +81,7 @@ export async function sendReminderSms(info: ReminderSmsInfo): Promise<boolean> {
       from,
       body: `Recordatorio: tu cita de ${info.serviceName} con ${info.businessName} es ${when}. — Tu Hora Lista`,
     });
+    await recordPaidMessage(info.professionalId, "SMS");
     return true;
   } catch (err) {
     console.error("Error enviando SMS de recordatorio:", err);

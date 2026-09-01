@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
 
   for (const booking of bookings) {
     const reminderInfo = {
+      professionalId: booking.professional.id,
       businessName: booking.professional.businessName,
       serviceName: booking.service.name,
       clientName: booking.clientName,

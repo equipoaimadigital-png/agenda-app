@@ -293,6 +293,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
         manageToken: booking.manageToken,
       }),
       sendConfirmationWhatsApp({
+        professionalId: ctx.professional.id,
         businessName: ctx.professional.businessName,
         serviceName: ctx.service.name,
         clientName,
@@ -301,6 +302,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
         manageToken: booking.manageToken,
       }),
       sendConfirmationSms({
+        professionalId: ctx.professional.id,
         businessName: ctx.professional.businessName,
         serviceName: ctx.service.name,
         clientName,
@@ -427,6 +429,7 @@ export async function createManualBooking(formData: FormData): Promise<{ error?:
       manageToken: booking.manageToken,
     }),
     sendConfirmationWhatsApp({
+      professionalId: professional.id,
       businessName: professional.businessName,
       serviceName: service.name,
       clientName,
@@ -435,6 +438,7 @@ export async function createManualBooking(formData: FormData): Promise<{ error?:
       manageToken: booking.manageToken,
     }),
     sendConfirmationSms({
+      professionalId: professional.id,
       businessName: professional.businessName,
       serviceName: service.name,
       clientName,

@@ -4,6 +4,7 @@ import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import { SUBSCRIPTION_PRICE_CLP } from "@/lib/subscription";
 import { formatDateLong } from "@/lib/dates";
+import { monthWindowUTC } from "@/lib/messaging-quota";
 
 export const metadata: Metadata = { title: "Administración" };
 
@@ -68,8 +69,9 @@ export default async function AdminPage() {
   const now = new Date();
   const in7Days = new Date(now.getTime() + 7 * 86_400_000);
   const days30Ago = new Date(now.getTime() - 30 * 86_400_000);
+  const monthStart = monthWindowUTC(now).start;
 
-  const [pros, totalClients, totalBookings, bookings30] = await Promise.all([
+  const [pros, totalClients, totalBookings, bookings30, messagesThisMonth] = await Promise.all([
     prisma.professional.findMany({
       select: {
         id: true,
@@ -86,6 +88,7 @@ export default async function AdminPage() {
     prisma.client.count(),
     prisma.booking.count(),
     prisma.booking.count({ where: { createdAt: { gte: days30Ago } } }),
+    prisma.messageLog.count({ where: { createdAt: { gte: monthStart } } }),
   ]);
 
   const counts: Record<Bucket, number> = {
@@ -122,6 +125,7 @@ export default async function AdminPage() {
     { label: "En prueba gratis", value: String(counts.prueba), hint: `${counts.prueba_vencida} vencidas sin pagar` },
     { label: "Altas últimos 30 días", value: String(signups30), hint: `${pros.length} cuentas en total` },
     { label: "Reservas últimos 30 días", value: bookings30.toLocaleString("es-CL"), hint: `${totalBookings.toLocaleString("es-CL")} históricas` },
+    { label: "SMS + WhatsApp este mes", value: messagesThisMonth.toLocaleString("es-CL"), hint: "toda la plataforma · costo Twilio" },
   ];
 
   return (

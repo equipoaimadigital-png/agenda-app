@@ -5,6 +5,7 @@ import {
   startSubscriptionOneTimePayment,
 } from "@/lib/actions/subscription";
 import { formatDateLong } from "@/lib/dates";
+import { messagingQuota } from "@/lib/messaging-quota";
 
 function formatPrice(n: number): string {
   return `$${n.toLocaleString("es-CL")}`;
@@ -23,6 +24,7 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
   if (!professional) return null;
   const { error, pago } = await searchParams;
 
+  const quota = await messagingQuota(professional.id);
   const active = hasDashboardAccess(professional);
   const isExempt = professional.billingExempt;
   const isRecurringActive = professional.subscriptionStatus === "ACTIVE";
@@ -38,6 +40,32 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
         <h1 className="text-2xl font-semibold font-display">Suscripción</h1>
         <p className="text-sm text-muted mt-1">
           {formatPrice(SUBSCRIPTION_PRICE_CLP)}/mes para seguir usando tu panel de Tu Hora Lista.
+        </p>
+      </div>
+
+      <div
+        className={`border rounded-xl p-4 ${
+          quota.overLimit
+            ? "bg-warning-soft border-border"
+            : "bg-surface border-border"
+        }`}
+      >
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-sm font-medium">Mensajes de este mes</p>
+          <p className="text-sm font-numeric">
+            {quota.used.toLocaleString("es-CL")} / {quota.limit.toLocaleString("es-CL")}
+          </p>
+        </div>
+        <div className="mt-2 h-1.5 rounded-full bg-border overflow-hidden">
+          <div
+            className={quota.overLimit ? "h-full bg-warning" : "h-full bg-brand"}
+            style={{ width: `${Math.min(100, Math.round(quota.pct * 100))}%` }}
+          />
+        </div>
+        <p className="text-xs text-muted mt-2">
+          {quota.overLimit
+            ? "Llegaste al tope de SMS y WhatsApp de este mes. Tus clientes siguen recibiendo el correo de confirmación y recordatorio. El contador se reinicia el día 1. Si necesitas más, escríbenos a soporte@tuhoralista.com."
+            : "Incluye SMS y WhatsApp de confirmación y recordatorio. El correo no cuenta y no tiene tope. Se reinicia el día 1 de cada mes."}
         </p>
       </div>
 

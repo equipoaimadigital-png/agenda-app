@@ -25,6 +25,13 @@ enum SubscriptionStatus {
   CANCELLED
 }
 
+// Canal de un mensaje saliente que cuesta plata (Twilio). El email NO se
+// registra acá: su costo/límite es otro (Resend) y mucho menor.
+enum MessageChannel {
+  SMS
+  WHATSAPP
+}
+
 model Professional {
   id           String   @id @default(uuid())
   // id del usuario en Supabase Auth (auth.users.id) — vincula login con este perfil
@@ -81,11 +88,25 @@ model Professional {
   mpConnectedRefreshToken String?
   mpConnectedAt           DateTime?
 
-  staff     Staff[]
-  services  Service[]
-  bookings  Booking[]
-  clients   Client[]
-  campaigns EmailCampaign[]
+  staff       Staff[]
+  services    Service[]
+  bookings    Booking[]
+  clients     Client[]
+  campaigns   EmailCampaign[]
+  messageLogs MessageLog[]
+}
+
+// Un registro por cada SMS / WhatsApp saliente. Sirve para (a) el tope
+// mensual de mensajes por cuenta y (b) las métricas de uso. Se borra en
+// cascada si se elimina el Professional.
+model MessageLog {
+  id             String         @id @default(uuid())
+  professionalId String
+  professional   Professional   @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  channel        MessageChannel
+  createdAt      DateTime       @default(now())
+
+  @@index([professionalId, createdAt])
 }
 
 // Datos persistentes de un cliente que no cambian entre citas (ej. cumpleaños).

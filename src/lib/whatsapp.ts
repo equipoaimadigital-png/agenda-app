@@ -1,6 +1,7 @@
 import twilio from "twilio";
 import { formatDateLong, wallClockOf } from "@/lib/dates";
 import { whatsappTo } from "@/lib/phone";
+import { canSendPaidMessage, recordPaidMessage } from "@/lib/messaging-quota";
 
 export function buildWhatsappLink(phone: string, message: string): string {
   const digitsOnly = phone.replace(/[^0-9]/g, "");
@@ -19,6 +20,7 @@ function fromNumber(): string | null {
 }
 
 type WhatsAppInfo = {
+  professionalId: string;
   businessName: string;
   serviceName: string;
   clientName: string;
@@ -74,6 +76,10 @@ export async function sendConfirmationWhatsApp(info: WhatsAppInfo): Promise<bool
     }
     return false;
   }
+  if (!(await canSendPaidMessage(info.professionalId))) {
+    console.warn(`[whatsapp] tope mensual alcanzado, se omite confirmación (${info.professionalId})`);
+    return false;
+  }
 
   try {
     await client.messages.create({
@@ -82,6 +88,7 @@ export async function sendConfirmationWhatsApp(info: WhatsAppInfo): Promise<bool
       contentSid: templateSid,
       contentVariables: templateVariables(info),
     });
+    await recordPaidMessage(info.professionalId, "WHATSAPP");
     return true;
   } catch (err) {
     console.error("Error enviando WhatsApp de confirmación:", err);
@@ -100,6 +107,10 @@ export async function sendReminderWhatsApp(info: WhatsAppInfo): Promise<boolean>
   const templateSid = process.env.TWILIO_WHATSAPP_TEMPLATE_SID;
 
   if (!client || !from || !templateSid) return false;
+  if (!(await canSendPaidMessage(info.professionalId))) {
+    console.warn(`[whatsapp] tope mensual alcanzado, se omite recordatorio (${info.professionalId})`);
+    return false;
+  }
 
   try {
     await client.messages.create({
@@ -108,6 +119,7 @@ export async function sendReminderWhatsApp(info: WhatsAppInfo): Promise<boolean>
       contentSid: templateSid,
       contentVariables: templateVariables(info),
     });
+    await recordPaidMessage(info.professionalId, "WHATSAPP");
     return true;
   } catch (err) {
     console.error("Error enviando WhatsApp de recordatorio:", err);

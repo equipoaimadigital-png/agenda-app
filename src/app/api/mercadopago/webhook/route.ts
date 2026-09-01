@@ -153,6 +153,7 @@ async function handleDepositPayment(paymentId: string): Promise<void> {
         manageToken: booking.manageToken,
       }),
       sendConfirmationWhatsApp({
+        professionalId: booking.professional.id,
         businessName: booking.professional.businessName,
         serviceName: booking.service.name,
         clientName: booking.clientName,
@@ -161,6 +162,7 @@ async function handleDepositPayment(paymentId: string): Promise<void> {
         manageToken: booking.manageToken,
       }),
       sendConfirmationSms({
+        professionalId: booking.professional.id,
         businessName: booking.professional.businessName,
         serviceName: booking.service.name,
         clientName: booking.clientName,
