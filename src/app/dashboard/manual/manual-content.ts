@@ -7,6 +7,7 @@ import {
   IconClock,
   IconGear,
   IconMegaphone,
+  IconRefresh,
   IconUserCircle,
   IconUsers,
   IconWallet,
@@ -84,12 +85,57 @@ export const SECTIONS: Section[] = [
   {
     title: "Campañas",
     icon: IconMegaphone,
-    intro: "Reactiva clientes y avisa novedades por email.",
+    intro: "Reactiva clientes y avisa novedades por email, con la marca de tu negocio.",
     items: [
       {
         label: "Enviar un email a tus clientes",
         body:
           'Elige una plantilla (reactivación, promoción, nuevo servicio, etc.), edítala si quieres, y elige a quién le llega: todos tus clientes o solo los inactivos hace 30+ días. Cada email incluye un botón para reservar y un link de desuscripción obligatorio.',
+      },
+      {
+        label: "El correo lleva tu marca",
+        badge: "Nuevo",
+        body:
+          'El correo sale con tu imagen de portada arriba, tu color de marca en el botón "Reservar ahora" y tus redes (Instagram, Facebook, WhatsApp, Cómo llegar) — todo se toma de Configuración. Con el interruptor "Incluir mi imagen de portada" decides si va con foto o solo con la banda de color. Si subes un GIF como portada, el correo se anima.',
+      },
+      {
+        label: "Sugerencias para ti",
+        badge: "Nuevo",
+        body:
+          'Arriba del editor aparecen recetas de campaña según cómo se comportan tus clientes: "Recuperar primeras visitas", "Reactivar habituales que se enfriaron", "Llenar el día más flojo" y "Saludo de cumpleaños del mes". Cada una trae el texto listo y va dirigida solo a los clientes que corresponden — la editas y la envías desde ahí mismo.',
+      },
+      {
+        label: "Probar antes de enviar",
+        body:
+          'El botón "Enviarme una prueba" te manda el correo a tu propio email, tal como le llegaría a un cliente, sin tocar a nadie de tu lista.',
+      },
+    ],
+  },
+  {
+    title: "Reactivación",
+    icon: IconRefresh,
+    intro: "Detecta a qué clientes empujar según el ritmo de cada uno — sin que tengas que revisarlo.",
+    badge: "Nuevo",
+    items: [
+      {
+        label: "Qué hace",
+        body:
+          "Por cada cliente calcula cada cuánto suele venir (su ritmo) y marca a los que llevan bastante más tiempo del habitual sin aparecer. Los ordena de más atrasado a menos. En el inicio del panel ves una tarjeta \"N clientes para reactivar\".",
+      },
+      {
+        label: "A quién NO incluye",
+        body:
+          "A quien ya tiene una hora agendada, a quien se desuscribió de tus correos, y a quien recibió una campaña tuya hace menos de 14 días (para no saturarlo).",
+      },
+      {
+        label: "Escribirles",
+        body:
+          'Dentro de Reactivación hay un compositor de campaña dirigido solo a los atrasados, con un texto de invitación listo. Puedes incluir también a los que "están por atrasarse". Al enviar, esos clientes no vuelven a aparecer aquí por 14 días.',
+      },
+      {
+        label: "\"Todavía estamos juntando datos\"",
+        body:
+          "Si tu negocio tiene menos de 30 días de historial o menos de 10 clientes con visitas, la sección muestra ese mensaje en vez de números pobres. Se activa sola cuando hay suficiente información.",
       },
     ],
   },
@@ -254,7 +300,14 @@ export const SECTIONS: Section[] = [
       },
       {
         label: "Color de marca",
-        body: "Define el color de acento que se usa en botones y detalles de tu página pública.",
+        body:
+          "Define el color de acento que se usa en botones y detalles de tu página pública y en los correos de campaña.",
+      },
+      {
+        label: "Correo de acceso",
+        badge: "Nuevo",
+        body:
+          'En la tarjeta "Correo de acceso" puedes cambiar el correo con el que inicias sesión (y al que te llegan los avisos de reservas nuevas). Escribes el correo nuevo y te mandamos un link de confirmación a esa dirección; el cambio se aplica al abrirlo. Hasta entonces sigues entrando con el correo actual.',
       },
       {
         label: "Instagram y Facebook",
@@ -270,16 +323,21 @@ export const SECTIONS: Section[] = [
   {
     title: "Suscripción",
     icon: IconCard,
-    intro: "Tu prueba gratis y el cobro mensual.",
+    intro: "Tu prueba gratis y cómo pagar el plan.",
     items: [
       {
-        label: "Prueba gratis y cobro mensual",
-        body: `Tienes ${TRIAL_DAYS} días de prueba gratis. Después, la suscripción se cobra automáticamente cada mes (${PRICE}) a través de Mercado Pago. Puedes cancelarla desde tu cuenta de Mercado Pago cuando quieras.`,
+        label: "Prueba gratis",
+        body: `Tienes ${TRIAL_DAYS} días de prueba gratis desde que te registras. Puedes activar tu plan antes o esperar a que termine.`,
       },
       {
-        label: "Si un cobro mensual falla",
+        label: "Dos formas de pagar",
+        badge: "Nuevo",
+        body: `El plan cuesta ${PRICE} al mes. Puedes pagarlo de dos formas: "Pagar 1 mes" — un pago único que sirve con débito, crédito o efectivo, y renuevas tú cada mes (verás "Plan al día — pagado hasta tal fecha"); o "Cobro automático" — se cobra solo cada mes, pero necesita tarjeta de crédito (varias tarjetas de débito chilenas no permiten el cobro recurrente).`,
+      },
+      {
+        label: "Qué pasa cuando termina la prueba y no has pagado",
         body:
-          "Si Mercado Pago no logra cobrar la mensualidad (saldo insuficiente, tarjeta vencida), el panel puede quedar en pausa hasta que regularices el pago. Tu página pública de reservas y los datos de tus clientes no se pierden.",
+          "El panel se bloquea: solo puedes ver la página de Suscripción para pagar. Pero tu página pública de reservas sigue funcionando y los recordatorios siguen saliendo, para no dejar tirados a tus clientes. No se borra nada — pagas cuando quieras y todo vuelve.",
       },
       {
         label: "No confundir con el cobro de depósitos",
@@ -317,7 +375,15 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "¿Puedo tener más de un profesional atendiendo?",
-    a: "Sí, la app soporta múltiples profesionales (staff) por negocio, cada uno con su propia disponibilidad. La gestión completa de staff desde el panel está en desarrollo — mientras tanto, contáctanos si necesitas agregar uno.",
+    a: 'Sí. En la sección "Profesionales" agregas, editas, pausas o eliminas a cada uno, le pones su foto, sus servicios y su horario en "Disponibilidad". Tu plan incluye hasta 5 profesionales activos.',
+  },
+  {
+    q: "En Mercado Pago no se me activa el botón para pagar la suscripción",
+    a: "Mercado Pago no permite pagarte a ti mismo. Si la cuenta de Mercado Pago con la que estás pagando es la misma que recibe el dinero (o está vinculada), el botón queda deshabilitado. Paga desde otra cuenta de Mercado Pago, o usa la opción \"Pagar 1 mes\". Un cliente normal nunca tiene este problema.",
+  },
+  {
+    q: "¿Qué pasa con mis clientes si no pago a tiempo?",
+    a: "Nada. Tu página pública de reservas sigue funcionando y los recordatorios siguen saliendo. Lo único que se bloquea es tu panel de gestión, hasta que regularices el pago. Tus datos y los de tus clientes no se pierden.",
   },
 ];
 

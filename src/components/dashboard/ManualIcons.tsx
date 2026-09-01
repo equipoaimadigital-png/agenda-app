@@ -151,6 +151,17 @@ export function IconSearch(props: IconProps) {
   );
 }
 
+export function IconRefresh(props: IconProps) {
+  return base(
+    <>
+      <path d="M4.5 12a7.5 7.5 0 0 1 12.9-5.2l2.1 2.1" />
+      <path d="M19.5 12a7.5 7.5 0 0 1-12.9 5.2l-2.1-2.1" />
+      <path d="M19.5 4v4.9h-4.9M4.5 20v-4.9h4.9" />
+    </>,
+    props
+  );
+}
+
 export function IconUserCircle(props: IconProps) {
   return base(
     <>
