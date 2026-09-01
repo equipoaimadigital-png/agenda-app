@@ -34,31 +34,58 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
 
-  if (error) {
-    return { error: error.message };
+  let data;
+  try {
+    const res = await supabase.auth.signUp({ email, password });
+    if (res.error) {
+      console.error("[signUp] Supabase devolvió error:", res.error.status, res.error.message);
+      return { error: res.error.message };
+    }
+    data = res.data;
+  } catch (err) {
+    console.error("[signUp] supabase.auth.signUp lanzó una excepción:", err);
+    return {
+      error: "No pudimos conectar con el servicio de cuentas. Intenta de nuevo en un minuto.",
+    };
   }
+
   if (!data.user) {
     return { error: "No se pudo crear la cuenta. Intenta de nuevo." };
   }
 
-  const slug = await uniqueSlug(businessName);
-  const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 3600_000);
-  await prisma.professional.create({
-    data: {
-      authUserId: data.user.id,
-      email: data.user.email ?? email,
-      businessName,
-      slug,
-      trialEndsAt,
-      // Todo negocio arranca con un profesional (el dueño, "Yo"). Puede
-      // agregar más desde Configuración → Profesionales.
-      staff: {
-        create: { name: "Yo" },
-      },
-    },
+  // Si ya existe un perfil para este usuario (p. ej. un intento anterior creó
+  // el usuario de Supabase pero se cortó antes de terminar), no lo dupliques:
+  // manda a iniciar sesión / al panel según corresponda.
+  const existing = await prisma.professional.findUnique({
+    where: { authUserId: data.user.id },
   });
+  if (!existing) {
+    try {
+      const slug = await uniqueSlug(businessName);
+      const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 3600_000);
+      await prisma.professional.create({
+        data: {
+          authUserId: data.user.id,
+          email: data.user.email ?? email,
+          businessName,
+          slug,
+          trialEndsAt,
+          // Todo negocio arranca con un profesional (el dueño, "Yo"). Puede
+          // agregar más desde Configuración → Profesionales.
+          staff: {
+            create: { name: "Yo" },
+          },
+        },
+      });
+    } catch (err) {
+      console.error("[signUp] no se pudo crear el Professional:", err);
+      return {
+        error:
+          "Tu cuenta se creó pero falló la configuración inicial. Escríbenos a soporte@tuhoralista.com y lo dejamos listo.",
+      };
+    }
+  }
 
   if (!data.session) {
     // El proyecto de Supabase pide confirmar el email antes de iniciar sesión
