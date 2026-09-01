@@ -1,6 +1,6 @@
 import { Seal } from "@/components/ui/Seal";
 
-const TRUST_ITEMS = ["Sin tarjeta de crédito", "14 días gratis", "Cancela cuando quieras"];
+const TRUST_ITEMS = ["Sin tarjeta de crédito", "10 días gratis", "Cancela cuando quieras"];
 
 export function AuthSplitLayout({
   tagline,
