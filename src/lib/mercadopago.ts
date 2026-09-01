@@ -93,7 +93,6 @@ export async function createSubscriptionPaymentLink(params: {
           pending: `${siteUrl()}/dashboard/suscripcion?pago=pendiente`,
           failure: `${siteUrl()}/dashboard/suscripcion?pago=error`,
         },
-        auto_return: "approved",
         notification_url: `${siteUrl()}/api/mercadopago/webhook`,
       },
     });

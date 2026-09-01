@@ -107,7 +107,6 @@ export async function createDepositPreference(params: {
         external_reference: params.bookingId,
         payer: params.payerEmail ? { email: params.payerEmail } : undefined,
         back_urls: { success: backUrl, pending: backUrl, failure: backUrl },
-        auto_return: "approved",
         notification_url: `${siteUrl()}/api/mercadopago/webhook`,
       },
     });
