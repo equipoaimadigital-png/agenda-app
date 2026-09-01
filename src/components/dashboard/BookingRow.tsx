@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   cancelBookingByProfessional,
   markBookingStatus,
+  rescheduleBooking,
   saveInternalNote,
   undoCancelBooking,
 } from "@/lib/actions/dashboard";
@@ -12,6 +13,8 @@ import {
 export type BookingRowData = {
   id: string;
   time: string;
+  /** Fecha de la cita, "YYYY-MM-DD" — para prellenar el formulario de mover. */
+  dateStr: string;
   clientName: string;
   clientPhone: string;
   serviceName: string;
@@ -48,10 +51,13 @@ export function BookingRow({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [panel, setPanel] = useState<"none" | "cancel" | "note">("none");
+  const [panel, setPanel] = useState<"none" | "cancel" | "note" | "move">("none");
   const [reason, setReason] = useState("");
   const [note, setNote] = useState(booking.internalNote ?? "");
   const [undoError, setUndoError] = useState<string | null>(null);
+  const [moveDate, setMoveDate] = useState(booking.dateStr);
+  const [moveTime, setMoveTime] = useState(booking.time);
+  const [moveError, setMoveError] = useState<string | null>(null);
 
   const badge = STATUS_BADGE[booking.status] ?? STATUS_BADGE.CONFIRMED;
   const cancelled = booking.status === "CANCELLED";
@@ -156,6 +162,15 @@ export function BookingRow({
               </button>
             </>
           )}
+          {!booking.isPast && (
+            <button
+              type="button"
+              onClick={() => setPanel(panel === "move" ? "none" : "move")}
+              className="border border-border rounded-lg px-3 py-1.5 hover:border-brand active:scale-[0.97]"
+            >
+              Mover
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setPanel(panel === "note" ? "none" : "note")}
@@ -223,6 +238,59 @@ export function BookingRow({
               Volver
             </button>
           </div>
+        </div>
+      )}
+
+      {panel === "move" && (
+        <div className="bg-brand-soft rounded-lg p-3 flex flex-col gap-2">
+          <p className="text-sm font-medium">Mover esta cita</p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="date"
+              value={moveDate}
+              onChange={(e) => setMoveDate(e.target.value)}
+              className="border border-border rounded-lg px-3 py-2 text-sm bg-surface"
+            />
+            <input
+              type="time"
+              value={moveTime}
+              step={300}
+              onChange={(e) => setMoveTime(e.target.value)}
+              className="border border-border rounded-lg px-3 py-2 text-sm bg-surface font-numeric"
+            />
+          </div>
+          {moveError && <span className="text-xs text-danger">{moveError}</span>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => {
+                setMoveError(null);
+                startTransition(async () => {
+                  const res = await rescheduleBooking(booking.id, moveDate, moveTime);
+                  if (res?.error) {
+                    setMoveError(res.error);
+                    return;
+                  }
+                  setPanel("none");
+                  router.refresh();
+                });
+              }}
+              className="bg-brand text-brand-foreground rounded-lg px-3 py-1.5 text-sm font-medium shadow-[0_2px_0_rgba(0,0,0,0.18),0_4px_10px_rgba(0,0,0,0.14)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)] active:translate-y-[1px] disabled:opacity-50 disabled:shadow-none"
+            >
+              {isPending ? "Moviendo…" : "Mover y avisar al cliente"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPanel("none")}
+              className="border border-border bg-surface rounded-lg px-3 py-1.5 text-sm active:scale-[0.97]"
+            >
+              Volver
+            </button>
+          </div>
+          <p className="text-xs text-stone">
+            Al cliente le llega la nueva hora por correo y por WhatsApp o SMS.
+          </p>
         </div>
       )}
 

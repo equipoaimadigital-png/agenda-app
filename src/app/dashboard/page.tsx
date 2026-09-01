@@ -300,6 +300,7 @@ export default async function AgendaPage({ searchParams }: PageProps) {
                 const data: BookingRowData = {
                   id: b.id,
                   time,
+                  dateStr,
                   clientName: b.clientName,
                   clientPhone: b.clientPhone,
                   serviceName: b.service.name,

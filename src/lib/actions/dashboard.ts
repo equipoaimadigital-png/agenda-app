@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { HeadingFont, HeadingSize } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional, getPrimaryStaffId, verifyStaffOwnership } from "@/lib/auth-helpers";
-import { sendCancellationEmails } from "@/lib/email";
+import { sendCancellationEmails, sendRescheduleEmails } from "@/lib/email";
 import { nowInTimeZone, wallClockDate } from "@/lib/dates";
+import { hasOverlappingBooking, withStaffLock } from "@/lib/booking-logic";
+import { notifyClientPhoneConfirmation } from "@/lib/notify";
 import { contrastRatio } from "@/lib/color-contrast";
 
 const HEADING_FONTS: HeadingFont[] = ["FRAUNCES", "PLAYFAIR", "POPPINS", "WORK_SANS"];
@@ -103,6 +105,80 @@ export async function undoCancelBooking(bookingId: string): Promise<{ error?: st
     where: { id: booking.id },
     data: { status: "CONFIRMED", cancelReason: null },
   });
+
+  revalidatePath("/dashboard");
+  return {};
+}
+
+/**
+ * Mueve una cita CONFIRMED a otra fecha/hora, con el MISMO profesional que
+ * la atendía. Lo hace el dueño desde el panel: no aplica la política de
+ * cancelación (puede mover cuando quiera) y puede caer fuera del horario
+ * publicado si así lo decide. Lo único que se bloquea es chocar con otra
+ * cita del mismo profesional. Al cliente le llega el cambio por correo y,
+ * si se puede, por WhatsApp/SMS.
+ */
+export async function rescheduleBooking(
+  bookingId: string,
+  dateStr: string,
+  time: string
+): Promise<{ error?: string }> {
+  const professional = await requireProfessional();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !/^\d{2}:\d{2}$/.test(time)) {
+    return { error: "Fecha u hora inválida." };
+  }
+
+  const booking = await prisma.booking.findFirst({
+    where: { id: bookingId, professionalId: professional.id, status: "CONFIRMED" },
+    include: { service: true },
+  });
+  if (!booking) return { error: "Reserva no encontrada." };
+
+  const oldStartTime = booking.startTime;
+  const startTime = wallClockDate(dateStr, time);
+  const endTime = new Date(startTime.getTime() + booking.service.durationMin * 60000);
+
+  if (startTime.getTime() === oldStartTime.getTime()) {
+    return { error: "Elige una fecha u hora distinta." };
+  }
+
+  // Mismo bloqueo que al crear/reprogramar: dos escrituras al mismo horario
+  // a la vez podrían pasar ambas la validación de solapamiento.
+  const updated = await withStaffLock(booking.staffId, async (tx) => {
+    if (await hasOverlappingBooking(tx, booking.staffId, startTime, endTime, booking.id)) {
+      return null;
+    }
+    return tx.booking.update({
+      where: { id: booking.id },
+      data: { startTime, endTime, reminderSentAt: null },
+    });
+  });
+  if (!updated) {
+    return { error: "Ese horario choca con otra cita de este profesional." };
+  }
+
+  await Promise.all([
+    sendRescheduleEmails({
+      businessName: professional.businessName,
+      serviceName: booking.service.name,
+      clientName: booking.clientName,
+      clientEmail: booking.clientEmail,
+      professionalEmail: professional.email,
+      oldStartTime,
+      newStartTime: startTime,
+      manageToken: booking.manageToken,
+    }),
+    notifyClientPhoneConfirmation({
+      professionalId: professional.id,
+      businessName: professional.businessName,
+      serviceName: booking.service.name,
+      clientName: booking.clientName,
+      clientPhone: booking.clientPhone,
+      startTime,
+      manageToken: booking.manageToken,
+    }),
+  ]);
 
   revalidatePath("/dashboard");
   return {};
