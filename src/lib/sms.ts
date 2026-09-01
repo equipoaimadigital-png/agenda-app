@@ -39,7 +39,7 @@ export async function sendConfirmationSms(info: ReminderSmsInfo): Promise<boolea
   if (!client || !from) return false;
 
   const when = whenText(info.startTime);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tuhoralista.app";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tuhoralista.com";
   const manageLink = info.manageToken ? `${siteUrl}/reserva/${info.manageToken}` : "";
   const linkText = manageLink ? ` Gestiona tu cita: ${manageLink}` : " Puedes cancelar o reprogramar en tu enlace.";
 
