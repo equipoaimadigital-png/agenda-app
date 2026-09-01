@@ -67,6 +67,14 @@ export default async function DashboardLayout({
         <DashboardNav />
 
         <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-2">
+          {professional?.billingExempt && (
+            <Link
+              href="/dashboard/admin"
+              className="text-xs font-medium text-brass hover:text-white w-fit"
+            >
+              Administración
+            </Link>
+          )}
           <div className="flex gap-3">
             <Link href="/terminos" target="_blank" className="text-xs text-white/40 hover:text-white/70">
               Términos de Servicio
