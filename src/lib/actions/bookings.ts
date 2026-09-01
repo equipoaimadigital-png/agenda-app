@@ -18,8 +18,9 @@ import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { wallClockDate } from "@/lib/dates";
 import { sendBookingEmails } from "@/lib/email";
-import { buildWhatsappLink, sendConfirmationWhatsApp } from "@/lib/whatsapp";
-import { toE164, sendConfirmationSms } from "@/lib/sms";
+import { buildWhatsappLink } from "@/lib/whatsapp";
+import { toE164 } from "@/lib/sms";
+import { notifyClientPhoneConfirmation } from "@/lib/notify";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resolveClientId } from "@/lib/actions/clients";
 import { isValidEmail, sanitizeCustomAnswer } from "@/lib/validation";
@@ -292,16 +293,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
         professionalEmail: ctx.professional.email,
         manageToken: booking.manageToken,
       }),
-      sendConfirmationWhatsApp({
-        professionalId: ctx.professional.id,
-        businessName: ctx.professional.businessName,
-        serviceName: ctx.service.name,
-        clientName,
-        clientPhone,
-        startTime,
-        manageToken: booking.manageToken,
-      }),
-      sendConfirmationSms({
+      notifyClientPhoneConfirmation({
         professionalId: ctx.professional.id,
         businessName: ctx.professional.businessName,
         serviceName: ctx.service.name,
@@ -428,16 +420,7 @@ export async function createManualBooking(formData: FormData): Promise<{ error?:
       professionalEmail: professional.email,
       manageToken: booking.manageToken,
     }),
-    sendConfirmationWhatsApp({
-      professionalId: professional.id,
-      businessName: professional.businessName,
-      serviceName: service.name,
-      clientName,
-      clientPhone,
-      startTime,
-      manageToken: booking.manageToken,
-    }),
-    sendConfirmationSms({
+    notifyClientPhoneConfirmation({
       professionalId: professional.id,
       businessName: professional.businessName,
       serviceName: service.name,

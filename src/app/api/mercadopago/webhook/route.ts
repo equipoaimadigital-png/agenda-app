@@ -5,8 +5,7 @@ import { fetchPreapproval } from "@/lib/mercadopago";
 import { fetchPayment } from "@/lib/mercadopago-connect";
 import { MANUAL_PAYMENT_DAYS } from "@/lib/subscription";
 import { sendBookingEmails } from "@/lib/email";
-import { sendConfirmationWhatsApp } from "@/lib/whatsapp";
-import { sendConfirmationSms } from "@/lib/sms";
+import { notifyClientPhoneConfirmation } from "@/lib/notify";
 
 /**
  * Verifica la firma que manda Mercado Pago según su algoritmo documentado:
@@ -152,16 +151,7 @@ async function handleDepositPayment(paymentId: string): Promise<void> {
         professionalEmail: booking.professional.email,
         manageToken: booking.manageToken,
       }),
-      sendConfirmationWhatsApp({
-        professionalId: booking.professional.id,
-        businessName: booking.professional.businessName,
-        serviceName: booking.service.name,
-        clientName: booking.clientName,
-        clientPhone: booking.clientPhone,
-        startTime: booking.startTime,
-        manageToken: booking.manageToken,
-      }),
-      sendConfirmationSms({
+      notifyClientPhoneConfirmation({
         professionalId: booking.professional.id,
         businessName: booking.professional.businessName,
         serviceName: booking.service.name,

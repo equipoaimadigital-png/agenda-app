@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendReminderEmail } from "@/lib/email";
-import { sendReminderSms } from "@/lib/sms";
-import { sendReminderWhatsApp } from "@/lib/whatsapp";
+import { notifyClientPhoneReminder } from "@/lib/notify";
 
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -54,7 +53,7 @@ export async function GET(request: NextRequest) {
       startTime: booking.startTime,
     };
 
-    const [emailOk, whatsAppOk, smsOk] = await Promise.all([
+    const [emailOk, phoneChannel] = await Promise.all([
       booking.clientEmail
         ? sendReminderEmail({
             ...reminderInfo,
@@ -62,19 +61,17 @@ export async function GET(request: NextRequest) {
             manageToken: booking.manageToken,
           })
         : Promise.resolve(false),
-      // Intenta WhatsApp si está disponible (requiere TEMPLATE_SID aprobado por Meta)
-      sendReminderWhatsApp(reminderInfo),
-      // SMS siempre intenta (fallback si WhatsApp no está disponible)
-      sendReminderSms(reminderInfo),
+      // WhatsApp primero; SMS solo si WhatsApp no salió.
+      notifyClientPhoneReminder(reminderInfo),
     ]);
 
     if (emailOk) sentEmail += 1;
-    if (whatsAppOk) sentWhatsApp += 1;
-    if (smsOk) sentSms += 1;
+    if (phoneChannel === "whatsapp") sentWhatsApp += 1;
+    else if (phoneChannel === "sms") sentSms += 1;
 
     // Marca como enviado si al menos uno de los canales fue exitoso. Si
     // fallaron todos, no se marca: se reintenta en la próxima corrida.
-    if (emailOk || whatsAppOk || smsOk) {
+    if (emailOk || phoneChannel !== "none") {
       await prisma.booking.update({
         where: { id: booking.id },
         data: { reminderSentAt: new Date() },

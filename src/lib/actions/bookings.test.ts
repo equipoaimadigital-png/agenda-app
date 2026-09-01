@@ -9,8 +9,7 @@ const mockTx = { booking: { create: (...args: unknown[]) => bookingCreateMock(..
 const withStaffLockMock = vi.fn(async (_staffId: string, fn: (tx: unknown) => unknown) => fn(mockTx));
 const resolveClientIdMock = vi.fn().mockResolvedValue("client-1");
 const sendBookingEmailsMock = vi.fn().mockResolvedValue(undefined);
-const sendConfirmationWhatsAppMock = vi.fn().mockResolvedValue(undefined);
-const sendConfirmationSmsMock = vi.fn().mockResolvedValue(undefined);
+const notifyClientPhoneConfirmationMock = vi.fn().mockResolvedValue("whatsapp");
 
 vi.mock("@/lib/db", () => ({
   prisma: {
@@ -37,13 +36,11 @@ vi.mock("@/lib/email", () => ({
   sendBookingEmails: (...args: unknown[]) => sendBookingEmailsMock(...args),
 }));
 vi.mock("@/lib/whatsapp", () => ({
-  sendConfirmationWhatsApp: (...args: unknown[]) => sendConfirmationWhatsAppMock(...args),
   buildWhatsappLink: (phone: string, msg: string) => `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,
 }));
-vi.mock("@/lib/sms", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/sms")>("@/lib/sms");
-  return { ...actual, sendConfirmationSms: (...args: unknown[]) => sendConfirmationSmsMock(...args) };
-});
+vi.mock("@/lib/notify", () => ({
+  notifyClientPhoneConfirmation: (...args: unknown[]) => notifyClientPhoneConfirmationMock(...args),
+}));
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ "x-forwarded-for": "1.2.3.4" }),
 }));
@@ -146,8 +143,7 @@ describe("createPublicBooking", () => {
       }),
     });
     expect(sendBookingEmailsMock).toHaveBeenCalledOnce();
-    expect(sendConfirmationWhatsAppMock).toHaveBeenCalledOnce();
-    expect(sendConfirmationSmsMock).toHaveBeenCalledOnce();
+    expect(notifyClientPhoneConfirmationMock).toHaveBeenCalledOnce();
   });
 
   it("recorta customAnswers a máximo 20 entradas y descarta items sin forma {label, value}", async () => {
