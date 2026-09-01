@@ -24,11 +24,13 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
   const { error, pago } = await searchParams;
 
   const active = hasDashboardAccess(professional);
+  const isExempt = professional.billingExempt;
   const isRecurringActive = professional.subscriptionStatus === "ACTIVE";
   const paidUntil = professional.subscriptionPaidUntil;
   const manualActive = !!paidUntil && new Date() < paidUntil;
-  const trialActive = professional.subscriptionStatus === "TRIAL" && active && !manualActive;
-  const showPaymentOptions = !isRecurringActive;
+  const trialActive =
+    professional.subscriptionStatus === "TRIAL" && active && !manualActive && !isExempt;
+  const showPaymentOptions = !isRecurringActive && !isExempt;
 
   return (
     <div className="flex flex-col gap-6 max-w-xl">
@@ -55,7 +57,16 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
         </p>
       )}
 
-      {isRecurringActive && (
+      {isExempt && (
+        <div className="bg-brand-soft border border-border rounded-xl p-4">
+          <p className="font-medium">Cuenta de administración</p>
+          <p className="text-sm text-muted mt-1">
+            Esta cuenta está exenta de cobro. El panel nunca se bloquea.
+          </p>
+        </div>
+      )}
+
+      {isRecurringActive && !isExempt && (
         <div className="bg-success-soft border border-border rounded-xl p-4">
           <p className="font-medium text-success">✓ Tu suscripción automática está activa</p>
           <p className="text-sm text-muted mt-1">

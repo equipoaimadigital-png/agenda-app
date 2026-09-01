@@ -1,6 +1,6 @@
 import type { Professional } from "@prisma/client";
 
-export const TRIAL_DAYS = 14;
+export const TRIAL_DAYS = 10;
 /** Precio mensual del plan, en CLP. Fuente única — mercadopago.ts lo importa
  *  de acá para que el cobro real y lo que se muestra nunca queden desfasados.
  *  OJO: Mercado Pago congela el monto de cada Preapproval al crearla, así que
@@ -14,9 +14,11 @@ export const SUBSCRIPTION_PRICE_CLP = 14990;
 export function hasDashboardAccess(
   professional: Pick<
     Professional,
-    "subscriptionStatus" | "trialEndsAt" | "subscriptionPaidUntil"
+    "subscriptionStatus" | "trialEndsAt" | "subscriptionPaidUntil" | "billingExempt"
   >
 ): boolean {
+  // Cuentas de administración / comp: acceso siempre, sin importar el cobro.
+  if (professional.billingExempt) return true;
   if (professional.subscriptionStatus === "ACTIVE") return true;
   // Camino de pago manual (pago único mensual): vale mientras la fecha
   // pagada esté en el futuro, sin importar subscriptionStatus.

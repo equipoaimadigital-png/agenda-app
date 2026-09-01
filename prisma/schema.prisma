@@ -69,6 +69,9 @@ model Professional {
   // acceso al panel se concede mientras esté en el futuro, sin depender de
   // subscriptionStatus.
   subscriptionPaidUntil DateTime?
+  // Cuenta exenta de cobro: administración de la plataforma, socios, cuentas
+  // comp. Nunca se le bloquea el panel. Se marca a mano en la base.
+  billingExempt Boolean @default(false)
 
   // Cuenta de Mercado Pago del PROFESIONAL, conectada vía OAuth (Marketplace)
   // para que los depósitos de sus clientes le lleguen directo a él — nunca

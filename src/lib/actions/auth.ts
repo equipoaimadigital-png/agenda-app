@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/slug";
 import { isValidEmail } from "@/lib/validation";
+import { TRIAL_DAYS } from "@/lib/subscription";
 
 export type AuthResult = { error: string } | never;
 
@@ -43,7 +44,7 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   }
 
   const slug = await uniqueSlug(businessName);
-  const trialEndsAt = new Date(Date.now() + 14 * 24 * 3600_000);
+  const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 3600_000);
   await prisma.professional.create({
     data: {
       authUserId: data.user.id,
