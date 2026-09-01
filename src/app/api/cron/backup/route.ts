@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
     bookings,
     clients,
     emailCampaigns,
+    messageLogs,
+    servicesWithStaff,
   ] = await Promise.all([
     prisma.professional.findMany(),
     prisma.staff.findMany(),
@@ -49,7 +51,16 @@ export async function GET(request: NextRequest) {
     prisma.booking.findMany(),
     prisma.client.findMany(),
     prisma.emailCampaign.findMany(),
+    prisma.messageLog.findMany(),
+    // La relación M2M Service<->Staff (qué profesional hace qué servicio) vive
+    // en una tabla implícita que un findMany normal no trae. Se aplana a
+    // pares { serviceId, staffId } para que el restore la reconstruya.
+    prisma.service.findMany({ select: { id: true, staff: { select: { id: true } } } }),
   ]);
+
+  const serviceStaff = servicesWithStaff.flatMap((s) =>
+    s.staff.map((st) => ({ serviceId: s.id, staffId: st.id }))
+  );
 
   const dump = {
     generatedAt: new Date().toISOString(),
@@ -63,6 +74,8 @@ export async function GET(request: NextRequest) {
       bookings: bookings.length,
       clients: clients.length,
       emailCampaigns: emailCampaigns.length,
+      messageLogs: messageLogs.length,
+      serviceStaff: serviceStaff.length,
     },
     data: {
       professionals,
@@ -74,6 +87,8 @@ export async function GET(request: NextRequest) {
       bookings,
       clients,
       emailCampaigns,
+      messageLogs,
+      serviceStaff,
     },
   };
 
