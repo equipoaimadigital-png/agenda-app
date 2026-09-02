@@ -76,6 +76,10 @@ model Professional {
   // acceso al panel se concede mientras esté en el futuro, sin depender de
   // subscriptionStatus.
   subscriptionPaidUntil DateTime?
+  // Momento en que el cobro recurrente empezó a fallar (Mercado Pago pausó
+  // el preapproval). Da un período de gracia antes de bloquear el panel;
+  // se limpia al volver a ACTIVE. Ver PAST_DUE_GRACE_DAYS.
+  pastDueSince  DateTime?
   // Cuenta exenta de cobro: administración de la plataforma, socios, cuentas
   // comp. Nunca se le bloquea el panel. Se marca a mano en la base.
   billingExempt Boolean @default(false)

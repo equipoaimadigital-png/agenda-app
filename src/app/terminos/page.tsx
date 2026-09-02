@@ -44,14 +44,16 @@ export default function TerminosPage() {
           <section>
             <h2 className="font-display font-semibold text-xl mb-2">3. Prueba gratis y suscripción</h2>
             <p>
-              Toda cuenta nueva incluye 14 días de prueba gratis. Al terminar la prueba, el
+              Toda cuenta nueva incluye 10 días de prueba gratis. Al terminar la prueba, el
               uso del panel requiere una suscripción mensual paga (el valor vigente se
               muestra en la sección Suscripción de tu panel), cobrada automáticamente a
               través de Mercado Pago. Puedes cancelar la suscripción cuando quieras desde tu
               cuenta de Mercado Pago; la cancelación no genera devoluciones proporcionales
-              del período ya pagado. Si el cobro falla o la suscripción no está activa, el
-              acceso a tu panel se bloquea hasta regularizar el pago — tu página pública de
-              reservas sigue funcionando normalmente para tus clientes mientras tanto.
+              del período ya pagado. Si un cobro automático falla, mantienes el acceso al
+              panel durante un breve período de gracia para regularizar el medio de pago;
+              pasado ese plazo, o si la suscripción no está activa, el acceso al panel se
+              bloquea hasta regularizar el pago — tu página pública de reservas sigue
+              funcionando normalmente para tus clientes mientras tanto.
             </p>
           </section>
 

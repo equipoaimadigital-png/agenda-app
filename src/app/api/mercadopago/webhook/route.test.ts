@@ -2,10 +2,16 @@ import { createHmac } from "crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const updateMock = vi.fn();
+const findUniqueMock = vi.fn().mockResolvedValue({ pastDueSince: null });
 const fetchPreapprovalMock = vi.fn();
 
 vi.mock("@/lib/db", () => ({
-  prisma: { professional: { update: (...args: unknown[]) => updateMock(...args) } },
+  prisma: {
+    professional: {
+      update: (...args: unknown[]) => updateMock(...args),
+      findUnique: (...args: unknown[]) => findUniqueMock(...args),
+    },
+  },
 }));
 vi.mock("@/lib/mercadopago", () => ({
   fetchPreapproval: (...args: unknown[]) => fetchPreapprovalMock(...args),
@@ -75,7 +81,8 @@ describe("POST /api/mercadopago/webhook", () => {
     expect(res.status).toBe(200);
     expect(updateMock).toHaveBeenCalledWith({
       where: { id: "professional-xyz" },
-      data: { subscriptionStatus: "ACTIVE", mpPreapprovalId: "abc123" },
+      // ACTIVE limpia cualquier período de gracia por cobro fallido.
+      data: { subscriptionStatus: "ACTIVE", mpPreapprovalId: "abc123", pastDueSince: null },
     });
   });
 

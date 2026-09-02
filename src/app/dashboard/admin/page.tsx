@@ -106,6 +106,11 @@ export default async function AdminPage() {
   const paying = counts.recurrente + counts.manual;
   const mrr = paying * SUBSCRIPTION_PRICE_CLP;
   const signups30 = pros.filter((p) => p.createdAt >= days30Ago).length;
+  // Conversión: de las cuentas que ya "decidieron" (pagan, o se fueron sin
+  // pagar), qué fracción paga. Ignora las que siguen en prueba.
+  const churned = counts.prueba_vencida + counts.cancelada;
+  const decided = paying + churned;
+  const conversionPct = decided > 0 ? Math.round((paying / decided) * 100) : null;
 
   const expiringSoon = pros
     .filter(
@@ -126,6 +131,11 @@ export default async function AdminPage() {
     { label: "Altas últimos 30 días", value: String(signups30), hint: `${pros.length} cuentas en total` },
     { label: "Reservas últimos 30 días", value: bookings30.toLocaleString("es-CL"), hint: `${totalBookings.toLocaleString("es-CL")} históricas` },
     { label: "SMS + WhatsApp este mes", value: messagesThisMonth.toLocaleString("es-CL"), hint: "toda la plataforma · costo Twilio" },
+    {
+      label: "Conversión a pago",
+      value: conversionPct === null ? "—" : `${conversionPct}%`,
+      hint: `${paying} pagan · ${churned} se fueron sin pagar`,
+    },
   ];
 
   return (

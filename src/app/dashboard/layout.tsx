@@ -1,8 +1,10 @@
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 import { signOut } from "@/lib/actions/auth";
+import { pastDueGraceDaysLeft } from "@/lib/subscription";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { TrialWarningBanner } from "@/components/dashboard/TrialWarningBanner";
+import { PaymentIssueBanner } from "@/components/dashboard/PaymentIssueBanner";
 import Link from "next/link";
 
 export default async function DashboardLayout({
@@ -23,6 +25,7 @@ export default async function DashboardLayout({
     professional?.subscriptionStatus === "TRIAL" && professional.trialEndsAt
       ? Math.ceil((professional.trialEndsAt.getTime() - Date.now()) / 86_400_000)
       : null;
+  const pastDueDaysLeft = professional ? pastDueGraceDaysLeft(professional) : null;
   /* eslint-enable react-hooks/purity */
 
   return (
@@ -95,6 +98,10 @@ export default async function DashboardLayout({
 
       {professional && daysLeft !== null && daysLeft <= 3 && daysLeft >= 0 && (
         <TrialWarningBanner professionalId={professional.id} daysLeft={daysLeft} />
+      )}
+
+      {professional && pastDueDaysLeft !== null && (
+        <PaymentIssueBanner professionalId={professional.id} graceDaysLeft={pastDueDaysLeft} />
       )}
     </div>
   );

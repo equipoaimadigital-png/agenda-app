@@ -70,9 +70,28 @@ export async function POST(req: Request) {
 
     if (professionalId && status) {
       try {
+        const updateData: {
+          subscriptionStatus: SubscriptionStatus;
+          mpPreapprovalId: string;
+          pastDueSince?: Date | null;
+        } = { subscriptionStatus: status, mpPreapprovalId: dataId };
+
+        if (status === "ACTIVE") {
+          // Se puso al día: se cierra cualquier período de gracia.
+          updateData.pastDueSince = null;
+        } else if (status === "PAST_DUE") {
+          // Arranca el reloj de gracia solo la primera vez (no se reinicia
+          // con cada reintento fallido de Mercado Pago).
+          const current = await prisma.professional.findUnique({
+            where: { id: professionalId },
+            select: { pastDueSince: true },
+          });
+          if (!current?.pastDueSince) updateData.pastDueSince = new Date();
+        }
+
         await prisma.professional.update({
           where: { id: professionalId },
-          data: { subscriptionStatus: status, mpPreapprovalId: dataId },
+          data: updateData,
         });
       } catch (err) {
         // Fallo de DB: loguear pero responder 200 igual (no reintentar)

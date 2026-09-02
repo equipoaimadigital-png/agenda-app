@@ -8,13 +8,22 @@ export const TRIAL_DAYS = 10;
  *  pagando el monto con el que se dieron de alta. */
 export const SUBSCRIPTION_PRICE_CLP = 14990;
 
+/** Días de gracia tras un cobro recurrente fallido antes de bloquear el
+ *  panel. Una tarjeta vencida o un rechazo temporal no debe dejar al
+ *  negocio sin agenda el mismo día. */
+export const PAST_DUE_GRACE_DAYS = 7;
+
 /** ¿Puede este profesional usar el panel ahora mismo? La página pública de
  * reserva (/reservar/[slug]) y "Mi reserva" (/reserva/[token]) NUNCA se
  * gatean con esto — solo el panel del profesional. */
 export function hasDashboardAccess(
   professional: Pick<
     Professional,
-    "subscriptionStatus" | "trialEndsAt" | "subscriptionPaidUntil" | "billingExempt"
+    | "subscriptionStatus"
+    | "trialEndsAt"
+    | "subscriptionPaidUntil"
+    | "pastDueSince"
+    | "billingExempt"
   >
 ): boolean {
   // Cuentas de administración / comp: acceso siempre, sin importar el cobro.
@@ -25,10 +34,28 @@ export function hasDashboardAccess(
   if (professional.subscriptionPaidUntil && new Date() < professional.subscriptionPaidUntil) {
     return true;
   }
+  // Cobro recurrente fallido: período de gracia desde pastDueSince.
+  if (professional.subscriptionStatus === "PAST_DUE" && professional.pastDueSince) {
+    const graceEnd = new Date(
+      professional.pastDueSince.getTime() + PAST_DUE_GRACE_DAYS * 24 * 3600_000
+    );
+    if (new Date() < graceEnd) return true;
+  }
   if (professional.subscriptionStatus === "TRIAL") {
     return !professional.trialEndsAt || new Date() < professional.trialEndsAt;
   }
   return false;
+}
+
+/** Días de gracia que quedan tras un cobro fallido; null si no aplica o ya
+ *  se venció. Para mostrar el aviso en el panel. */
+export function pastDueGraceDaysLeft(
+  professional: Pick<Professional, "subscriptionStatus" | "pastDueSince">
+): number | null {
+  if (professional.subscriptionStatus !== "PAST_DUE" || !professional.pastDueSince) return null;
+  const graceEnd = professional.pastDueSince.getTime() + PAST_DUE_GRACE_DAYS * 24 * 3600_000;
+  const ms = graceEnd - Date.now();
+  return ms > 0 ? Math.ceil(ms / (24 * 3600_000)) : 0;
 }
 
 /** Días de plan que agrega cada pago único manual. */

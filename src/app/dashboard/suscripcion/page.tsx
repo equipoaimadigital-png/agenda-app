@@ -1,5 +1,9 @@
 import { getCurrentProfessional } from "@/lib/auth-helpers";
-import { hasDashboardAccess, SUBSCRIPTION_PRICE_CLP } from "@/lib/subscription";
+import {
+  hasDashboardAccess,
+  pastDueGraceDaysLeft,
+  SUBSCRIPTION_PRICE_CLP,
+} from "@/lib/subscription";
 import {
   startSubscriptionCheckout,
   startSubscriptionOneTimePayment,
@@ -32,6 +36,7 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
   const manualActive = !!paidUntil && new Date() < paidUntil;
   const trialActive =
     professional.subscriptionStatus === "TRIAL" && active && !manualActive && !isExempt;
+  const pastDueGrace = pastDueGraceDaysLeft(professional); // número si está en gracia, null si no
   const showPaymentOptions = !isRecurringActive && !isExempt;
 
   return (
@@ -111,6 +116,22 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
             Pagado hasta el{" "}
             <strong className="capitalize">{formatDateLong(toDateStr(paidUntil))}</strong>. Antes de
             esa fecha, vuelve acá y paga otro mes para no quedarte sin panel.
+          </p>
+        </div>
+      )}
+
+      {pastDueGrace !== null && !isExempt && (
+        <div className="bg-danger-soft border border-border rounded-xl p-4">
+          <p className="font-medium text-danger">No pudimos cobrar tu suscripción</p>
+          <p className="text-sm text-muted mt-1">
+            {pastDueGrace <= 0
+              ? "Tu panel se bloqueará muy pronto."
+              : `Te ${pastDueGrace === 1 ? "queda" : "quedan"} ${pastDueGrace} día${
+                  pastDueGrace === 1 ? "" : "s"
+                } de acceso mientras lo resuelves.`}{" "}
+            Actualiza tu tarjeta en tu cuenta de Mercado Pago para que el cobro automático se
+            reanude, o paga un mes ahora con los botones de abajo. Tu página pública de reservas
+            sigue funcionando normal para tus clientes.
           </p>
         </div>
       )}

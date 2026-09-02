@@ -70,6 +70,7 @@ export default function PrivacidadPage() {
               <li><strong>Supabase</strong> — base de datos y autenticación</li>
               <li><strong>Vercel</strong> — hosting de la aplicación</li>
               <li><strong>Resend</strong> — envío de correos transaccionales y de campaña</li>
+              <li><strong>Twilio</strong> — envío de los SMS y mensajes de WhatsApp de confirmación y recordatorio (recibe el nombre, teléfono, servicio y hora de la cita)</li>
               <li><strong>Mercado Pago</strong> — procesamiento del cobro de la suscripción</li>
               <li><strong>Sentry</strong> — detección de errores técnicos (recibe información del error, no datos de reservas)</li>
             </ul>

@@ -98,9 +98,22 @@ Objetivo: levantar una copia completa del respaldo en una base separada.
 
 ---
 
-## Simulacro (hazlo una vez, y cada tanto)
+## Verificar que un respaldo sirve
 
-Para saber que el respaldo **de verdad** sirve, sin tocar producción:
+### Rápido (1 segundo, sin instalar nada) — hazlo cuando quieras
+
+```bash
+node --env-file=.env.local prisma/scripts/fetch-backup.mjs      # baja el último
+node prisma/scripts/check-backup.mjs backups/tuhoralista-<último>.json
+```
+
+`check-backup.mjs` valida offline: la forma del JSON, que los `counts` calcen,
+integridad referencial dentro del dump (toda FK apunta a algo que existe) y
+que las fechas sean parseables. Si dice `✅`, el respaldo está sano.
+
+### Profundo (con Docker) — opcional, hazlo una vez
+
+Lo único que el chequeo rápido no cubre es el INSERT real en Postgres.
 
 ```bash
 # 1. base de prueba local
