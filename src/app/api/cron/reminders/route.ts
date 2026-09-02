@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { hoursUntilInTimeZone } from "@/lib/dates";
 import { sendReminderEmail } from "@/lib/email";
 import { notifyClientPhoneReminder } from "@/lib/notify";
+
+// Recordatorio para toda cita CONFIRMED que arranca dentro de esta ventana
+// (horas reales que faltan, calculadas en la zona horaria del negocio).
+const REMIND_FROM_HOURS = 2;
+const REMIND_UNTIL_HOURS = 26;
 
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -13,29 +19,34 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date();
-  // Recordatorio para toda cita CONFIRMED de las próximas ~26 horas que aún
-  // no lo recibió (`reminderSentAt: null` deduplica entre corridas). Antes
-  // la ventana era [+12h, +24h]: con el plan Hobby de Vercel los crons solo
-  // corren 1 vez al día con precisión de ±1h, así que una ventana angosta
-  // dejaba la mitad de las citas sin aviso. Con esta ventana amplia, basta
-  // que el cron corra una vez al día para que ninguna cita se quede sin
-  // recordatorio; lo pagado en precisión (puede llegar hasta ~26h antes en
-  // vez de exactamente 12h) se recupera si el cron corre varias veces.
-  // El límite inferior de +2h evita "recordar" algo que ya es casi ahora.
-  const windowStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-  const windowEnd = new Date(now.getTime() + 26 * 60 * 60 * 1000);
+  // Los `startTime` se guardan como "hora de pared" del negocio (fake-UTC),
+  // no como instante real, así que NO se puede filtrar la ventana con un
+  // rango de Date real — el offset de la zona horaria (y el cambio de
+  // horario de verano) descuadraban la ventana y dejaban citas sin aviso.
+  //
+  // 1) Pre-filtro amplio en instantes reales (±~6/30 h cubre cualquier
+  //    offset de zona), solo para no traer toda la tabla.
+  // 2) Filtro fino con `hoursUntilInTimeZone`, que compara en la zona del
+  //    negocio y es inmune al DST.
+  const preStart = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+  const preEnd = new Date(now.getTime() + 30 * 60 * 60 * 1000);
 
-  const bookings = await prisma.booking.findMany({
+  const candidates = await prisma.booking.findMany({
     where: {
       status: "CONFIRMED",
       reminderSentAt: null,
-      startTime: { gte: windowStart, lte: windowEnd },
+      startTime: { gte: preStart, lte: preEnd },
     },
     include: { service: true, professional: true },
   });
 
+  const bookings = candidates.filter((b) => {
+    const h = hoursUntilInTimeZone(b.startTime, b.professional.timezone);
+    return h >= REMIND_FROM_HOURS && h <= REMIND_UNTIL_HOURS;
+  });
+
   console.log(
-    `[cron/reminders] ${now.toISOString()} — ventana ${windowStart.toISOString()}..${windowEnd.toISOString()} — ${bookings.length} cita(s) por recordar`
+    `[cron/reminders] ${now.toISOString()} — ${candidates.length} candidata(s), ${bookings.length} dentro de la ventana [${REMIND_FROM_HOURS}h, ${REMIND_UNTIL_HOURS}h]`
   );
 
   let sentEmail = 0;

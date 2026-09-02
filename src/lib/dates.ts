@@ -88,6 +88,30 @@ export function wallClockDate(dateStr: string, time: string): Date {
   return new Date(year, month - 1, day, hour, minute, 0, 0);
 }
 
+/**
+ * Horas que faltan para una cita, interpretando su `startTime` como "hora de
+ * pared" del negocio (así se guarda) y comparando contra el "ahora" real en
+ * la zona horaria del negocio.
+ *
+ * No depende de en qué zona corra el servidor (Vercel = UTC) ni del cambio
+ * de horario de verano — que es justo lo que descuadraba la ventana del
+ * cron de recordatorios, que comparaba una hora de pared "fake-UTC" contra
+ * instantes reales. Puede quedar hasta ~1 h corrido si hay un cambio de
+ * horario entre "ahora" y la cita; irrelevante para un recordatorio.
+ */
+export function hoursUntilInTimeZone(startTime: Date, timeZone: string): number {
+  const wall = wallClockOf(startTime);
+  const [h, m] = wall.time.split(":").map(Number);
+  const b = parseDateStr(wall.dateStr);
+  const bookingMinutes = Date.UTC(b.year, b.month - 1, b.day, h, m) / 60000;
+
+  const now = nowInTimeZone(timeZone);
+  const n = parseDateStr(now.dateStr);
+  const nowMinutes = Date.UTC(n.year, n.month - 1, n.day) / 60000 + now.minutes;
+
+  return (bookingMinutes - nowMinutes) / 60;
+}
+
 /** Link "agregar a Google Calendar" para una cita. */
 export function buildGoogleCalendarUrl(opts: {
   title: string;
