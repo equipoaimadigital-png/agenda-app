@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Política de Privacidad",
 };
 
-const LAST_UPDATED = "18 de agosto de 2026";
+const LAST_UPDATED = "1 de septiembre de 2026";
 
 export default function PrivacidadPage() {
   return (

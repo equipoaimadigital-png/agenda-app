@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Términos de Servicio",
 };
 
-const LAST_UPDATED = "14 de agosto de 2026";
+const LAST_UPDATED = "1 de septiembre de 2026";
 
 export default function TerminosPage() {
   return (
