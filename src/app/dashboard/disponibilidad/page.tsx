@@ -1,7 +1,7 @@
 import { requireDashboardAccess } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/db";
 import { createAvailability, deleteAvailability } from "@/lib/actions/availability";
-import { addDateException, deleteDateException } from "@/lib/actions/dashboard";
+import { addDateException, blockTimeRange, deleteDateException } from "@/lib/actions/dashboard";
 import { formatDateLong, minutesToTime } from "@/lib/dates";
 import { StaffFilter } from "@/components/dashboard/StaffFilter";
 
@@ -146,19 +146,79 @@ export default async function DisponibilidadPage({ searchParams }: PageProps) {
             </ul>
           </section>
 
-          {/* Días bloqueados */}
+          {/* Días y horas bloqueadas */}
           <section className="flex flex-col gap-4">
             <div>
-              <h2 className="font-semibold">Días sin atención</h2>
+              <h2 className="font-semibold">Días y horas bloqueadas</h2>
               <p className="text-sm text-muted">
-                Feriados, vacaciones o cualquier día puntual en que no atenderá.
+                Feriados, vacaciones, o una hora puntual (almuerzo, un trámite) en que no atenderá.
               </p>
             </div>
+
+            {/* Bloquear una franja horaria */}
+            <form
+              action={blockTimeRange}
+              className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3"
+            >
+              <input type="hidden" name="staffId" value={staffId} />
+              <p className="text-sm font-medium">Bloquear una hora</p>
+              <div className="grid sm:grid-cols-3 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="blk-date" className="text-sm font-medium">Fecha</label>
+                  <input
+                    id="blk-date"
+                    name="date"
+                    type="date"
+                    required
+                    className="border border-border rounded-lg px-3 py-2.5"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="blk-from" className="text-sm font-medium">Desde</label>
+                  <input
+                    id="blk-from"
+                    name="from"
+                    type="time"
+                    required
+                    step={300}
+                    className="border border-border rounded-lg px-3 py-2.5"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="blk-to" className="text-sm font-medium">Hasta</label>
+                  <input
+                    id="blk-to"
+                    name="to"
+                    type="time"
+                    required
+                    step={300}
+                    className="border border-border rounded-lg px-3 py-2.5"
+                  />
+                </div>
+              </div>
+              <input
+                name="reason"
+                type="text"
+                placeholder="Motivo (opcional) — ej: almuerzo"
+                className="border border-border rounded-lg px-3 py-2.5"
+              />
+              <button
+                type="submit"
+                className="self-start bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
+              >
+                Bloquear esa hora
+              </button>
+              <p className="text-xs text-muted">
+                Una franja por día. Si ese día ya está bloqueado completo, primero quítalo abajo.
+              </p>
+            </form>
+
             <form
               action={addDateException}
               className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3"
             >
               <input type="hidden" name="staffId" value={staffId} />
+              <p className="text-sm font-medium">Bloquear un día completo</p>
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="exc-date" className="text-sm font-medium">Fecha</label>
@@ -185,7 +245,7 @@ export default async function DisponibilidadPage({ searchParams }: PageProps) {
               </div>
               <button
                 type="submit"
-                className="bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
+                className="self-start bg-brand text-brand-foreground rounded-lg px-4 py-2.5 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
               >
                 Bloquear día
               </button>
@@ -193,7 +253,7 @@ export default async function DisponibilidadPage({ searchParams }: PageProps) {
 
             <ul className="flex flex-col gap-2">
               {exceptions.length === 0 && (
-                <p className="text-sm text-muted">No tiene días bloqueados.</p>
+                <p className="text-sm text-muted">No tiene días ni horas bloqueadas.</p>
               )}
               {exceptions.map((exc) => (
                 <li
@@ -201,8 +261,19 @@ export default async function DisponibilidadPage({ searchParams }: PageProps) {
                   className="bg-surface border border-border rounded-xl px-4 py-3 flex items-center justify-between gap-3"
                 >
                   <div>
-                    <p className="font-medium capitalize">{formatDateLong(exc.date)}</p>
-                    {exc.reason && <p className="text-sm text-muted">{exc.reason}</p>}
+                    <p className="font-medium capitalize">
+                      {formatDateLong(exc.date)}
+                      {exc.startMin != null && exc.endMin != null && (
+                        <span className="font-numeric font-normal text-stone">
+                          {" "}
+                          · {minutesToTime(exc.startMin)}–{minutesToTime(exc.endMin)}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-sm text-muted">
+                      {exc.startMin == null ? "Todo el día" : "Franja bloqueada"}
+                      {exc.reason ? ` — ${exc.reason}` : ""}
+                    </p>
                   </div>
                   <form action={deleteDateException.bind(null, staffId, exc.id)}>
                     <button

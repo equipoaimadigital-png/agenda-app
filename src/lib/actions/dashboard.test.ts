@@ -48,8 +48,9 @@ describe("addDateException", () => {
 
     expect(upsertMock).toHaveBeenCalledWith({
       where: { staffId_date: { staffId: "staff-1", date: "2026-08-25" } },
-      create: { staffId: "staff-1", date: "2026-08-25", reason: "Vacaciones" },
-      update: { reason: "Vacaciones" },
+      // Bloquear el día completo limpia cualquier bloqueo de franja previo.
+      create: { staffId: "staff-1", date: "2026-08-25", reason: "Vacaciones", startMin: null, endMin: null },
+      update: { reason: "Vacaciones", startMin: null, endMin: null },
     });
   });
 

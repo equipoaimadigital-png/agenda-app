@@ -6,7 +6,7 @@ import { HeadingFont, HeadingSize } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional, getPrimaryStaffId, verifyStaffOwnership } from "@/lib/auth-helpers";
 import { sendCancellationEmails, sendRescheduleEmails } from "@/lib/email";
-import { nowInTimeZone, wallClockDate } from "@/lib/dates";
+import { nowInTimeZone, timeToMinutes, wallClockDate } from "@/lib/dates";
 import { hasOverlappingBooking, withStaffLock } from "@/lib/booking-logic";
 import { notifyClientPhoneConfirmation } from "@/lib/notify";
 import { contrastRatio } from "@/lib/color-contrast";
@@ -252,10 +252,50 @@ export async function addDateException(formData: FormData): Promise<void> {
 
   await prisma.dateException.upsert({
     where: { staffId_date: { staffId, date } },
-    create: { staffId, date, reason },
-    update: { reason },
+    // Bloquear el día completo supersede cualquier bloqueo de franja previo.
+    create: { staffId, date, reason, startMin: null, endMin: null },
+    update: { reason, startMin: null, endMin: null },
   });
   revalidatePath("/dashboard/disponibilidad");
+  revalidatePath("/dashboard");
+}
+
+/**
+ * Bloquea una FRANJA de un día (ej. 13:00–14:00 para almorzar) sin cerrar el
+ * día entero. Una entrada por staff+día: vuelve a llamar para cambiar el
+ * rango. Si el día ya está bloqueado completo, no hace nada.
+ */
+export async function blockTimeRange(formData: FormData): Promise<void> {
+  const professional = await requireProfessional();
+  const staffId = String(formData.get("staffId") || "");
+  if (!staffId || !(await verifyStaffOwnership(staffId, professional.id))) return;
+
+  const date = String(formData.get("date") || "");
+  const from = String(formData.get("from") || "");
+  const to = String(formData.get("to") || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(from) || !/^\d{2}:\d{2}$/.test(to)) {
+    return;
+  }
+  const { dateStr: todayStr } = nowInTimeZone(professional.timezone);
+  if (date < todayStr) return;
+
+  const startMin = timeToMinutes(from);
+  const endMin = timeToMinutes(to);
+  if (endMin <= startMin) return;
+
+  const existing = await prisma.dateException.findUnique({
+    where: { staffId_date: { staffId, date } },
+  });
+  if (existing && existing.startMin == null) return; // día completo ya bloqueado
+
+  const reason = String(formData.get("reason") || "").trim() || null;
+  await prisma.dateException.upsert({
+    where: { staffId_date: { staffId, date } },
+    create: { staffId, date, startMin, endMin, reason },
+    update: { startMin, endMin, reason },
+  });
+  revalidatePath("/dashboard/disponibilidad");
+  revalidatePath("/dashboard");
 }
 
 export async function deleteDateException(staffId: string, id: string): Promise<void> {
@@ -266,6 +306,7 @@ export async function deleteDateException(staffId: string, id: string): Promise<
     where: { id, staffId },
   });
   revalidatePath("/dashboard/disponibilidad");
+  revalidatePath("/dashboard");
 }
 
 export async function updateBusinessSettings(

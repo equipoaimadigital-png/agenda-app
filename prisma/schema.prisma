@@ -271,6 +271,11 @@ model DateException {
   staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
   // Fecha del día bloqueado, como "YYYY-MM-DD" para evitar ambigüedad de zona horaria
   date    String
+  // Bloqueo parcial: minutos desde medianoche (hora de pared del negocio) del
+  // rango a bloquear. Ambos null = el día completo (comportamiento original).
+  // Ambos con valor = solo esa franja. Una entrada por staff+día.
+  startMin Int?
+  endMin   Int?
   reason  String?
   createdAt DateTime @default(now())
 

@@ -150,9 +150,22 @@ export async function loadBookingContext(
  * clave para `nextAvailableDays`, que escanea hasta 30 días: sin esto, un
  * profesional sin horario configurado dispara 30 queries inútiles.
  */
+/** Solo un bloqueo de DÍA COMPLETO (startMin null) cierra el día. Los
+ *  bloqueos de franja horaria se aplican como "ocupado" en daySlotsForOption. */
 function optionOpenOn(option: StaffOption, dateStr: string): boolean {
-  if (option.exceptions.some((e) => e.date === dateStr)) return false;
+  if (option.exceptions.some((e) => e.date === dateStr && e.startMin == null)) return false;
   return option.availability.some((b) => b.weekday === weekdayOf(dateStr));
+}
+
+/** Rangos "ocupados" que provienen de bloqueos de franja horaria (no del día
+ *  completo) para una fecha. Exportada para pruebas. */
+export function blockedRangesForDate(
+  exceptions: Pick<DateException, "date" | "startMin" | "endMin">[],
+  dateStr: string
+): { startMinutes: number; endMinutes: number }[] {
+  return exceptions
+    .filter((e) => e.date === dateStr && e.startMin != null && e.endMin != null)
+    .map((e) => ({ startMinutes: e.startMin as number, endMinutes: e.endMin as number }));
 }
 
 /** Horarios de inicio disponibles ("HH:MM") para un Staff puntual en una fecha. */
@@ -163,7 +176,7 @@ function daySlotsForOption(
   dateStr: string,
   busy: { startMinutes: number; endMinutes: number }[]
 ): string[] {
-  if (option.exceptions.some((e) => e.date === dateStr)) return [];
+  if (option.exceptions.some((e) => e.date === dateStr && e.startMin == null)) return [];
 
   const dayBlocks = option.availability.filter((b) => b.weekday === weekdayOf(dateStr));
   if (dayBlocks.length === 0) return [];
@@ -174,7 +187,7 @@ function daySlotsForOption(
   return computeAvailableSlots(
     dayBlocks.map((b) => ({ startMinutes: b.startMinutes, endMinutes: b.endMinutes })),
     service.durationMin,
-    busy,
+    [...busy, ...blockedRangesForDate(option.exceptions, dateStr)],
     minMinutesFromNow
   ).map(minutesToTime);
 }

@@ -1,5 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { hasOverlappingBooking, PENDING_PAYMENT_TIMEOUT_MIN } from "./booking-logic";
+import {
+  blockedRangesForDate,
+  hasOverlappingBooking,
+  PENDING_PAYMENT_TIMEOUT_MIN,
+} from "./booking-logic";
+
+describe("blockedRangesForDate — bloqueos de franja horaria", () => {
+  const rows = [
+    { date: "2026-09-10", startMin: 780, endMin: 840 }, // 13:00–14:00
+    { date: "2026-09-10", startMin: null, endMin: null }, // día completo → se ignora acá
+    { date: "2026-09-11", startMin: 600, endMin: 660 }, // otro día
+    { date: "2026-09-10", startMin: 900, endMin: null }, // a medias → se ignora
+  ];
+
+  it("devuelve solo las franjas con inicio y fin, de la fecha pedida", () => {
+    expect(blockedRangesForDate(rows, "2026-09-10")).toEqual([{ startMinutes: 780, endMinutes: 840 }]);
+  });
+
+  it("no mezcla fechas", () => {
+    expect(blockedRangesForDate(rows, "2026-09-11")).toEqual([{ startMinutes: 600, endMinutes: 660 }]);
+  });
+
+  it("una fecha sin franjas devuelve vacío", () => {
+    expect(blockedRangesForDate(rows, "2026-09-12")).toEqual([]);
+  });
+});
 
 const findFirstMock = vi.fn();
 const fakeTx = { booking: { findFirst: (...args: unknown[]) => findFirstMock(...args) } } as never;
