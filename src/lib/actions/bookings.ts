@@ -23,6 +23,7 @@ import { toE164 } from "@/lib/sms";
 import { notifyClientPhoneConfirmation } from "@/lib/notify";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { resolveClientId } from "@/lib/actions/clients";
+import { decryptSecret } from "@/lib/crypto";
 import { isValidEmail, sanitizeCustomAnswer } from "@/lib/validation";
 import { createDepositPreference } from "@/lib/mercadopago-connect";
 import { resolveDepositDecision } from "@/lib/deposits";
@@ -261,7 +262,7 @@ export async function createPublicBooking(formData: FormData): Promise<CreateBoo
       // cliente primero tiene que pagar. El webhook de Mercado Pago es
       // quien dispara los avisos, una vez que el pago realmente se acredita.
       const preference = await createDepositPreference({
-        professionalAccessToken: ctx.professional.mpConnectedAccessToken!,
+        professionalAccessToken: decryptSecret(ctx.professional.mpConnectedAccessToken!),
         bookingId: booking.id,
         manageToken: booking.manageToken,
         amount: deposit.amount!,

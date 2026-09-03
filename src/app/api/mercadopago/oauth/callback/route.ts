@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
-import { exchangeCodeForToken } from "@/lib/mercadopago-connect";
+import { exchangeCodeForToken, MP_OAUTH_STATE_COOKIE } from "@/lib/mercadopago-connect";
+import { encryptSecret } from "@/lib/crypto";
 
 /**
  * Vuelta del flujo OAuth de Mercado Pago Connect. Mercado Pago redirige acá
@@ -19,10 +21,13 @@ export async function GET(request: NextRequest) {
   const state = request.nextUrl.searchParams.get("state");
   const oauthError = request.nextUrl.searchParams.get("error");
 
-  // El profesional que vuelve del callback debe ser el mismo que inició la
-  // conexión — sin esto, un código de autorización ajeno podría terminar
-  // asociado a la cuenta equivocada.
-  if (oauthError || !code || !state || state !== professional.id) {
+  // El `state` de la vuelta debe coincidir con el nonce que guardamos en una
+  // cookie httpOnly al iniciar el flujo. Es de un solo uso: se borra ya.
+  const cookieStore = await cookies();
+  const expectedState = cookieStore.get(MP_OAUTH_STATE_COOKIE)?.value;
+  cookieStore.delete(MP_OAUTH_STATE_COOKIE);
+
+  if (oauthError || !code || !state || !expectedState || state !== expectedState) {
     settingsUrl.searchParams.set("mp_connect_error", "1");
     return NextResponse.redirect(settingsUrl);
   }
@@ -33,12 +38,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(settingsUrl);
   }
 
+  // Los tokens se guardan cifrados (AES-256-GCM, ver lib/crypto.ts).
   await prisma.professional.update({
     where: { id: professional.id },
     data: {
       mpConnectedUserId: result.userId,
-      mpConnectedAccessToken: result.accessToken,
-      mpConnectedRefreshToken: result.refreshToken,
+      mpConnectedAccessToken: encryptSecret(result.accessToken),
+      mpConnectedRefreshToken: result.refreshToken
+        ? encryptSecret(result.refreshToken)
+        : null,
       mpConnectedAt: new Date(),
     },
   });

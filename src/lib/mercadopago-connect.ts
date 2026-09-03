@@ -3,6 +3,9 @@ import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 const MP_OAUTH_AUTHORIZE_URL = "https://auth.mercadopago.com/authorization";
 const MP_OAUTH_TOKEN_URL = "https://api.mercadopago.com/oauth/token";
 
+/** Cookie httpOnly con el nonce `state` del flujo OAuth de MP Connect. */
+export const MP_OAUTH_STATE_COOKIE = "mp_oauth_state";
+
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
@@ -14,12 +17,15 @@ function redirectUri(): string {
 /**
  * URL a la que se manda al profesional para que autorice, en su propia
  * sesión de Mercado Pago, la conexión de SU cuenta (nunca la de la
- * plataforma). `state` lleva el id del profesional — se vuelve a verificar
- * contra la sesión activa al volver del callback, para que un código de
- * autorización nunca pueda terminar asociado a un negocio distinto del que
- * lo inició.
+ * plataforma).
+ *
+ * `state` es un nonce aleatorio de un solo uso que quien inicia el flujo
+ * guarda además en una cookie httpOnly; el callback exige que el `state` de
+ * la vuelta coincida con esa cookie. Antes `state` era el id del profesional
+ * (predecible) — eso permitía, en teoría, que un código de autorización
+ * ajeno quedara asociado a la cuenta equivocada.
  */
-export function getConnectUrl(professionalId: string): string | null {
+export function getConnectUrl(state: string): string | null {
   const clientId = process.env.MERCADOPAGO_CLIENT_ID;
   if (!clientId) return null;
 
@@ -27,7 +33,7 @@ export function getConnectUrl(professionalId: string): string | null {
     client_id: clientId,
     response_type: "code",
     redirect_uri: redirectUri(),
-    state: professionalId,
+    state,
   });
   return `${MP_OAUTH_AUTHORIZE_URL}?${params.toString()}`;
 }

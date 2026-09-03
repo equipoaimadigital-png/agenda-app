@@ -9,6 +9,7 @@ import {
   withStaffLock,
 } from "@/lib/booking-logic";
 import { minutesToTime, nowInTimeZone, wallClockDate } from "@/lib/dates";
+import { decryptSecret } from "@/lib/crypto";
 import { sendCancellationEmails, sendRescheduleEmails } from "@/lib/email";
 import { createDepositPreference } from "@/lib/mercadopago-connect";
 
@@ -156,7 +157,7 @@ export async function resumeDepositPayment(token: string): Promise<{ url?: strin
   }
 
   const preference = await createDepositPreference({
-    professionalAccessToken: booking.professional.mpConnectedAccessToken,
+    professionalAccessToken: decryptSecret(booking.professional.mpConnectedAccessToken),
     bookingId: booking.id,
     manageToken: token,
     amount: booking.depositAmount,
