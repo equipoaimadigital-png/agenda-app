@@ -1,13 +1,23 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/slug";
 import { isValidEmail } from "@/lib/validation";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { TRIAL_DAYS } from "@/lib/subscription";
 
 export type AuthResult = { error: string } | never;
+
+/** Tope de intentos de autenticación por IP: frena credential stuffing y el
+ *  bombardeo de correos de confirmación / recuperación. Es un límite suave
+ *  (memoria por instancia serverless), suficiente contra abuso casual. */
+async function authRateLimitHit(bucket: string): Promise<boolean> {
+  const ip = getClientIp(await headers());
+  return !checkRateLimit(`auth:${bucket}:${ip}`, 10, 60_000);
+}
 
 async function uniqueSlug(base: string): Promise<string> {
   const root = slugify(base) || "negocio";
@@ -31,6 +41,9 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   }
   if (password.length < 6) {
     return { error: "La contraseña debe tener al menos 6 caracteres." };
+  }
+  if (await authRateLimitHit("signup")) {
+    return { error: "Demasiados intentos. Espera un minuto e intenta de nuevo." };
   }
 
   console.log("[signUp] intento de registro:", email);
@@ -103,6 +116,10 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
 
+  if (await authRateLimitHit("signin")) {
+    return { error: "Demasiados intentos. Espera un minuto e intenta de nuevo." };
+  }
+
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -129,6 +146,10 @@ export async function requestPasswordReset(
 ): Promise<{ error?: string; success?: boolean }> {
   const email = String(formData.get("email") || "").trim();
   if (!email) return { error: "Ingresa tu correo." };
+  if (await authRateLimitHit("reset")) {
+    // Mismo mensaje de éxito para no revelar el rate limit ni si el correo existe.
+    return { success: true };
+  }
 
   const supabase = await createSupabaseServerClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";

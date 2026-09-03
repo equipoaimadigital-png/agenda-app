@@ -9,6 +9,9 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 vi.mock("@/lib/db", () => ({ prisma: {} }));
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "x-forwarded-for": "1.2.3.4" }),
+}));
 vi.mock("next/navigation", () => ({
   redirect: (...args: unknown[]) => {
     redirectMock(...args);

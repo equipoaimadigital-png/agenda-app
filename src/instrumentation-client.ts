@@ -6,6 +6,8 @@ Sentry.init({
   // gastar la cuota en sesiones normales sin errores.
   tracesSampleRate: 0.1,
   enabled: process.env.NODE_ENV === "production",
+  // Datos de clientes en juego (Ley 21.719): no adjuntar PII por defecto.
+  sendDefaultPii: false,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

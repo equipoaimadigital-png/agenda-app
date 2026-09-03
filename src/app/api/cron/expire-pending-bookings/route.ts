@@ -11,12 +11,11 @@ import { PENDING_PAYMENT_TIMEOUT_MIN } from "@/lib/booking-logic";
  * plazo es de minutos.
  */
 export async function GET(request: NextRequest) {
+  // Fail-closed: sin CRON_SECRET el endpoint queda cerrado.
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+  const auth = request.headers.get("authorization");
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
   const cutoff = new Date(Date.now() - PENDING_PAYMENT_TIMEOUT_MIN * 60 * 1000);

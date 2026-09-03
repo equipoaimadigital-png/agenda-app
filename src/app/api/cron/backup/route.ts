@@ -15,12 +15,11 @@ const RETENTION_DAYS = 30;
  * serverless no tienen disco persistente entre invocaciones.
  */
 export async function GET(request: NextRequest) {
+  // Fail-closed: sin CRON_SECRET el endpoint queda cerrado.
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+  const auth = request.headers.get("authorization");
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
   const supabase = createSupabaseAdminClient();

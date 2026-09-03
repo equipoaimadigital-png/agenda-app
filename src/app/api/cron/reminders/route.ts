@@ -10,12 +10,13 @@ const REMIND_FROM_HOURS = 2;
 const REMIND_UNTIL_HOURS = 26;
 
 export async function GET(request: NextRequest) {
+  // Fail-closed: sin CRON_SECRET configurado el endpoint queda cerrado, no
+  // abierto. Lo llaman GitHub Actions y el cron de Vercel, ambos mandan el
+  // header Authorization: Bearer <CRON_SECRET>.
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+  const auth = request.headers.get("authorization");
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
   const now = new Date();
