@@ -44,10 +44,16 @@ export function decryptSecret(value: string): string {
     throw new Error("ENCRYPTION_KEY ausente: no se puede descifrar un token guardado.");
   }
   const raw = Buffer.from(value.slice(PREFIX.length), "base64");
+  // Estructura esperada: 12 bytes IV + 16 bytes tag GCM + ciphertext. Un blob
+  // más corto (corrupción, o un tag truncado a propósito para debilitar GCM)
+  // se rechaza antes de descifrar — no se acepta un authTag de menos de 16 bytes.
+  if (raw.length < 12 + 16 + 1) {
+    throw new Error("Token cifrado inválido o truncado.");
+  }
   const iv = raw.subarray(0, 12);
   const tag = raw.subarray(12, 28);
   const data = raw.subarray(28);
-  const decipher = createDecipheriv(ALGO, key, iv);
+  const decipher = createDecipheriv(ALGO, key, iv, { authTagLength: 16 });
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
 }
