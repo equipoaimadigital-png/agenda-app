@@ -30,6 +30,16 @@ function verifySignature(req: Request, dataId: string): boolean {
   const v1 = parts.v1;
   if (!ts || !v1) return false;
 
+  // Ventana de frescura: una firma capturada (log, proxy, etc.) no sirve para
+  // siempre. `ts` viene en SEGUNDOS (formato documentado de Mercado Pago).
+  // 10 minutos de margen por reintentos reales de Mercado Pago y desfases de
+  // reloj — no es la defensa principal (esa es re-consultar el pago directo
+  // a la API, nunca confiar en el body), es una capa extra.
+  const tsSeconds = Number(ts);
+  if (!Number.isFinite(tsSeconds) || Math.abs(Date.now() - tsSeconds * 1000) > 10 * 60_000) {
+    return false;
+  }
+
   const manifest = `id:${dataId.toLowerCase()};request-id:${requestId};ts:${ts};`;
   const expected = createHmac("sha256", secret).update(manifest).digest("hex");
 

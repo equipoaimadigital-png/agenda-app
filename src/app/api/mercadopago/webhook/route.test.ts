@@ -19,8 +19,14 @@ vi.mock("@/lib/mercadopago", () => ({
 
 const WEBHOOK_SECRET = "test-secret-123";
 
-/** Firma un dataId igual que lo hace Mercado Pago, para probar el verificador real. */
-function signRequest(dataId: string, requestId = "req-1", ts = "1700000000") {
+/** Firma un dataId igual que lo hace Mercado Pago, para probar el verificador real.
+ *  `ts` por defecto es "ahora" en segundos — el verificador rechaza firmas
+ *  con más de 10 minutos de antigüedad (ver verifySignature). */
+function signRequest(
+  dataId: string,
+  requestId = "req-1",
+  ts = String(Math.floor(Date.now() / 1000))
+) {
   const manifest = `id:${dataId.toLowerCase()};request-id:${requestId};ts:${ts};`;
   const v1 = createHmac("sha256", WEBHOOK_SECRET).update(manifest).digest("hex");
   return { headers: { "x-signature": `ts=${ts},v1=${v1}`, "x-request-id": requestId } };
@@ -51,6 +57,17 @@ describe("POST /api/mercadopago/webhook", () => {
         "x-signature": "ts=123,v1=firmainventada",
         "x-request-id": "req-1",
       })
+    );
+    expect(res.status).toBe(401);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("rechaza con 401 una firma válida pero vieja (posible reproducción de un webhook capturado)", async () => {
+    const oldTs = String(Math.floor(Date.now() / 1000) - 20 * 60); // hace 20 minutos
+    const { headers } = signRequest("abc123", "req-1", oldTs);
+    const { POST } = await import("./route");
+    const res = await POST(
+      makeRequest("https://x.test/api/mercadopago/webhook?data.id=abc123&type=subscription_preapproval", headers)
     );
     expect(res.status).toBe(401);
     expect(updateMock).not.toHaveBeenCalled();
