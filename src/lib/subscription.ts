@@ -60,6 +60,18 @@ export function pastDueGraceDaysLeft(
 
 /** Días de plan que agrega cada pago único manual. */
 export const MANUAL_PAYMENT_DAYS = 31;
+/** Días que agrega el pago anual (ver ANNUAL_PAYMENT_DAYS más abajo). */
+export const ANNUAL_PAYMENT_DAYS = 365;
+
+/** Precio del plan anual, en CLP: "2 meses gratis" frente al mensual (paga
+ *  10, tiene 12) — el mismo descuento que usan AgendaPro, Fresha y la
+ *  mayoría de SaaS de reservas para el pago anual (~15-20% off). Con el
+ *  precio mensual actual da un número redondo: $149.990.
+ *  Mismo cuidado que SUBSCRIPTION_PRICE_CLP: cambiarlo solo afecta pagos
+ *  anuales NUEVOS, no los ya hechos. */
+export const SUBSCRIPTION_PRICE_ANNUAL_CLP = SUBSCRIPTION_PRICE_CLP * 10;
+/** Cuánto ahorra el cliente pagando anual vs. 12 meses mensuales, en CLP. */
+export const ANNUAL_SAVINGS_CLP = SUBSCRIPTION_PRICE_CLP * 12 - SUBSCRIPTION_PRICE_ANNUAL_CLP;
 
 /** Tope de mensajes de pago (SMS + WhatsApp) que incluye el plan por mes
  *  calendario y por cuenta. Al superarlo, esos dos canales se omiten (el

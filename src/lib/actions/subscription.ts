@@ -2,7 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
-import { createSubscriptionInitPoint, createSubscriptionPaymentLink } from "@/lib/mercadopago";
+import {
+  createAnnualPaymentLink,
+  createSubscriptionInitPoint,
+  createSubscriptionPaymentLink,
+} from "@/lib/mercadopago";
 import { isValidEmail } from "@/lib/validation";
 
 export async function startSubscriptionCheckout(formData: FormData): Promise<void> {
@@ -46,6 +50,27 @@ export async function startSubscriptionOneTimePayment(): Promise<void> {
   if (!professional) redirect("/login");
 
   const result = await createSubscriptionPaymentLink({
+    professionalId: professional.id,
+    businessName: professional.businessName,
+  });
+
+  if ("error" in result) {
+    redirect(`/dashboard/suscripcion?error=${encodeURIComponent(result.error)}`);
+  }
+
+  redirect(result.initPoint);
+}
+
+/**
+ * Pago ÚNICO de 1 AÑO de plan, con el descuento anual (2 meses gratis).
+ * Mismo camino que el mensual — débito, crédito y efectivo —, pero con
+ * `subscriptionPaidUntil` extendido 365 días en vez de 31.
+ */
+export async function startAnnualSubscriptionPayment(): Promise<void> {
+  const professional = await getCurrentProfessional();
+  if (!professional) redirect("/login");
+
+  const result = await createAnnualPaymentLink({
     professionalId: professional.id,
     businessName: professional.businessName,
   });

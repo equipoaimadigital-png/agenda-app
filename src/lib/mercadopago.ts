@@ -1,5 +1,5 @@
 import { MercadoPagoConfig, PreApproval, Preference } from "mercadopago";
-import { SUBSCRIPTION_PRICE_CLP } from "@/lib/subscription";
+import { SUBSCRIPTION_PRICE_ANNUAL_CLP, SUBSCRIPTION_PRICE_CLP } from "@/lib/subscription";
 
 function getClient(): MercadoPagoConfig | null {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -102,6 +102,51 @@ export async function createSubscriptionPaymentLink(params: {
     return { initPoint: result.init_point };
   } catch (err) {
     console.error("Error creando link de pago del plan en Mercado Pago:", JSON.stringify(err));
+    return { error: "No se pudo generar el link de pago. Intenta de nuevo." };
+  }
+}
+
+/**
+ * Pago ÚNICO de 1 AÑO de plan, con el descuento anual (ver
+ * SUBSCRIPTION_PRICE_ANNUAL_CLP). Mismo mecanismo que el pago manual
+ * mensual — funciona con débito, crédito y efectivo — pero
+ * `external_reference` lleva el prefijo "sub-annual:" para que el webhook
+ * extienda `subscriptionPaidUntil` en 365 días en vez de 31.
+ */
+export async function createAnnualPaymentLink(params: {
+  professionalId: string;
+  businessName: string;
+}): Promise<{ initPoint: string } | { error: string }> {
+  const client = getClient();
+  if (!client) return { error: "Mercado Pago no está configurado todavía." };
+
+  try {
+    const result = await new Preference(client).create({
+      body: {
+        items: [
+          {
+            id: `sub-annual-${params.professionalId}`,
+            title: `Tu Hora Lista — 1 año de plan (${params.businessName})`,
+            quantity: 1,
+            unit_price: SUBSCRIPTION_PRICE_ANNUAL_CLP,
+            currency_id: "CLP",
+          },
+        ],
+        external_reference: `sub-annual:${params.professionalId}`,
+        back_urls: {
+          success: `${siteUrl()}/dashboard/suscripcion?pago=1`,
+          pending: `${siteUrl()}/dashboard/suscripcion?pago=pendiente`,
+          failure: `${siteUrl()}/dashboard/suscripcion?pago=error`,
+        },
+        notification_url: `${siteUrl()}/api/mercadopago/webhook`,
+      },
+    });
+    if (!result.init_point) {
+      return { error: "Mercado Pago no devolvió un link de pago válido." };
+    }
+    return { initPoint: result.init_point };
+  } catch (err) {
+    console.error("Error creando link de pago anual en Mercado Pago:", JSON.stringify(err));
     return { error: "No se pudo generar el link de pago. Intenta de nuevo." };
   }
 }

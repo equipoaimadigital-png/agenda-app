@@ -1,10 +1,13 @@
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 import {
+  ANNUAL_SAVINGS_CLP,
   hasDashboardAccess,
   pastDueGraceDaysLeft,
+  SUBSCRIPTION_PRICE_ANNUAL_CLP,
   SUBSCRIPTION_PRICE_CLP,
 } from "@/lib/subscription";
 import {
+  startAnnualSubscriptionPayment,
   startSubscriptionCheckout,
   startSubscriptionOneTimePayment,
 } from "@/lib/actions/subscription";
@@ -182,6 +185,27 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
                 className="self-start bg-brand text-brand-foreground rounded-lg px-4 py-3 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
               >
                 Pagar {formatPrice(SUBSCRIPTION_PRICE_CLP)} por 1 mes
+              </button>
+            </form>
+          </div>
+
+          {/* Opción 1b — pago anual, con descuento */}
+          <div className="relative bg-surface border border-brass rounded-xl p-4 flex flex-col gap-2">
+            <span className="absolute -top-2.5 left-4 text-xs font-semibold bg-brass text-white rounded-full px-2.5 py-0.5">
+              2 meses gratis
+            </span>
+            <p className="font-medium mt-1">Pagar 1 año</p>
+            <p className="text-sm text-muted">
+              Un pago único de {formatPrice(SUBSCRIPTION_PRICE_ANNUAL_CLP)} — te ahorras{" "}
+              <strong>{formatPrice(ANNUAL_SAVINGS_CLP)}</strong> frente a pagar mes a mes. Sirve
+              con <strong>débito, crédito o efectivo</strong>. Tu plan queda al día por 12 meses.
+            </p>
+            <form action={startAnnualSubscriptionPayment}>
+              <button
+                type="submit"
+                className="self-start bg-brass text-white rounded-lg px-4 py-3 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
+              >
+                Pagar {formatPrice(SUBSCRIPTION_PRICE_ANNUAL_CLP)} por 1 año
               </button>
             </form>
           </div>
