@@ -1,6 +1,6 @@
 import type { MessageChannel } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { MONTHLY_MESSAGE_QUOTA } from "@/lib/subscription";
+import { MONTHLY_MESSAGE_QUOTA, TRIAL_MESSAGE_QUOTA } from "@/lib/subscription";
 
 /**
  * Tope mensual de SMS + WhatsApp por cuenta. El mes se cuenta en UTC (mes
@@ -48,8 +48,28 @@ export async function messagesUsedThisMonth(professionalId: string): Promise<num
   });
 }
 
+/** El tope que le corresponde a ESTA cuenta ahora mismo: el reducido de
+ *  prueba gratis mientras está en trial y no ha pagado nada todavía, o el
+ *  del plan pagado en cualquier otro caso (activo, pago manual vigente,
+ *  atrasado en gracia, o cuenta exenta). Si no se encuentra el profesional
+ *  se usa el tope de pago por defecto (nunca deja pasar de más por error). */
+async function effectiveMonthlyLimit(professionalId: string): Promise<number> {
+  const professional = await prisma.professional.findUnique({
+    where: { id: professionalId },
+    select: { subscriptionStatus: true, billingExempt: true, subscriptionPaidUntil: true },
+  });
+  if (!professional) return MONTHLY_MESSAGE_QUOTA;
+
+  const manualActive =
+    !!professional.subscriptionPaidUntil && new Date() < professional.subscriptionPaidUntil;
+  const inTrial =
+    professional.subscriptionStatus === "TRIAL" && !professional.billingExempt && !manualActive;
+  return inTrial ? TRIAL_MESSAGE_QUOTA : MONTHLY_MESSAGE_QUOTA;
+}
+
 export async function messagingQuota(professionalId: string): Promise<QuotaStatus> {
-  return quotaStatus(await messagesUsedThisMonth(professionalId));
+  const limit = await effectiveMonthlyLimit(professionalId);
+  return quotaStatus(await messagesUsedThisMonth(professionalId), limit);
 }
 
 /**
@@ -59,7 +79,8 @@ export async function messagingQuota(professionalId: string): Promise<QuotaStatu
  */
 export async function canSendPaidMessage(professionalId: string): Promise<boolean> {
   try {
-    return (await messagesUsedThisMonth(professionalId)) < MONTHLY_MESSAGE_QUOTA;
+    const limit = await effectiveMonthlyLimit(professionalId);
+    return (await messagesUsedThisMonth(professionalId)) < limit;
   } catch (err) {
     console.error("[messaging-quota] no se pudo consultar el uso, se deja pasar:", err);
     return true;

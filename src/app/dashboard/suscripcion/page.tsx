@@ -13,6 +13,7 @@ import {
 } from "@/lib/actions/subscription";
 import { formatDateLong } from "@/lib/dates";
 import { messagingQuota } from "@/lib/messaging-quota";
+import { PlanTabs } from "./PlanTabs";
 
 function formatPrice(n: number): string {
   return `$${n.toLocaleString("es-CL")}`;
@@ -171,88 +172,15 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
       )}
 
       {showPaymentOptions && (
-        <div className="flex flex-col gap-4">
-          {/* Opción 1 — pago manual, sirve con débito */}
-          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2">
-            <p className="font-medium">Pagar 1 mes</p>
-            <p className="text-sm text-muted">
-              Un pago único de {formatPrice(SUBSCRIPTION_PRICE_CLP)}. Sirve con{" "}
-              <strong>débito, crédito o efectivo</strong>. Renuevas tú cada mes (te avisamos).
-            </p>
-            <form action={startSubscriptionOneTimePayment}>
-              <button
-                type="submit"
-                className="self-start bg-brand text-brand-foreground rounded-lg px-4 py-3 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
-              >
-                Pagar {formatPrice(SUBSCRIPTION_PRICE_CLP)} por 1 mes
-              </button>
-            </form>
-          </div>
-
-          {/* Opción 1b — pago anual, con descuento */}
-          <div className="relative bg-surface border border-brass rounded-xl p-4 flex flex-col gap-2">
-            <span className="absolute -top-2.5 left-4 text-xs font-semibold bg-brass text-white rounded-full px-2.5 py-0.5">
-              2 meses gratis
-            </span>
-            <p className="font-medium mt-1">Pagar 1 año</p>
-            <p className="text-sm text-muted">
-              Un pago único de {formatPrice(SUBSCRIPTION_PRICE_ANNUAL_CLP)} — te ahorras{" "}
-              <strong>{formatPrice(ANNUAL_SAVINGS_CLP)}</strong> frente a pagar mes a mes. Sirve
-              con <strong>débito, crédito o efectivo</strong>. Tu plan queda al día por 12 meses.
-            </p>
-            <form action={startAnnualSubscriptionPayment}>
-              <button
-                type="submit"
-                className="self-start bg-brass text-white rounded-lg px-4 py-3 font-medium shadow-[0_3px_0_rgba(0,0,0,0.18),0_8px_18px_rgba(0,0,0,0.16)] active:shadow-[0_1px_0_rgba(0,0,0,0.18),0_3px_8px_rgba(0,0,0,0.12)] active:translate-y-[2px]"
-              >
-                Pagar {formatPrice(SUBSCRIPTION_PRICE_ANNUAL_CLP)} por 1 año
-              </button>
-            </form>
-          </div>
-
-          {/* Opción 2 — cobro automático, requiere crédito */}
-          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
-            <div>
-              <p className="font-medium">Cobro automático cada mes</p>
-              <p className="text-sm text-muted">
-                Se cobra solo, no tienes que acordarte. Necesita{" "}
-                <strong>tarjeta de crédito</strong> — varias tarjetas de débito de bancos chilenos
-                no permiten el cobro recurrente.
-              </p>
-            </div>
-            <form action={startSubscriptionCheckout} className="flex flex-col gap-2">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="mpEmail" className="text-sm font-medium">
-                  Correo de tu cuenta de Mercado Pago
-                </label>
-                <input
-                  id="mpEmail"
-                  name="mpEmail"
-                  type="email"
-                  required
-                  defaultValue={professional.email}
-                  placeholder="tucorreo@ejemplo.com"
-                  className="border border-border rounded-lg px-3 py-2.5 max-w-sm"
-                />
-                <p className="text-xs text-muted">
-                  Debe ser el correo con el que inicias sesión en Mercado Pago, o el checkout no
-                  te deja confirmar.
-                </p>
-              </div>
-              <button
-                type="submit"
-                className="self-start border border-border bg-surface rounded-lg px-4 py-3 font-medium hover:border-brand active:scale-[0.98]"
-              >
-                Activar cobro automático
-              </button>
-            </form>
-          </div>
-
-          <p className="text-xs text-muted">
-            Te llevamos al checkout seguro de Mercado Pago. Nunca vemos ni guardamos los datos de
-            tu tarjeta.
-          </p>
-        </div>
+        <PlanTabs
+          monthlyPrice={SUBSCRIPTION_PRICE_CLP}
+          annualPrice={SUBSCRIPTION_PRICE_ANNUAL_CLP}
+          annualSavings={ANNUAL_SAVINGS_CLP}
+          professionalEmail={professional.email}
+          startOneTimeMonthly={startSubscriptionOneTimePayment}
+          startAnnual={startAnnualSubscriptionPayment}
+          startRecurring={startSubscriptionCheckout}
+        />
       )}
     </div>
   );

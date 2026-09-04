@@ -1,6 +1,19 @@
-import { describe, expect, it } from "vitest";
-import { monthWindowUTC, quotaStatus } from "./messaging-quota";
-import { MONTHLY_MESSAGE_QUOTA } from "./subscription";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MONTHLY_MESSAGE_QUOTA, TRIAL_MESSAGE_QUOTA } from "./subscription";
+
+const findUniqueMock = vi.fn();
+const countMock = vi.fn();
+
+vi.mock("@/lib/db", () => ({
+  prisma: {
+    professional: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
+    messageLog: { count: (...args: unknown[]) => countMock(...args) },
+  },
+}));
+
+const { monthWindowUTC, quotaStatus, messagingQuota, canSendPaidMessage } = await import(
+  "./messaging-quota"
+);
 
 describe("monthWindowUTC", () => {
   it("devuelve [1 del mes, 1 del mes siguiente) en UTC", () => {
@@ -53,5 +66,59 @@ describe("quotaStatus", () => {
 
   it("usa MONTHLY_MESSAGE_QUOTA como límite por defecto", () => {
     expect(quotaStatus(0).limit).toBe(MONTHLY_MESSAGE_QUOTA);
+  });
+});
+
+describe("tope según el estado de la cuenta", () => {
+  beforeEach(() => {
+    findUniqueMock.mockReset();
+    countMock.mockReset();
+    countMock.mockResolvedValue(0);
+  });
+
+  it("una cuenta en prueba gratis (sin pago manual vigente) usa el tope reducido", async () => {
+    findUniqueMock.mockResolvedValue({
+      subscriptionStatus: "TRIAL",
+      billingExempt: false,
+      subscriptionPaidUntil: null,
+    });
+    expect((await messagingQuota("p1")).limit).toBe(TRIAL_MESSAGE_QUOTA);
+  });
+
+  it("una cuenta con plan pagado (ACTIVE) usa el tope de pago", async () => {
+    findUniqueMock.mockResolvedValue({
+      subscriptionStatus: "ACTIVE",
+      billingExempt: false,
+      subscriptionPaidUntil: null,
+    });
+    expect((await messagingQuota("p1")).limit).toBe(MONTHLY_MESSAGE_QUOTA);
+  });
+
+  it("una cuenta en trial que YA pagó manualmente usa el tope de pago, no el de prueba", async () => {
+    findUniqueMock.mockResolvedValue({
+      subscriptionStatus: "TRIAL",
+      billingExempt: false,
+      subscriptionPaidUntil: new Date(Date.now() + 10 * 24 * 3600_000),
+    });
+    expect((await messagingQuota("p1")).limit).toBe(MONTHLY_MESSAGE_QUOTA);
+  });
+
+  it("una cuenta exenta de cobro nunca usa el tope de prueba", async () => {
+    findUniqueMock.mockResolvedValue({
+      subscriptionStatus: "TRIAL",
+      billingExempt: true,
+      subscriptionPaidUntil: null,
+    });
+    expect((await messagingQuota("p1")).limit).toBe(MONTHLY_MESSAGE_QUOTA);
+  });
+
+  it("canSendPaidMessage bloquea al llegar al tope de prueba aunque falte mucho para el de pago", async () => {
+    findUniqueMock.mockResolvedValue({
+      subscriptionStatus: "TRIAL",
+      billingExempt: false,
+      subscriptionPaidUntil: null,
+    });
+    countMock.mockResolvedValue(TRIAL_MESSAGE_QUOTA);
+    expect(await canSendPaidMessage("p1")).toBe(false);
   });
 });

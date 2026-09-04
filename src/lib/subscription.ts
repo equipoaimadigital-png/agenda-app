@@ -73,8 +73,15 @@ export const SUBSCRIPTION_PRICE_ANNUAL_CLP = SUBSCRIPTION_PRICE_CLP * 10;
 /** Cuánto ahorra el cliente pagando anual vs. 12 meses mensuales, en CLP. */
 export const ANNUAL_SAVINGS_CLP = SUBSCRIPTION_PRICE_CLP * 12 - SUBSCRIPTION_PRICE_ANNUAL_CLP;
 
-/** Tope de mensajes de pago (SMS + WhatsApp) que incluye el plan por mes
- *  calendario y por cuenta. Al superarlo, esos dos canales se omiten (el
+/** Tope de mensajes de pago (SMS + WhatsApp) que incluye el plan PAGADO por
+ *  mes calendario y por cuenta. Al superarlo, esos dos canales se omiten (el
  *  correo sigue saliendo). Protege el presupuesto de Twilio ante un negocio
  *  con volumen muy alto. Se puede subir a mano si un cliente lo necesita. */
 export const MONTHLY_MESSAGE_QUOTA = 1000;
+
+/** Tope de SMS + WhatsApp durante los 10 días de PRUEBA GRATIS —
+ *  deliberadamente mucho más bajo que el de un plan pagado: alcanza para que
+ *  el negocio pruebe el aviso automático, sin exponer el presupuesto de
+ *  Twilio a una cuenta que todavía no paga nada. Se cuenta con el mismo
+ *  contador mensual que el plan pagado (mismo reinicio el día 1). */
+export const TRIAL_MESSAGE_QUOTA = 30;
