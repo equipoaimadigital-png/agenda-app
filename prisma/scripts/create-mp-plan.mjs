@@ -27,7 +27,10 @@ if (!token) {
   process.exit(1);
 }
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tuhoralista.com";
+// El plan es SIEMPRE de producción: Mercado Pago exige una back_url https
+// pública (rechaza http:// y localhost). No se usa NEXT_PUBLIC_SITE_URL
+// porque en .env.local apunta a localhost.
+const siteUrl = "https://tuhoralista.com";
 
 const res = await fetch("https://api.mercadopago.com/preapproval_plan", {
   method: "POST",
