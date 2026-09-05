@@ -9,7 +9,6 @@ import {
 import {
   startAnnualSubscriptionPayment,
   startSubscriptionCheckout,
-  startSubscriptionOneTimePayment,
 } from "@/lib/actions/subscription";
 import { formatDateLong } from "@/lib/dates";
 import { messagingQuota } from "@/lib/messaging-quota";
@@ -176,10 +175,8 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
           monthlyPrice={SUBSCRIPTION_PRICE_CLP}
           annualPrice={SUBSCRIPTION_PRICE_ANNUAL_CLP}
           annualSavings={ANNUAL_SAVINGS_CLP}
-          professionalEmail={professional.email}
-          startOneTimeMonthly={startSubscriptionOneTimePayment}
-          startAnnual={startAnnualSubscriptionPayment}
           startRecurring={startSubscriptionCheckout}
+          startAnnual={startAnnualSubscriptionPayment}
         />
       )}
     </div>

@@ -13,20 +13,16 @@ type Props = {
   monthlyPrice: number;
   annualPrice: number;
   annualSavings: number;
-  professionalEmail: string;
-  startOneTimeMonthly: () => Promise<void>;
+  startRecurring: () => Promise<void>;
   startAnnual: () => Promise<void>;
-  startRecurring: (formData: FormData) => Promise<void>;
 };
 
 export function PlanTabs({
   monthlyPrice,
   annualPrice,
   annualSavings,
-  professionalEmail,
-  startOneTimeMonthly,
-  startAnnual,
   startRecurring,
+  startAnnual,
 }: Props) {
   const [tab, setTab] = useState<"mensual" | "anual">("mensual");
 
@@ -52,64 +48,26 @@ export function PlanTabs({
           }`}
         >
           Anual{" "}
-          <span
-            className={tab === "anual" ? "text-white/90" : "text-brass"}
-          >
-            · 2 meses gratis
-          </span>
+          <span className={tab === "anual" ? "text-white/90" : "text-brass"}>· 2 meses gratis</span>
         </button>
       </div>
 
       {tab === "mensual" && (
-        <div className="flex flex-col gap-4">
-          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2">
-            <p className="font-medium">Pagar 1 mes</p>
+        <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+          <div>
+            <p className="font-medium">Cobro automático cada mes</p>
             <p className="text-sm text-muted">
-              Un pago único de {formatPrice(monthlyPrice)}. Sirve con{" "}
-              <strong>débito, crédito o efectivo</strong>. Renuevas tú cada mes (te avisamos).
+              {formatPrice(monthlyPrice)} al mes, se cobra solo — no tienes que acordarte de nada.
+              Mercado Pago te pide el correo y la tarjeta en el siguiente paso. Funciona con{" "}
+              <strong>tarjeta de crédito</strong> (y algunas de débito). Puedes cancelarlo cuando
+              quieras desde tu cuenta de Mercado Pago.
             </p>
-            <form action={startOneTimeMonthly}>
-              <button type="submit" className={`${buttonClass} bg-brand text-brand-foreground`}>
-                Pagar {formatPrice(monthlyPrice)} por 1 mes
-              </button>
-            </form>
           </div>
-
-          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
-            <div>
-              <p className="font-medium">Cobro automático cada mes</p>
-              <p className="text-sm text-muted">
-                Se cobra solo, no tienes que acordarte. Necesita <strong>tarjeta de crédito</strong> —
-                varias tarjetas de débito de bancos chilenos no permiten el cobro recurrente.
-              </p>
-            </div>
-            <form action={startRecurring} className="flex flex-col gap-2">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="mpEmail" className="text-sm font-medium">
-                  Correo de tu cuenta de Mercado Pago
-                </label>
-                <input
-                  id="mpEmail"
-                  name="mpEmail"
-                  type="email"
-                  required
-                  defaultValue={professionalEmail}
-                  placeholder="tucorreo@ejemplo.com"
-                  className="border border-border rounded-lg px-3 py-2.5 max-w-sm"
-                />
-                <p className="text-xs text-muted">
-                  Debe ser el correo con el que inicias sesión en Mercado Pago, o el checkout no te
-                  deja confirmar.
-                </p>
-              </div>
-              <button
-                type="submit"
-                className="self-start border border-border bg-surface rounded-lg px-4 py-3 font-medium hover:border-brand active:scale-[0.98]"
-              >
-                Activar cobro automático
-              </button>
-            </form>
-          </div>
+          <form action={startRecurring}>
+            <button type="submit" className={`${buttonClass} bg-brand text-brand-foreground`}>
+              Activar cobro automático
+            </button>
+          </form>
         </div>
       )}
 
@@ -122,7 +80,7 @@ export function PlanTabs({
           <p className="text-sm text-muted">
             Un pago único de {formatPrice(annualPrice)} — te ahorras{" "}
             <strong>{formatPrice(annualSavings)}</strong> frente a pagar mes a mes. Sirve con{" "}
-            <strong>débito, crédito o efectivo</strong>. Tu plan queda al día por 12 meses.
+            <strong>débito o crédito</strong>. Tu plan queda al día por 12 meses.
           </p>
           <form action={startAnnual}>
             <button type="submit" className={`${buttonClass} bg-brass text-white`}>

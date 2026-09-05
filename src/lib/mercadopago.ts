@@ -1,4 +1,4 @@
-import { MercadoPagoConfig, PreApproval, Preference } from "mercadopago";
+import { MercadoPagoConfig, PreApproval, PreApprovalPlan, Preference } from "mercadopago";
 import { SUBSCRIPTION_PRICE_ANNUAL_CLP, SUBSCRIPTION_PRICE_CLP } from "@/lib/subscription";
 
 function getClient(): MercadoPagoConfig | null {
@@ -12,106 +12,72 @@ function siteUrl(): string {
 }
 
 /**
- * Crea una suscripción (Preapproval) de cobro recurrente mensual y devuelve
- * el link de checkout de Mercado Pago para redirigir al profesional a
- * autorizarla. `external_reference` es el id del Professional — así el
- * webhook sabe a quién activar sin tener que confiar en nada que venga del
- * navegador.
+ * Crea (UNA sola vez) el PLAN de suscripción mensual en Mercado Pago. El
+ * plan es la plantilla de cobro: monto, moneda y frecuencia. Se corre a
+ * mano con `node --env-file=.env.local prisma/scripts/create-mp-plan.mjs`;
+ * el id que devuelve se guarda en MERCADOPAGO_SUBSCRIPTION_PLAN_ID (Vercel
+ * y .env.local).
+ *
+ * Con el plan, el profesional entra directo al checkout de Mercado Pago y
+ * es MERCADO PAGO quien le pide el correo y la tarjeta — la app no pide
+ * ningún dato antes.
  */
-export async function createSubscriptionInitPoint(params: {
-  professionalId: string;
-  payerEmail: string;
-  businessName: string;
-}): Promise<{ initPoint: string; preapprovalId: string } | { error: string }> {
+export async function createSubscriptionPlan(): Promise<
+  { id: string; initPoint: string } | { error: string }
+> {
   const client = getClient();
-  if (!client) return { error: "Mercado Pago no está configurado todavía." };
-
-  const preApproval = new PreApproval(client);
+  if (!client) return { error: "Falta MERCADOPAGO_ACCESS_TOKEN." };
 
   try {
-    const result = await preApproval.create({
+    const result = await new PreApprovalPlan(client).create({
       body: {
-        reason: `Tu Hora Lista — Plan mensual (${params.businessName})`,
-        external_reference: params.professionalId,
-        payer_email: params.payerEmail,
-        back_url: `${siteUrl()}/dashboard/suscripcion?resultado=1`,
+        reason: "Tu Hora Lista — Plan mensual",
+        back_url: `${siteUrl()}/dashboard/suscripcion?pago=1`,
+        status: "active",
         auto_recurring: {
           frequency: 1,
           frequency_type: "months",
           transaction_amount: SUBSCRIPTION_PRICE_CLP,
           currency_id: "CLP",
         },
-        status: "pending",
+        payment_methods_allowed: {
+          payment_types: [{ id: "credit_card" }, { id: "debit_card" }],
+        },
       },
     });
-
-    if (!result.init_point || !result.id) {
-      return { error: "Mercado Pago no devolvió un link de pago válido." };
+    if (!result.id || !result.init_point) {
+      return { error: "Mercado Pago no devolvió un plan válido." };
     }
-    return { initPoint: result.init_point, preapprovalId: result.id };
+    return { id: result.id, initPoint: result.init_point };
   } catch (err) {
-    // El SDK de MP mete el detalle útil en `.cause` o `.message` — se loguea
-    // completo para poder diagnosticar (payer_email inválido, moneda, etc.).
-    const detail =
-      err && typeof err === "object"
-        ? // @ts-expect-error — forma variable del error del SDK
-          err.cause ?? err.message ?? err
-        : err;
-    console.error("Error creando suscripción en Mercado Pago:", JSON.stringify(detail));
-    return { error: "No se pudo iniciar el pago. Revisa el correo de Mercado Pago e intenta de nuevo." };
+    console.error("Error creando el plan de suscripción en Mercado Pago:", JSON.stringify(err));
+    return { error: "No se pudo crear el plan de suscripción." };
   }
 }
 
 /**
- * Pago ÚNICO del plan (no recurrente), para quien no puede usar cobro
- * automático (débito chileno). Cada pago aprobado extiende
- * `subscriptionPaidUntil` ~31 días desde el webhook. `external_reference`
- * lleva el prefijo "sub:" para que el webhook lo distinga de un depósito.
+ * URL del checkout de suscripción (cobro automático) para ESTE profesional.
+ * Se arma con el id del plan (env) + `external_reference` = id del
+ * profesional, que Mercado Pago copia a la suscripción que se cree, para
+ * que el webhook sepa a quién activar sin confiar en nada del navegador.
+ * Devuelve null si todavía no se configuró el plan.
  */
-export async function createSubscriptionPaymentLink(params: {
-  professionalId: string;
-  businessName: string;
-}): Promise<{ initPoint: string } | { error: string }> {
-  const client = getClient();
-  if (!client) return { error: "Mercado Pago no está configurado todavía." };
-
-  try {
-    const result = await new Preference(client).create({
-      body: {
-        items: [
-          {
-            id: `sub-${params.professionalId}`,
-            title: `Tu Hora Lista — 1 mes de plan (${params.businessName})`,
-            quantity: 1,
-            unit_price: SUBSCRIPTION_PRICE_CLP,
-            currency_id: "CLP",
-          },
-        ],
-        external_reference: `sub:${params.professionalId}`,
-        back_urls: {
-          success: `${siteUrl()}/dashboard/suscripcion?pago=1`,
-          pending: `${siteUrl()}/dashboard/suscripcion?pago=pendiente`,
-          failure: `${siteUrl()}/dashboard/suscripcion?pago=error`,
-        },
-        notification_url: `${siteUrl()}/api/mercadopago/webhook`,
-      },
-    });
-    if (!result.init_point) {
-      return { error: "Mercado Pago no devolvió un link de pago válido." };
-    }
-    return { initPoint: result.init_point };
-  } catch (err) {
-    console.error("Error creando link de pago del plan en Mercado Pago:", JSON.stringify(err));
-    return { error: "No se pudo generar el link de pago. Intenta de nuevo." };
-  }
+export function subscriptionCheckoutUrl(professionalId: string): string | null {
+  const planId = process.env.MERCADOPAGO_SUBSCRIPTION_PLAN_ID;
+  if (!planId) return null;
+  const params = new URLSearchParams({
+    preapproval_plan_id: planId,
+    external_reference: professionalId,
+  });
+  return `https://www.mercadopago.cl/subscriptions/checkout?${params.toString()}`;
 }
 
 /**
  * Pago ÚNICO de 1 AÑO de plan, con el descuento anual (ver
- * SUBSCRIPTION_PRICE_ANNUAL_CLP). Mismo mecanismo que el pago manual
- * mensual — funciona con débito, crédito y efectivo — pero
- * `external_reference` lleva el prefijo "sub-annual:" para que el webhook
- * extienda `subscriptionPaidUntil` en 365 días en vez de 31.
+ * SUBSCRIPTION_PRICE_ANNUAL_CLP). `external_reference` lleva el prefijo
+ * "sub-annual:" para que el webhook extienda `subscriptionPaidUntil` 365
+ * días en vez de 31. Solo tarjeta: se excluyen los medios de pago en
+ * efectivo (ticket) y transferencia/depósito (atm).
  */
 export async function createAnnualPaymentLink(params: {
   professionalId: string;
@@ -133,6 +99,9 @@ export async function createAnnualPaymentLink(params: {
           },
         ],
         external_reference: `sub-annual:${params.professionalId}`,
+        payment_methods: {
+          excluded_payment_types: [{ id: "ticket" }, { id: "atm" }],
+        },
         back_urls: {
           success: `${siteUrl()}/dashboard/suscripcion?pago=1`,
           pending: `${siteUrl()}/dashboard/suscripcion?pago=pendiente`,

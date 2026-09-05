@@ -2,69 +2,35 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentProfessional } from "@/lib/auth-helpers";
-import {
-  createAnnualPaymentLink,
-  createSubscriptionInitPoint,
-  createSubscriptionPaymentLink,
-} from "@/lib/mercadopago";
-import { isValidEmail } from "@/lib/validation";
+import { createAnnualPaymentLink, subscriptionCheckoutUrl } from "@/lib/mercadopago";
 
-export async function startSubscriptionCheckout(formData: FormData): Promise<void> {
+/**
+ * Cobro automático mensual. Manda al profesional al checkout de suscripción
+ * de Mercado Pago ligado a NUESTRO plan mensual. Mercado Pago le pide ahí
+ * su correo y su tarjeta — la app no pide nada antes. `external_reference`
+ * (el id del profesional) viaja en la URL para que el webhook sepa a quién
+ * activar cuando la suscripción quede autorizada.
+ */
+export async function startSubscriptionCheckout(): Promise<void> {
   const professional = await getCurrentProfessional();
   if (!professional) redirect("/login");
 
-  // El `payer_email` de la suscripción debe ser el correo de la CUENTA DE
-  // MERCADO PAGO del profesional — no necesariamente el que usó para
-  // registrarse en la app. Si no coinciden, Mercado Pago muestra el checkout
-  // pero deja el botón "Confirmar" deshabilitado. Por eso se pide explícito.
-  const mpEmail = String(formData.get("mpEmail") || "").trim().toLowerCase();
-  if (!isValidEmail(mpEmail)) {
+  const url = subscriptionCheckoutUrl(professional.id);
+  if (!url) {
     redirect(
       `/dashboard/suscripcion?error=${encodeURIComponent(
-        "Ingresa el correo de tu cuenta de Mercado Pago."
+        "El cobro automático no está disponible todavía. Puedes pagar el año completo, o escríbenos a soporte@tuhoralista.com."
       )}`
     );
   }
-
-  const result = await createSubscriptionInitPoint({
-    professionalId: professional.id,
-    payerEmail: mpEmail,
-    businessName: professional.businessName,
-  });
-
-  if ("error" in result) {
-    redirect(`/dashboard/suscripcion?error=${encodeURIComponent(result.error)}`);
-  }
-
-  redirect(result.initPoint);
-}
-
-/**
- * Pago ÚNICO de 1 mes de plan. Camino para quien no puede usar cobro
- * recurrente (débito chileno): funciona con débito, crédito y efectivo.
- * No hay `payer_email` — MP usa el de quien pague. El acceso se extiende
- * cuando llega el webhook del pago aprobado.
- */
-export async function startSubscriptionOneTimePayment(): Promise<void> {
-  const professional = await getCurrentProfessional();
-  if (!professional) redirect("/login");
-
-  const result = await createSubscriptionPaymentLink({
-    professionalId: professional.id,
-    businessName: professional.businessName,
-  });
-
-  if ("error" in result) {
-    redirect(`/dashboard/suscripcion?error=${encodeURIComponent(result.error)}`);
-  }
-
-  redirect(result.initPoint);
+  redirect(url);
 }
 
 /**
  * Pago ÚNICO de 1 AÑO de plan, con el descuento anual (2 meses gratis).
- * Mismo camino que el mensual — débito, crédito y efectivo —, pero con
- * `subscriptionPaidUntil` extendido 365 días en vez de 31.
+ * Funciona con débito o crédito — no necesita cuenta de Mercado Pago ni
+ * cobro recurrente. El acceso se extiende 365 días cuando llega el webhook
+ * del pago aprobado.
  */
 export async function startAnnualSubscriptionPayment(): Promise<void> {
   const professional = await getCurrentProfessional();
