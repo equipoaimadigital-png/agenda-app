@@ -1,5 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { hasDashboardAccess, pastDueGraceDaysLeft, PAST_DUE_GRACE_DAYS } from "./subscription";
+import {
+  ANNUAL_LIST_PRICE_CLP,
+  ANNUAL_SAVINGS_CLP,
+  hasDashboardAccess,
+  pastDueGraceDaysLeft,
+  PAST_DUE_GRACE_DAYS,
+  SUBSCRIPTION_PRICE_ANNUAL_CLP,
+  SUBSCRIPTION_PRICE_CLP,
+} from "./subscription";
+
+describe("precios del plan anual", () => {
+  it("el precio de lista es 12 meses al valor mensual", () => {
+    expect(ANNUAL_LIST_PRICE_CLP).toBe(SUBSCRIPTION_PRICE_CLP * 12);
+  });
+
+  it("el plan anual cobra 10 meses (2 gratis)", () => {
+    expect(SUBSCRIPTION_PRICE_ANNUAL_CLP).toBe(SUBSCRIPTION_PRICE_CLP * 10);
+  });
+
+  it("el ahorro es la diferencia entre lista y precio anual, y es positivo", () => {
+    expect(ANNUAL_SAVINGS_CLP).toBe(ANNUAL_LIST_PRICE_CLP - SUBSCRIPTION_PRICE_ANNUAL_CLP);
+    expect(ANNUAL_SAVINGS_CLP).toBeGreaterThan(0);
+  });
+});
 
 const future = new Date(Date.now() + 5 * 86400000);
 const past = new Date(Date.now() - 5 * 86400000);

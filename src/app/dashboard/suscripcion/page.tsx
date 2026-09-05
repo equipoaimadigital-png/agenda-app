@@ -1,5 +1,6 @@
 import { getCurrentProfessional } from "@/lib/auth-helpers";
 import {
+  ANNUAL_LIST_PRICE_CLP,
   ANNUAL_SAVINGS_CLP,
   hasDashboardAccess,
   pastDueGraceDaysLeft,
@@ -174,6 +175,7 @@ export default async function SuscripcionPage({ searchParams }: PageProps) {
         <PlanTabs
           monthlyPrice={SUBSCRIPTION_PRICE_CLP}
           annualPrice={SUBSCRIPTION_PRICE_ANNUAL_CLP}
+          annualListPrice={ANNUAL_LIST_PRICE_CLP}
           annualSavings={ANNUAL_SAVINGS_CLP}
           startRecurring={startSubscriptionCheckout}
           startAnnual={startAnnualSubscriptionPayment}

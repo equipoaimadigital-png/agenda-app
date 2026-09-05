@@ -12,6 +12,7 @@ const buttonClass =
 type Props = {
   monthlyPrice: number;
   annualPrice: number;
+  annualListPrice: number;
   annualSavings: number;
   startRecurring: () => Promise<void>;
   startAnnual: () => Promise<void>;
@@ -20,6 +21,7 @@ type Props = {
 export function PlanTabs({
   monthlyPrice,
   annualPrice,
+  annualListPrice,
   annualSavings,
   startRecurring,
   startAnnual,
@@ -77,14 +79,19 @@ export function PlanTabs({
             2 meses gratis
           </span>
           <p className="font-medium mt-1">Pagar 1 año</p>
+          <p className="flex items-baseline gap-2">
+            <span className="text-sm text-muted line-through">{formatPrice(annualListPrice)}</span>
+            <span className="text-lg font-semibold">{formatPrice(annualPrice)}</span>
+            <span className="text-sm text-muted">al año</span>
+          </p>
           <p className="text-sm text-muted">
-            Un pago único de {formatPrice(annualPrice)} — te ahorras{" "}
+            Un pago único, con los <strong>2 meses gratis ya aplicados</strong> — te ahorras{" "}
             <strong>{formatPrice(annualSavings)}</strong> frente a pagar mes a mes. Sirve con{" "}
             <strong>débito o crédito</strong>. Tu plan queda al día por 12 meses.
           </p>
           <form action={startAnnual}>
             <button type="submit" className={`${buttonClass} bg-brass text-white`}>
-              Pagar {formatPrice(annualPrice)} por 1 año
+              Pagar {formatPrice(annualPrice)} por 1 año (2 meses gratis)
             </button>
           </form>
         </div>
